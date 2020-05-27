@@ -6,27 +6,32 @@
 package akka.persistence.jdbc
 package journal.dao
 
-import akka.{ Done, NotUsed }
+import java.sql.SQLException
+
+import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.Serialization
 import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
-import org.slf4j.LoggerFactory
+import akka.{ Done, NotUsed }
+import org.slf4j.{ Logger, LoggerFactory }
 import slick.jdbc.JdbcBackend._
-import slick.jdbc.{ H2Profile, JdbcProfile }
+import slick.jdbc.JdbcProfile
+
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
-import akka.actor.Scheduler
-
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
  */
-trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoWithReadMessages {
+trait BaseByteArrayJournalDao
+    extends JournalDaoWithUpdates
+    with BaseJournalDaoWithReadMessages
+    with PostgresPartitions {
   val db: Database
   val profile: JdbcProfile
   val queries: JournalQueries
@@ -79,9 +84,16 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
     }
   }
 
+  // FIXME quick & dirty
   private def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
     // Write atomically without auto-commit
-    db.run(queries.writeJournalRows(xs).transactionally).map(_ => ())
+    db.run(queries.writeJournalRows(xs).transactionally)
+      .recoverWith {
+        case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation =>
+          logger.info(s"Adding missing journal partition...")
+          attachJournalPartition().flatMap(_ => db.run(queries.writeJournalRows(xs).transactionally))
+      }
+      .map(_ => ())
   }
 
   /**
@@ -156,6 +168,36 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
 
 }
 
+// FIXME quick & dirty
+trait PostgresPartitions {
+  def db: Database
+
+  def logger: Logger
+
+  import ExecutionContext.Implicits.global
+
+  private lazy val partitionSize = 2000L
+
+  // FIXME from time to time it fails (really poor concurrency)
+  def attachJournalPartition(): Future[Unit] = {
+    import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
+    db.run {
+        for {
+          maxOrdering <- sql"""SELECT last_value FROM journal_ordering_seq""".as[Long].head
+          from = (maxOrdering / partitionSize) * partitionSize
+          to = from + partitionSize
+          tableName = s"journal_${from}_$to"
+          _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES FROM (#$from) TO (#$to)"""
+        } yield ()
+      }
+      .recoverWith {
+        case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
+          // Partition already created from another session, all good, recovery succeeded
+          Future.successful(())
+      }
+  }
+}
+
 trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
   import FlowControl._
 
@@ -210,6 +252,11 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
       .mapConcat(identity)
   }
 
+}
+
+object PostgresErrorCodes {
+  val PgCheckViolation: String = "23514"
+  val PgDuplicateTable: String = "42P07"
 }
 
 trait H2JournalDao extends JournalDao {
