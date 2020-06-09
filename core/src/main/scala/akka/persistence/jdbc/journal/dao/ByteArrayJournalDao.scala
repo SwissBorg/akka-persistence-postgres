@@ -91,7 +91,7 @@ trait BaseByteArrayJournalDao
       .recoverWith {
         case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation =>
           logger.info(s"Adding missing journal partition...")
-          attachJournalPartition().flatMap(_ => db.run(queries.writeJournalRows(xs).transactionally))
+          attachJournalPartition(xs).flatMap(_ => db.run(queries.writeJournalRows(xs).transactionally))
       }
       .map(_ => ())
   }
@@ -174,27 +174,30 @@ trait PostgresPartitions {
 
   def logger: Logger
 
-  import ExecutionContext.Implicits.global
-
   private lazy val partitionSize = 2000L
 
   // FIXME from time to time it fails (really poor concurrency)
-  def attachJournalPartition(): Future[Unit] = {
+  def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
     import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
-    db.run {
-        for {
-          maxOrdering <- sql"""SELECT last_value FROM journal_ordering_seq""".as[Long].head
-          from = (maxOrdering / partitionSize) * partitionSize
-          to = from + partitionSize
-          tableName = s"journal_${from}_$to"
-          _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES FROM (#$from) TO (#$to)"""
-        } yield ()
+    val persistenceIdToMaxSequenceNumber: Map[String, Long] =
+      xs.groupBy(_.persistenceId).mapValues(rows => rows.map(_.sequenceNumber).max)
+    Future
+      .sequence {
+        persistenceIdToMaxSequenceNumber.toList.map {
+          case (persistenceId, _) =>
+            // tableName cannot have different
+            val tableName = s"j_${persistenceId.replaceAll("\\W", "_")}"
+            db.run {
+                sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId')"""
+              }
+              .recoverWith {
+                case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
+                  // Partition already created from another session, all good, recovery succeeded
+                  Future.successful(())
+              }
+        }
       }
-      .recoverWith {
-        case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
-          // Partition already created from another session, all good, recovery succeeded
-          Future.successful(())
-      }
+      .map(_ => ())
   }
 }
 

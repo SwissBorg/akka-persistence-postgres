@@ -5,15 +5,18 @@
 
 package akka.persistence.jdbc.journal
 
-import akka.persistence.CapabilityFlag
+import akka.actor.Actor
+import akka.persistence.{CapabilityFlag, PersistentImpl}
+import akka.persistence.JournalProtocol.{RecoverySuccess, ReplayMessages, ReplayedMessage}
 import akka.persistence.jdbc.config._
 import akka.persistence.jdbc.util.Schema._
-import akka.persistence.jdbc.util.{ ClasspathResources, DropCreate }
-import akka.persistence.jdbc.db.{ SlickDatabase, SlickExtension }
+import akka.persistence.jdbc.util.{ClasspathResources, DropCreate}
+import akka.persistence.jdbc.db.{SlickDatabase, SlickExtension}
 import akka.persistence.journal.JournalSpec
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import akka.testkit.TestProbe
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.duration._
 
@@ -49,7 +52,38 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
 
 class PostgresJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), Postgres())
 class PostgresJournalSpecSharedDb
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres())
+    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres()) {
+
+  "A journal" must {
+    "allow to store concurrently events for different persistenceId" in {
+
+      val pId1 ="persist1"
+      val pId2 ="persist2"
+      val sender1 = TestProbe()
+      val sender2 = TestProbe()
+      val receiverProbe = TestProbe()
+      writeMessages(1, 1000, pId1, sender1.ref, writerUuid)
+      writeMessages(1, 1000, pId2, sender2.ref, writerUuid)
+
+      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId1, receiverProbe.ref)
+      (1 to 1000).foreach { i =>
+        receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId1))
+      }
+      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
+
+      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId2, receiverProbe.ref)
+      (1 to 1000).foreach { i =>
+        receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId2))
+      }
+      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
+    }
+  }
+
+  def replayedPostgreSQLMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
+    ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
+
+
+}
 class PostgresJournalSpecPhysicalDelete
     extends JdbcJournalSpec(
       ConfigFactory
