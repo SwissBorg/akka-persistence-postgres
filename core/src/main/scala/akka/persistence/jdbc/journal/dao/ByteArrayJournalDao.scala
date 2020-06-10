@@ -11,19 +11,20 @@ import java.sql.SQLException
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
-import akka.persistence.{ AtomicWrite, PersistentRepr }
+import akka.persistence.{AtomicWrite, PersistentRepr}
 import akka.serialization.Serialization
-import akka.stream.scaladsl.{ Keep, Sink, Source }
-import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
-import akka.{ Done, NotUsed }
-import org.slf4j.{ Logger, LoggerFactory }
+import akka.stream.scaladsl.{Keep, Sink, Source}
+import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
+import akka.{Done, NotUsed}
+import org.slf4j.{Logger, LoggerFactory}
 import slick.jdbc.JdbcBackend._
 import slick.jdbc.JdbcProfile
+import slick.sql.SqlAction
 
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
@@ -178,18 +179,31 @@ trait PostgresPartitions {
 
   // FIXME from time to time it fails (really poor concurrency)
   def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
-    import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
-    val persistenceIdToMaxSequenceNumber: Map[String, Long] =
-      xs.groupBy(_.persistenceId).mapValues(rows => rows.map(_.sequenceNumber).max)
+    import slick.jdbc.PostgresProfile.api.{ DBIO => _ , _ }
+    val persistenceIdToMaxSequenceNumber: Map[String, (Long, Long)] =
+      xs.groupBy(_.persistenceId).mapValues(rows => rows.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     Future
       .sequence {
         persistenceIdToMaxSequenceNumber.toList.map {
-          case (persistenceId, _) =>
+          case (persistenceId, (min, max)) =>
             // tableName cannot have different
-            val tableName = s"j_${persistenceId.replaceAll("\\W", "_")}"
-            db.run {
-                sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId')"""
+            val persistenceIdSQLRepresentation = persistenceId.replaceAll("\\W", "_")
+            val tableName = s"j_$persistenceIdSQLRepresentation"
+            val actions = for {
+              _: Int <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
+              minPartition = min / partitionSize
+              maxPartition = (max + partitionSize - 1) / partitionSize
+              _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
+                for (z <- minPartition to maxPartition) yield {
+                  val name = s"${tableName}_$z"
+                  val minRange = z * partitionSize
+                  val maxRange = (z + 1) * partitionSize
+                  sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+                }
               }
+            } yield ()
+
+            db.run(actions)
               .recoverWith {
                 case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
                   // Partition already created from another session, all good, recovery succeeded
