@@ -162,7 +162,7 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
   def logger: Logger
 
 //  TODO extract as parameter
-  private lazy val partitionSize = 500L
+  private lazy val partitionSize = 2000L
 
   val profile: JdbcProfile
 
