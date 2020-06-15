@@ -11,28 +11,26 @@ import java.sql.SQLException
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
-import akka.persistence.{AtomicWrite, PersistentRepr}
+import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.Serialization
-import akka.stream.scaladsl.{Keep, Sink, Source}
-import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
-import akka.{Done, NotUsed}
-import org.slf4j.{Logger, LoggerFactory}
+import akka.stream.scaladsl.{ Keep, Sink, Source }
+import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
+import akka.{ Done, NotUsed }
+import org.slf4j.{ Logger, LoggerFactory }
 import slick.jdbc.JdbcBackend._
 import slick.jdbc.JdbcProfile
-import slick.sql.SqlAction
 
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
  */
 trait BaseByteArrayJournalDao
     extends JournalDaoWithUpdates
-    with BaseJournalDaoWithReadMessages
-    with PostgresPartitions {
+    with BaseJournalDaoWithReadMessages {
   val db: Database
   val profile: JdbcProfile
   val queries: JournalQueries
@@ -85,16 +83,9 @@ trait BaseByteArrayJournalDao
     }
   }
 
-  // FIXME quick & dirty
-  private def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
+  protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
     // Write atomically without auto-commit
-    db.run(queries.writeJournalRows(xs).transactionally)
-      .recoverWith {
-        case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation =>
-          logger.info(s"Adding missing journal partition...")
-          attachJournalPartition(xs).flatMap(_ => db.run(queries.writeJournalRows(xs).transactionally))
-      }
-      .map(_ => ())
+    db.run(queries.writeJournalRows(xs).transactionally).map(_ => ())
   }
 
   /**
@@ -170,45 +161,60 @@ trait BaseByteArrayJournalDao
 }
 
 // FIXME quick & dirty
-trait PostgresPartitions {
-  def db: Database
-
+trait PostgresPartitions extends BaseByteArrayJournalDao {
   def logger: Logger
 
-  private lazy val partitionSize = 2000L
+//  TODO extract as parameter
+  private lazy val partitionSize = 500L
 
-  // FIXME from time to time it fails (really poor concurrency)
+  val profile: JdbcProfile
+
+  private lazy val isPostgresDriver = profile match {
+    case slick.jdbc.PostgresProfile => true
+    case _                    => false
+  }
+
+  override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
+    // Write atomically without auto-commit
+    super.writeJournalRows(xs)
+      .recoverWith {
+        case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation && isPostgresDriver =>
+          logger.info(s"Adding missing journal partition...")
+          attachJournalPartition(xs).flatMap(_ => super.writeJournalRows(xs))
+      }
+  }
+
   def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
-    import slick.jdbc.PostgresProfile.api.{ DBIO => _ , _ }
+    import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
     val persistenceIdToMaxSequenceNumber: Map[String, (Long, Long)] =
       xs.groupBy(_.persistenceId).mapValues(rows => rows.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     Future
       .sequence {
         persistenceIdToMaxSequenceNumber.toList.map {
           case (persistenceId, (min, max)) =>
-            // tableName cannot have different
+            // tableName can contain only digits, letters and _ (underscore), al`l other characters will be replaced with _ (underscore)
             val persistenceIdSQLRepresentation = persistenceId.replaceAll("\\W", "_")
+//            TODO j_ should be parameter
             val tableName = s"j_$persistenceIdSQLRepresentation"
             val actions = for {
               _: Int <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
-              minPartition = min / partitionSize
-              maxPartition = (max + partitionSize - 1) / partitionSize
+
               _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
-                for (z <- minPartition to maxPartition) yield {
-                  val name = s"${tableName}_$z"
-                  val minRange = z * partitionSize
-                  val maxRange = (z + 1) * partitionSize
+                for (partitionNumber <- min/partitionSize to max/partitionSize + 1) yield {
+                  //            TODO j_ should be parameter
+                  val name = s"${tableName}_$partitionNumber"
+                  val minRange = partitionNumber * partitionSize
+                  val maxRange = minRange + partitionSize
                   sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
                 }
               }
             } yield ()
 
-            db.run(actions)
-              .recoverWith {
-                case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
-                  // Partition already created from another session, all good, recovery succeeded
-                  Future.successful(())
-              }
+            db.run(actions).recoverWith {
+              case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
+                // Partition already created from another session, all good, recovery succeeded
+                Future.successful(())
+            }
         }
       }
       .map(_ => ())
@@ -307,7 +313,8 @@ class ByteArrayJournalDao(
     val journalConfig: JournalConfig,
     serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayJournalDao
-    with H2JournalDao {
+    with H2JournalDao
+with PostgresPartitions{
   val queries = new JournalQueries(profile, journalConfig.journalTableConfiguration)
   val serializer = new ByteArrayJournalSerializer(serialization, journalConfig.pluginConfig.tagSeparator)
 }
