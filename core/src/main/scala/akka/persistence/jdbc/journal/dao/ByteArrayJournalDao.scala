@@ -28,9 +28,7 @@ import scala.util.{ Failure, Success, Try }
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
  */
-trait BaseByteArrayJournalDao
-    extends JournalDaoWithUpdates
-    with BaseJournalDaoWithReadMessages {
+trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoWithReadMessages {
   val db: Database
   val profile: JdbcProfile
   val queries: JournalQueries
@@ -160,7 +158,6 @@ trait BaseByteArrayJournalDao
 
 }
 
-// FIXME quick & dirty
 trait PostgresPartitions extends BaseByteArrayJournalDao {
   def logger: Logger
 
@@ -171,53 +168,49 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
 
   private lazy val isPostgresDriver = profile match {
     case slick.jdbc.PostgresProfile => true
-    case _                    => false
+    case _                          => false
   }
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
     // Write atomically without auto-commit
-    super.writeJournalRows(xs)
-      .recoverWith {
-        case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation && isPostgresDriver =>
-          logger.info(s"Adding missing journal partition...")
-          attachJournalPartition(xs).flatMap(_ => super.writeJournalRows(xs))
-      }
+    super.writeJournalRows(xs).recoverWith {
+      case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation && isPostgresDriver =>
+        logger.info(s"Adding missing journal partition...")
+        attachJournalPartition(xs).flatMap(_ => super.writeJournalRows(xs))
+    }
   }
 
   def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
     import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
-    val persistenceIdToMaxSequenceNumber: Map[String, (Long, Long)] =
-      xs.groupBy(_.persistenceId).mapValues(rows => rows.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
-    Future
-      .sequence {
-        persistenceIdToMaxSequenceNumber.toList.map {
-          case (persistenceId, (min, max)) =>
-            // tableName can contain only digits, letters and _ (underscore), al`l other characters will be replaced with _ (underscore)
-            val persistenceIdSQLRepresentation = persistenceId.replaceAll("\\W", "_")
-//            TODO j_ should be parameter
-            val tableName = s"j_$persistenceIdSQLRepresentation"
-            val actions = for {
-              _: Int <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
-
-              _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
-                for (partitionNumber <- min/partitionSize to max/partitionSize + 1) yield {
-                  //            TODO j_ should be parameter
-                  val name = s"${tableName}_$partitionNumber"
-                  val minRange = partitionNumber * partitionSize
-                  val maxRange = minRange + partitionSize
-                  sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
-                }
-              }
-            } yield ()
-
-            db.run(actions).recoverWith {
-              case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
-                // Partition already created from another session, all good, recovery succeeded
-                Future.successful(())
+    val persistenceIdToMaxSequenceNumber =
+      xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
+    val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
+      case (persistenceId, (minSeqNr, maxSeqNr)) =>
+        // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
+        val persistenceIdSQLRepresentation = persistenceId.replaceAll("\\W", "_")
+        //            TODO j_ should be parameter
+        val tableName = s"j_$persistenceIdSQLRepresentation"
+        val actions = for {
+          _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
+          _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
+            for (partitionNumber <- minSeqNr / partitionSize to maxSeqNr / partitionSize + 1) yield {
+              //            TODO j_ should be parameter
+              val name = s"${tableName}_$partitionNumber"
+              val minRange = partitionNumber * partitionSize
+              val maxRange = minRange + partitionSize
+              sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
             }
+          }
+        } yield ()
+
+        db.run(actions).recoverWith {
+          case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
+            // Partition already created from another session, all good, recovery succeeded
+            Future.successful(())
         }
-      }
-      .map(_ => ())
+    }
+
+    Future.sequence(databaseOperations).map(_ => ())
   }
 }
 
@@ -314,7 +307,7 @@ class ByteArrayJournalDao(
     serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayJournalDao
     with H2JournalDao
-with PostgresPartitions{
+    with PostgresPartitions {
   val queries = new JournalQueries(profile, journalConfig.journalTableConfiguration)
   val serializer = new ByteArrayJournalSerializer(serialization, journalConfig.pluginConfig.tagSeparator)
 }
