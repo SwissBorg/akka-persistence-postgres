@@ -85,9 +85,10 @@ lazy val docs = project
 
 Global / onLoad := (Global / onLoad).value.andThen { s =>
   val v = version.value
-  if (dynverGitDescribeOutput.value.hasNoTags)
-    throw new MessageOnlyException(
-      s"Failed to derive version from git tags. Maybe run `git fetch --unshallow`? Derived version: $v")
+//  TODO commented because it does not compile
+//  if (dynverGitDescribeOutput.value.hasNoTags)
+//    throw new MessageOnlyException(
+//      s"Failed to derive version from git tags. Maybe run `git fetch --unshallow`? Derived version: $v")
   s
 }
 
