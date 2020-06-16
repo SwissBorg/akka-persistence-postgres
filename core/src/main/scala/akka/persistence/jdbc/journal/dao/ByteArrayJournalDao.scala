@@ -7,6 +7,7 @@ package akka.persistence.jdbc
 package journal.dao
 
 import java.sql.SQLException
+import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
@@ -173,12 +174,10 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
     // Write atomically without auto-commit
-    super.writeJournalRows(xs).recoverWith {
-      case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgCheckViolation && isPostgresDriver =>
-        logger.info(s"Adding missing journal partition...")
-        attachJournalPartition(xs).flatMap(_ => super.writeJournalRows(xs))
-    }
+    attachJournalPartition(xs).flatMap(_ => super.writeJournalRows(xs))
   }
+
+  private val createdPartitions = new ConcurrentHashMap[String, List[Long]]()
 
   def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
     import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
@@ -186,27 +185,38 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
       xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
       case (persistenceId, (minSeqNr, maxSeqNr)) =>
-        // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
-        val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
-        //            TODO j_ should be parameter
-        val tableName = s"j_$sanitizedPersistenceId"
-        val actions = for {
-          _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
-          _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
-            for (partitionNumber <- minSeqNr / partitionSize to maxSeqNr / partitionSize + 1) yield {
-              //            TODO j_ should be parameter
-              val name = s"${tableName}_$partitionNumber"
-              val minRange = partitionNumber * partitionSize
-              val maxRange = minRange + partitionSize
-              sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
-            }
-          }
-        } yield ()
+        val requiredPartitions = minSeqNr / partitionSize to maxSeqNr / partitionSize + 1
+        val existingPartitions = createdPartitions.getOrDefault(persistenceId, Nil)
+        val partitionsToCreate = requiredPartitions.toList.filter(!existingPartitions.contains(_))
 
-        db.run(actions).recoverWith {
-          case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
-            // Partition already created from another session, all good, recovery succeeded
-            Future.successful(())
+        if (partitionsToCreate.nonEmpty) {
+          logger.info(s"Adding missing journal partition...")
+          // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
+          val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
+          //            TODO j_ should be parameter
+          val tableName = s"j_$sanitizedPersistenceId"
+          val actions = for {
+            _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
+            _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
+              for (partitionNumber <- partitionsToCreate) yield {
+                //            TODO j_ should be parameter
+                val name = s"${tableName}_$partitionNumber"
+                val minRange = partitionNumber * partitionSize
+                val maxRange = minRange + partitionSize
+                sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+              }
+            }
+          } yield ()
+          db.run(actions).recoverWith {
+            case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
+              // Partition already created from another session, all good, recovery succeeded
+              Future.successful(())
+          }
+            .map(_ => {
+              createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
+            })
+        } else {
+          Future.successful(())
         }
     }
 
