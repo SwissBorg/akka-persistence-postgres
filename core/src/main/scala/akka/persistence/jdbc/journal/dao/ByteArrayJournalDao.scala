@@ -187,9 +187,9 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
     val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
       case (persistenceId, (minSeqNr, maxSeqNr)) =>
         // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
-        val persistenceIdSQLRepresentation = persistenceId.replaceAll("\\W", "_")
+        val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
         //            TODO j_ should be parameter
-        val tableName = s"j_$persistenceIdSQLRepresentation"
+        val tableName = s"j_$sanitizedPersistenceId"
         val actions = for {
           _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
           _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {

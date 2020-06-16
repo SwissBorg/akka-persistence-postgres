@@ -56,15 +56,17 @@ class PostgresJournalSpecSharedDb
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
-
+      //given
       val pId1 ="persist1"
       val pId2 ="persist2"
       val sender1 = TestProbe()
       val sender2 = TestProbe()
       val receiverProbe = TestProbe()
+      //when
       writeMessages(1, 1000, pId1, sender1.ref, writerUuid)
       writeMessages(1, 1000, pId2, sender2.ref, writerUuid)
 
+      //then
       journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId1, receiverProbe.ref)
       (1 to 1000).foreach { i =>
         receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId1))
@@ -76,6 +78,25 @@ class PostgresJournalSpecSharedDb
         receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId2))
       }
       receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
+    }
+
+    "create new sub-partition for new events" in {
+      //given
+      val pId ="persist3"
+      val sender = TestProbe()
+      val receiverProbe = TestProbe()
+      //when
+      writeMessages(1, 1000, pId, sender.ref, writerUuid)
+
+      // TODO we are assuming that sub-partition will be created for 2000 events, change it when will make parameter for number of events per partition
+      writeMessages(1001, 2500, pId, sender.ref, writerUuid)
+
+      //then
+      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
+      (1 to 2500).foreach { i =>
+        receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId))
+      }
+      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
     }
   }
 
