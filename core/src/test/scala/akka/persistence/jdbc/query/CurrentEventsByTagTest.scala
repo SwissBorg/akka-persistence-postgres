@@ -205,17 +205,3 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
 class PostgresScalaCurrentEventsByTagTest
     extends CurrentEventsByTagTest("postgres-shared-db-application.conf")
     with PostgresCleaner
-
-class MySQLScalaCurrentEventsByTagTest
-    extends CurrentEventsByTagTest("mysql-shared-db-application.conf")
-    with MysqlCleaner
-
-class OracleScalaCurrentEventsByTagTest
-    extends CurrentEventsByTagTest("oracle-shared-db-application.conf")
-    with OracleCleaner
-
-class SqlServerScalaCurrentEventsByTagTest
-    extends CurrentEventsByTagTest("sqlserver-shared-db-application.conf")
-    with SqlServerCleaner
-
-class H2ScalaCurrentEventsByTagTest extends CurrentEventsByTagTest("h2-shared-db-application.conf") with H2Cleaner

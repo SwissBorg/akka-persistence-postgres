@@ -23,7 +23,7 @@ import scala.concurrent.duration._
 
 import org.scalatest.time.Span
 
-abstract class JournalSequenceActorTest(configFile: String, isOracle: Boolean)
+abstract class JournalSequenceActorTest(configFile: String)
     extends QueryTestSpec(configFile)
     with JournalTables {
   private val log = LoggerFactory.getLogger(classOf[JournalSequenceActorTest])
@@ -57,11 +57,11 @@ abstract class JournalSequenceActorTest(configFile: String, isOracle: Boolean)
   private def canForceInsert: Boolean = profile.capabilities.contains(JdbcCapabilities.forceInsert)
 
   if (canForceInsert) {
-    it should s"recover ${if (isOracle) "one hundred thousand" else "one million"} events quickly if no ids are missing" in {
+    it should s"recover one million events quickly if no ids are missing" in {
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
           implicit val materializer: ActorMaterializer = ActorMaterializer()
-          val elements = if (isOracle) 100000 else 1000000
+          val elements = 1000000
           Source
             .fromIterator(() => (1 to elements).iterator)
             .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte)))
@@ -87,8 +87,7 @@ abstract class JournalSequenceActorTest(configFile: String, isOracle: Boolean)
     }
   }
 
-  if (!isOracle && canForceInsert) {
-    // Note this test case cannot be executed for oracle, because forceInsertAll is not supported in the oracle driver.
+  if (canForceInsert) {
     it should "recover after the specified max number if tries if the first event has a very high sequence number and lots of large gaps exist" in {
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
@@ -138,11 +137,7 @@ abstract class JournalSequenceActorTest(configFile: String, isOracle: Boolean)
             .runWith(Sink.ignore)
             .futureValue
 
-          val highestValue = if (isOracle) {
-            // ForceInsert does not seem to work for oracle, we must delete the odd numbered events
-            db.run(JournalTable.filter(_.ordering % 2L === 1L).delete).futureValue
-            maxElement / 2
-          } else maxElement
+          val highestValue =  maxElement
 
           withJournalSequenceActor(db, maxTries = 2) { actor =>
             // The actor should assume the max after 2 seconds
@@ -277,21 +272,5 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
 }
 
 class PostgresJournalSequenceActorTest
-    extends JournalSequenceActorTest("postgres-application.conf", isOracle = false)
+    extends JournalSequenceActorTest("postgres-application.conf")
     with PostgresCleaner
-
-class MySQLJournalSequenceActorTest
-    extends JournalSequenceActorTest("mysql-application.conf", isOracle = false)
-    with MysqlCleaner
-
-class OracleJournalSequenceActorTest
-    extends JournalSequenceActorTest("oracle-application.conf", isOracle = true)
-    with OracleCleaner
-
-class SqlServerJournalSequenceActorTest
-    extends JournalSequenceActorTest("sqlserver-application.conf", isOracle = false)
-    with SqlServerCleaner
-
-class H2JournalSequenceActorTest
-    extends JournalSequenceActorTest("h2-application.conf", isOracle = false)
-    with H2Cleaner

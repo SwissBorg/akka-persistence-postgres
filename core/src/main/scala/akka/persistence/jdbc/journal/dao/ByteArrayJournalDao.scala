@@ -11,19 +11,19 @@ import java.sql.SQLException
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
-import akka.persistence.{ AtomicWrite, PersistentRepr }
+import akka.persistence.{AtomicWrite, PersistentRepr}
 import akka.serialization.Serialization
-import akka.stream.scaladsl.{ Keep, Sink, Source }
-import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
-import akka.{ Done, NotUsed }
-import org.slf4j.{ Logger, LoggerFactory }
+import akka.stream.scaladsl.{Keep, Sink, Source}
+import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
+import akka.{Done, NotUsed}
+import org.slf4j.{Logger, LoggerFactory}
 import slick.jdbc.JdbcBackend._
 import slick.jdbc.JdbcProfile
 
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
@@ -37,7 +37,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
-  import journalConfig.daoConfig.{ batchSize, bufferSize, logicalDelete, parallelism }
+  import journalConfig.daoConfig.{batchSize, bufferSize, logicalDelete, parallelism}
   import profile.api._
 
   val logger = LoggerFactory.getLogger(this.getClass)
@@ -267,37 +267,11 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
       }
       .mapConcat(identity)
   }
-
 }
 
 object PostgresErrorCodes {
   val PgCheckViolation: String = "23514"
   val PgDuplicateTable: String = "42P07"
-}
-
-trait H2JournalDao extends JournalDao {
-  val profile: JdbcProfile
-
-  private lazy val isH2Driver = profile match {
-    case slick.jdbc.H2Profile => true
-    case _                    => false
-  }
-
-  abstract override def messages(
-      persistenceId: String,
-      fromSequenceNr: Long,
-      toSequenceNr: Long,
-      max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
-    super.messages(persistenceId, fromSequenceNr, toSequenceNr, correctMaxForH2Driver(max))
-  }
-
-  private def correctMaxForH2Driver(max: Long): Long = {
-    if (isH2Driver) {
-      Math.min(max, Int.MaxValue) // H2 only accepts a LIMIT clause as an Integer
-    } else {
-      max
-    }
-  }
 }
 
 class ByteArrayJournalDao(
@@ -306,7 +280,6 @@ class ByteArrayJournalDao(
     val journalConfig: JournalConfig,
     serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayJournalDao
-    with H2JournalDao
     with PostgresPartitions {
   val queries = new JournalQueries(profile, journalConfig.journalTableConfiguration)
   val serializer = new ByteArrayJournalSerializer(serialization, journalConfig.pluginConfig.tagSeparator)
