@@ -6,6 +6,8 @@
 package akka.persistence.jdbc
 package journal.dao
 
+import java.sql.SQLException
+
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
@@ -14,7 +16,7 @@ import akka.serialization.Serialization
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
 import akka.{Done, NotUsed}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import slick.jdbc.JdbcBackend._
 import slick.jdbc.JdbcProfile
 
