@@ -82,125 +82,12 @@ object TagFilterFlow {
     Flow[JournalRow].filter(_.tags.exists(tags => tags.split(separator).contains(tag)))
 }
 
-trait OracleReadJournalDao extends ReadJournalDao {
-  val db: Database
-  val profile: JdbcProfile
-  val readJournalConfig: ReadJournalConfig
-  val queries: ReadJournalQueries
-  val serializer: FlowPersistentReprSerializer[JournalRow]
-
-  import readJournalConfig.journalTableConfiguration._
-  import columnNames._
-
-  val theTableName = schemaName.map(_ + ".").getOrElse("") + s""""$tableName""""
-
-  import profile.api._
-
-  private def isOracleDriver(profile: JdbcProfile): Boolean = profile match {
-    case slick.jdbc.OracleProfile => true
-    case _                        => false
-  }
-
-  abstract override def allPersistenceIdsSource(max: Long): Source[String, NotUsed] = {
-    if (isOracleDriver(profile)) {
-      val selectStatement =
-        sql"""SELECT DISTINCT "#$persistenceId" FROM #$theTableName WHERE rownum <= $max""".as[String]
-      Source.fromPublisher(db.stream(selectStatement))
-    } else {
-      super.allPersistenceIdsSource(max)
-    }
-  }
-
-  implicit val getJournalRow = GetResult(r => JournalRow(r.<<, r.<<, r.<<, r.<<, r.nextBytes(), r.<<))
-
-  abstract override def eventsByTag(
-      tag: String,
-      offset: Long,
-      maxOffset: Long,
-      max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed] = {
-    if (isOracleDriver(profile)) {
-      val theOffset = Math.max(0, offset)
-      val theTag = s"%$tag%"
-
-      val selectStatement =
-        if (readJournalConfig.includeDeleted)
-          sql"""
-            SELECT "#$ordering", "#$deleted", "#$persistenceId", "#$sequenceNumber", "#$message", "#$tags"
-            FROM (
-              SELECT * FROM #$theTableName
-              WHERE "#$tags" LIKE $theTag
-              AND "#$ordering" > $theOffset
-              AND "#$ordering" <= $maxOffset
-              ORDER BY "#$ordering"
-            )
-            WHERE rownum <= $max""".as[JournalRow]
-        else
-          sql"""
-            SELECT "#$ordering", "#$deleted", "#$persistenceId", "#$sequenceNumber", "#$message", "#$tags"
-            FROM (
-              SELECT * FROM #$theTableName
-              WHERE "#$tags" LIKE $theTag
-              AND "#$ordering" > $theOffset
-              AND "#$ordering" <= $maxOffset
-              AND "#$deleted" = 'false'
-              ORDER BY "#$ordering"
-            )
-            WHERE rownum <= $max""".as[JournalRow]
-
-      // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
-      Source
-        .fromPublisher(db.stream(selectStatement))
-        .via(perfectlyMatchTag(tag, readJournalConfig.pluginConfig.tagSeparator))
-        .via(serializer.deserializeFlow)
-
-    } else {
-      super.eventsByTag(tag, offset, maxOffset, max)
-    }
-  }
-}
-
-trait H2ReadJournalDao extends ReadJournalDao {
-  val profile: JdbcProfile
-
-  private def isH2Driver(profile: JdbcProfile): Boolean = profile match {
-    case slick.jdbc.H2Profile => true
-    case _                    => false
-  }
-
-  abstract override def allPersistenceIdsSource(max: Long): Source[String, NotUsed] =
-    super.allPersistenceIdsSource(correctMaxForH2Driver(max))
-
-  abstract override def eventsByTag(
-      tag: String,
-      offset: Long,
-      maxOffset: Long,
-      max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed] =
-    super.eventsByTag(tag, offset, maxOffset, correctMaxForH2Driver(max))
-
-  abstract override def messages(
-      persistenceId: String,
-      fromSequenceNr: Long,
-      toSequenceNr: Long,
-      max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] =
-    super.messages(persistenceId, fromSequenceNr, toSequenceNr, correctMaxForH2Driver(max))
-
-  private def correctMaxForH2Driver(max: Long): Long = {
-    if (isH2Driver(profile)) {
-      Math.min(max, Int.MaxValue) // H2 only accepts a LIMIT clause as an Integer
-    } else {
-      max
-    }
-  }
-}
-
 class ByteArrayReadJournalDao(
     val db: Database,
     val profile: JdbcProfile,
     val readJournalConfig: ReadJournalConfig,
     serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
-    extends BaseByteArrayReadJournalDao
-    with OracleReadJournalDao
-    with H2ReadJournalDao {
+    extends BaseByteArrayReadJournalDao {
   val queries = new ReadJournalQueries(profile, readJournalConfig)
   val serializer = new ByteArrayJournalSerializer(serialization, readJournalConfig.pluginConfig.tagSeparator)
 }

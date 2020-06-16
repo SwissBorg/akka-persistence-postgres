@@ -52,18 +52,10 @@ Configure `slick`:
 
 - The following slick profiles are supported:
   - `slick.jdbc.PostgresProfile$`
-  - `slick.jdbc.MySQLProfile$`
-  - `slick.jdbc.H2Profile$`
-  - `slick.jdbc.OracleProfile$`
-  - `slick.jdbc.SQLServerProfile$`
 
 ## Database Schema
 
 - @extref:[Postgres Schema](github:/core/src/test/resources/schema/postgres/postgres-schema.sql)
-- @extref:[MySQL Schema](github:/core/src/test/resources/schema/mysql/mysql-schema.sql)
-- @extref:[H2 Schema](github:/core/src/test/resources/schema/h2/h2-schema.sql)
-- @extref:[Oracle Schema](github:/core/src/test/resources/schema/oracle/oracle-schema.sql)
-- @extref:[SQL Server Schema](github:/core/src/test/resources/schema/sqlserver/sqlserver-schema.sql)
 
 ## Reference Configuration
 
@@ -78,20 +70,12 @@ one pool for the snapshot-journal, and one pool for the read-journal). This is t
 configuration shows how this is configured:
 
 - @extref:[Postgres](github:/src/test/resources/postgres-application.conf)
-- @extref:[MySQL](github:/src/test/resources/mysql-application.conf)
-- @extref:[H2](github:/src/test/resources/h2-application.conf)
-- @extref:[Oracle](github:/src/test/resources/oracle-application.conf)
-- @extref:[SQL Server](github:/src/test/resources/sqlserver-application.conf)
 
 ### Sharing the database connection pool between the journals
 
 In order to create only one connection pool which is shared between all journals the following configuration can be used:
 
 - @extref:[Postgres](github:/src/test/resources/postgres-shared-db-application.conf)
-- @extref:[MySQL](github:/src/test/resources/mysql-shared-db-application.conf)
-- @extref:[H2](github:/src/test/resources/h2-shared-db-application.conf)
-- @extref:[Oracle](github:/src/test/resources/oracle-shared-db-application.conf)
-- @extref:[SQL Server](github:/src/test/resources/sqlserver-shared-db-application.conf)
 
 ### Customized loading of the db connection
 
