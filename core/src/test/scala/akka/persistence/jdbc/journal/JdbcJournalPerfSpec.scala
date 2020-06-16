@@ -110,7 +110,7 @@ class PostgresJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("po
 
 class PostgresJournalPerfSpecSharedDb
     extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres()) {
-  override def eventsCount: Int = 10000
+  override def eventsCount: Int = 100
 }
 
 class PostgresJournalPerfSpecPhysicalDelete extends PostgresJournalPerfSpec {
