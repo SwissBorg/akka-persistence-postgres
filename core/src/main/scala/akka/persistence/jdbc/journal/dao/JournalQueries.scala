@@ -7,7 +7,9 @@ package akka.persistence.jdbc
 package journal.dao
 
 import akka.persistence.jdbc.config.JournalTableConfiguration
+import slick.dbio.Effect
 import slick.jdbc.JdbcProfile
+import slick.sql.FixedSqlAction
 
 class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: JournalTableConfiguration)
     extends JournalTables {
@@ -15,13 +17,13 @@ class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: Jou
 
   private val JournalTableC = Compiled(JournalTable)
 
-  def writeJournalRows(xs: Seq[JournalRow]) =
+  def writeJournalRows(xs: Seq[JournalRow]): FixedSqlAction[Option[Int], NoStream, slick.dbio.Effect.Write] =
     JournalTableC ++= xs.sortBy(_.sequenceNumber)
 
   private def selectAllJournalForPersistenceId(persistenceId: Rep[String]) =
     JournalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
 
-  def delete(persistenceId: String, toSequenceNr: Long) = {
+  def delete(persistenceId: String, toSequenceNr: Long): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
     JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
   }
 
