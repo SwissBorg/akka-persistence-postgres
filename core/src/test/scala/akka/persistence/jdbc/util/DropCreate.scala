@@ -47,19 +47,15 @@ trait DropCreate extends ClasspathResources {
   def dropCreate(schemaType: SchemaType): Unit = schemaType match {
     case Oracle(schema) =>
       dropOracle()
-      create(schema, "/")
+      create(schema)
     case s: SchemaType => create(s.schema)
   }
 
-  def create(schema: String, separator: String = ";"): Unit =
+  def create(schema: String): Unit =
     for {
       schema <- Option(fromClasspathAsString(schema))
-      ddl <- for {
-        trimmedLine <- schema.split(separator).map(_.trim)
-        if trimmedLine.nonEmpty
-      } yield trimmedLine
     } withStatement { stmt =>
-      try stmt.executeUpdate(ddl)
+      try stmt.executeUpdate(schema)
       catch {
         case t: java.sql.SQLSyntaxErrorException if t.getMessage contains "ORA-00942" => // suppress known error message in the test
       }
