@@ -137,7 +137,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   }
 
   private def highestMarkedSequenceNr(persistenceId: String) =
-    queries.highestMarkedSequenceNrForPersistenceId(persistenceId).result.headOption
+    queries.highestMarkedSequenceNrForPersistenceId(persistenceId).result
 
   override def highestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     for {
@@ -163,7 +163,7 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
   def logger: Logger
 
 //  TODO extract as parameter
-  private lazy val partitionSize = 2000L
+  private lazy val partitionSize = 20000L
 
   val profile: JdbcProfile
 
