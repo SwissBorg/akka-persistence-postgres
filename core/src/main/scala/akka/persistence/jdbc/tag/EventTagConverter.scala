@@ -6,6 +6,7 @@ import akka.persistence.jdbc.db.PostgresErrorCodes
 import org.postgresql.util.PSQLException
 import slick.jdbc.JdbcBackend._
 
+import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 
 trait EventTagConverter {
@@ -28,28 +29,27 @@ class EventTagDao(db: Database)(implicit ctx: ExecutionContext) extends EventTag
   override def getIdByNameForce(name: String): Int = nameToId.get(name)
 
   override def getIdByName(name: String): Future[Int] = {
-    Option(nameToId.get(name)) match {
-      case Some(value) =>
-        println(s"reading tag from cache ($name, $value)")
-        Future(value)
-      case None =>
-        db.run(queries.selectByName(name).result.headOption)
-          .flatMap {
-            case Some(value) =>
-              println(s"reading tag from db ($name, $value)")
-              Future(value)
-            case None =>
-              println(s"adding tag to db ($name)")
-              db.run(queries.add(EventTag(Int.MinValue, name)).transactionally).map(EventTag(_, name))
-          }
-          .map(updateCache)
-          .map(_.id)
-          .recoverWith {
-            // TODO introduce circuit breaker & back off
-            case ex: PSQLException if ex.getSQLState == PostgresErrorCodes.PgUniqueValidation =>
-              getIdByName(name)
-          }
-    }
+    
+    def get(retryAttempts: Int): Future[Int] =
+      Option(nameToId.get(name)) match {
+        case Some(value) => Future.successful(value)
+        case None =>
+          db.run(queries.selectByName(name).result.headOption)
+            .flatMap {
+              case Some(value) =>
+                Future.successful(value)
+              case None =>
+                db.run(queries.add(EventTag(Int.MinValue, name)).transactionally).map(EventTag(_, name))
+            }
+            .map(updateCache)
+            .map(_.id)
+            .recoverWith {
+              case ex: PSQLException if retryAttempts > 0 && ex.getSQLState == PostgresErrorCodes.PgUniqueValidation =>
+                get(retryAttempts - 1)
+            }
+      }
+
+    get(3)
   }
 
   private def updateCache(eventTag: EventTag): EventTag = {
