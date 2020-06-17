@@ -7,29 +7,27 @@ package akka.persistence.jdbc.query
 package scaladsl
 
 import akka.NotUsed
-import akka.actor.ExtendedActorSystem
+import akka.actor.{ExtendedActorSystem, Scheduler}
 import akka.persistence.jdbc.config.ReadJournalConfig
-import akka.persistence.jdbc.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
-import akka.persistence.jdbc.query.dao.ReadJournalDao
 import akka.persistence.jdbc.db.SlickExtension
 import akka.persistence.jdbc.journal.dao.FlowControl
+import akka.persistence.jdbc.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
+import akka.persistence.jdbc.query.dao.ReadJournalDao
+import akka.persistence.jdbc.util.PluginVersionChecker
 import akka.persistence.query.scaladsl._
-import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
-import akka.persistence.{ Persistence, PersistentRepr }
-import akka.serialization.{ Serialization, SerializationExtension }
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.persistence.query.{EventEnvelope, Offset, Sequence}
+import akka.persistence.{Persistence, PersistentRepr}
+import akka.serialization.{Serialization, SerializationExtension}
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{Materializer, SystemMaterializer}
 import akka.util.Timeout
 import com.typesafe.config.Config
 import slick.jdbc.JdbcBackend._
-import slick.jdbc.JdbcProfile
+
 import scala.collection.immutable._
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
-
-import akka.actor.Scheduler
-import akka.persistence.jdbc.util.PluginVersionChecker
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object JdbcReadJournal {
   final val Identifier = "jdbc-read-journal"
@@ -47,8 +45,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   PluginVersionChecker.check()
 
   implicit val ec: ExecutionContext = system.dispatcher
-  implicit val mat: Materializer = ActorMaterializer()
-
+  implicit val mat: Materializer = SystemMaterializer(system).materializer
   val readJournalConfig = new ReadJournalConfig(config)
 
   private val writePluginId = config.getString("write-plugin")
@@ -63,10 +60,8 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
       }
     }
     val fqcn = readJournalConfig.pluginConfig.dao
-    val profile: JdbcProfile = slickDb.profile
     val args = Seq(
       (classOf[Database], db),
-      (classOf[JdbcProfile], profile),
       (classOf[ReadJournalConfig], readJournalConfig),
       (classOf[Serialization], SerializationExtension(system)),
       (classOf[ExecutionContext], ec),
@@ -207,7 +202,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
     if (latestOrdering.maxOrdering < offset) Source.empty
     else {
       readJournalDao.eventsByTag(tag, offset, latestOrdering.maxOrdering, max).mapAsync(1)(Future.fromTry).mapConcat {
-        case (repr, _, ordering) =>
+        case (repr, ordering) =>
           adaptEvents(repr).map(r =>
             EventEnvelope(Sequence(ordering), r.persistenceId, r.sequenceNr, r.payload, r.timestamp))
       }
@@ -224,8 +219,8 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
       tag: String,
       offset: Long,
       terminateAfterOffset: Option[Long]): Source[EventEnvelope, NotUsed] = {
-    import akka.pattern.ask
     import FlowControl._
+    import akka.pattern.ask
     implicit val askTimeout: Timeout = Timeout(readJournalConfig.journalSequenceRetrievalConfiguration.askTimeout)
     val batchSize = readJournalConfig.maxBufferSize
 
@@ -274,7 +269,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   }
 
   def currentEventsByTag(tag: String, offset: Long): Source[EventEnvelope, NotUsed] =
-    Source.fromFuture(readJournalDao.maxJournalSequence()).flatMapConcat { maxOrderingInDb =>
+    Source.future(readJournalDao.maxJournalSequence()).flatMapConcat { maxOrderingInDb =>
       eventsByTag(tag, offset, terminateAfterOffset = Some(maxOrderingInDb))
     }
 

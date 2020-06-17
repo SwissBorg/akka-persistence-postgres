@@ -13,9 +13,7 @@ object SnapshotTables {
 }
 
 trait SnapshotTables {
-  val profile: slick.jdbc.JdbcProfile
-
-  import profile.api._
+  import akka.persistence.jdbc.db.Postgres11Profile.api._
 
   def snapshotTableCfg: SnapshotTableConfiguration
 

@@ -9,30 +9,28 @@ package query.dao
 import akka.NotUsed
 import akka.persistence.PersistentRepr
 import akka.persistence.jdbc.config.ReadJournalConfig
-import akka.persistence.jdbc.journal.dao.BaseJournalDaoWithReadMessages
-import akka.persistence.jdbc.journal.dao.ByteArrayJournalSerializer
-import akka.persistence.jdbc.query.dao.TagFilterFlow.perfectlyMatchTag
+import akka.persistence.jdbc.journal.dao.{BaseJournalDaoWithReadMessages, ByteArrayJournalSerializer}
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
+import akka.persistence.jdbc.tag.{EventTagConverter, EventTagDao}
 import akka.serialization.Serialization
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Flow, Source }
-import slick.jdbc.JdbcProfile
-import slick.jdbc.GetResult
+import akka.stream.scaladsl.Source
+import slick.basic.DatabasePublisher
 import slick.jdbc.JdbcBackend._
+
 import scala.collection.immutable._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWithReadMessages {
   def db: Database
-  val profile: JdbcProfile
   def queries: ReadJournalQueries
   def serializer: FlowPersistentReprSerializer[JournalRow]
   def readJournalConfig: ReadJournalConfig
+  // TODO extract
+  val converter: EventTagConverter = new EventTagDao(db)
 
-  import profile.api._
+  import akka.persistence.jdbc.db.Postgres11Profile.api._
 
   override def allPersistenceIdsSource(max: Long): Source[String, NotUsed] =
     Source.fromPublisher(db.stream(queries.allPersistenceIdsDistinct(max).result))
@@ -41,13 +39,11 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
       tag: String,
       offset: Long,
       maxOffset: Long,
-      max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed] = {
-
-    val publisher = db.stream(queries.eventsByTag(s"%$tag%", offset, maxOffset, max).result)
+      max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
+    val publisher: Int => DatabasePublisher[JournalRow] = tagId => db.stream(queries.eventsByTag(List(tagId), offset, maxOffset, max).result)
     // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
-    Source
-      .fromPublisher(publisher)
-      .via(perfectlyMatchTag(tag, readJournalConfig.pluginConfig.tagSeparator))
+    Source.future(converter.getIdByName(tag))
+      .flatMapConcat(tagId => Source.fromPublisher(publisher(tagId)))
       .via(serializer.deserializeFlow)
   }
 
@@ -60,8 +56,8 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
       .fromPublisher(db.stream(queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result))
       .via(serializer.deserializeFlow)
       .map {
-        case Success((repr, _, ordering)) => Success(repr -> ordering)
-        case Failure(e)                   => Failure(e)
+        case Success((repr, ordering)) => Success(repr -> ordering)
+        case Failure(e)                => Failure(e)
       }
   }
 
@@ -73,21 +69,11 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
   }
 }
 
-object TagFilterFlow {
-  /*
-   * Returns a Flow that retains every event with tags that perfectly match passed tag.
-   * This is a workaround for bug https://github.com/akka/akka-persistence-jdbc/issues/168
-   */
-  private[dao] def perfectlyMatchTag(tag: String, separator: String) =
-    Flow[JournalRow].filter(_.tags.exists(tags => tags.split(separator).contains(tag)))
-}
-
 class ByteArrayReadJournalDao(
     val db: Database,
-    val profile: JdbcProfile,
     val readJournalConfig: ReadJournalConfig,
     serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayReadJournalDao {
-  val queries = new ReadJournalQueries(profile, readJournalConfig)
-  val serializer = new ByteArrayJournalSerializer(serialization, readJournalConfig.pluginConfig.tagSeparator)
+  val queries = new ReadJournalQueries(readJournalConfig)
+  val serializer = new ByteArrayJournalSerializer(serialization, new EventTagDao(db))
 }

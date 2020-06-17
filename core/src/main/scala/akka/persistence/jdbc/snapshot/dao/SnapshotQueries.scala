@@ -7,11 +7,9 @@ package akka.persistence.jdbc.snapshot.dao
 
 import akka.persistence.jdbc.config.SnapshotTableConfiguration
 import akka.persistence.jdbc.snapshot.dao.SnapshotTables.SnapshotRow
-import slick.jdbc.JdbcProfile
 
-class SnapshotQueries(val profile: JdbcProfile, override val snapshotTableCfg: SnapshotTableConfiguration)
-    extends SnapshotTables {
-  import profile.api._
+class SnapshotQueries(override val snapshotTableCfg: SnapshotTableConfiguration) extends SnapshotTables {
+  import akka.persistence.jdbc.db.Postgres11Profile.api._
 
   private val SnapshotTableC = Compiled(SnapshotTable)
 

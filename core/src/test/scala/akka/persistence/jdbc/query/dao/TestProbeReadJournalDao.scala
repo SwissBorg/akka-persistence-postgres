@@ -6,17 +6,17 @@
 package akka.persistence.jdbc.query.dao
 
 import akka.NotUsed
+import akka.actor.Scheduler
+import akka.pattern.ask
+import akka.persistence.PersistentRepr
 import akka.persistence.jdbc.query.dao.TestProbeReadJournalDao.JournalSequence
-import akka.persistence.{ jdbc, PersistentRepr }
 import akka.stream.scaladsl.Source
 import akka.testkit.TestProbe
 import akka.util.Timeout
-import akka.pattern.ask
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Try
-
-import akka.actor.Scheduler
 
 object TestProbeReadJournalDao {
   case class JournalSequence(offset: Long, limit: Long)
@@ -42,7 +42,7 @@ class TestProbeReadJournalDao(val probe: TestProbe) extends ReadJournalDao {
       tag: String,
       offset: Long,
       maxOffset: Long,
-      max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed] = ???
+      max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = ???
 
   /**
    * Returns a Source of bytes for a certain persistenceId

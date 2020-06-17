@@ -8,12 +8,11 @@ package query.dao
 
 import akka.NotUsed
 import akka.persistence.PersistentRepr
+import akka.persistence.jdbc.journal.dao.JournalDaoWithReadMessages
 import akka.stream.scaladsl.Source
-import scala.collection.immutable._
+
 import scala.concurrent.Future
 import scala.util.Try
-
-import akka.persistence.jdbc.journal.dao.JournalDaoWithReadMessages
 
 trait ReadJournalDao extends JournalDaoWithReadMessages {
 
@@ -27,11 +26,7 @@ trait ReadJournalDao extends JournalDaoWithReadMessages {
    * the global ordering of the events.
    * Each element with be a try with a PersistentRepr, set of tags, and a Long representing the global ordering of events
    */
-  def eventsByTag(
-      tag: String,
-      offset: Long,
-      maxOffset: Long,
-      max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed]
+  def eventsByTag(tag: String, offset: Long, maxOffset: Long, max: Long): Source[Try[(PersistentRepr, Long)], NotUsed]
 
   /**
    * @param offset Minimum value to retrieve
