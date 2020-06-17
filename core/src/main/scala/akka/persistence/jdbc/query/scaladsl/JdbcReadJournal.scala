@@ -13,6 +13,7 @@ import akka.persistence.jdbc.db.SlickExtension
 import akka.persistence.jdbc.journal.dao.FlowControl
 import akka.persistence.jdbc.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
 import akka.persistence.jdbc.query.dao.ReadJournalDao
+import akka.persistence.jdbc.tag.{EventTagConverter, EventTagDao}
 import akka.persistence.jdbc.util.PluginVersionChecker
 import akka.persistence.query.scaladsl._
 import akka.persistence.query.{EventEnvelope, Offset, Sequence}
@@ -54,6 +55,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   val readJournalDao: ReadJournalDao = {
     val slickDb = SlickExtension(system).database(config)
     val db = slickDb.database
+    val tagConverter = new EventTagDao(db)
     if (readJournalConfig.addShutdownHook && slickDb.allowShutdown) {
       system.registerOnTermination {
         db.close()
@@ -64,6 +66,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
       (classOf[Database], db),
       (classOf[ReadJournalConfig], readJournalConfig),
       (classOf[Serialization], SerializationExtension(system)),
+      (classOf[EventTagConverter], tagConverter),
       (classOf[ExecutionContext], ec),
       (classOf[Materializer], mat))
     system.dynamicAccess.createInstanceFor[ReadJournalDao](fqcn, args) match {

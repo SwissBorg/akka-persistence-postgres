@@ -11,6 +11,7 @@ import akka.persistence.jdbc.config.JournalSequenceRetrievalConfig
 import akka.persistence.jdbc.journal.dao.JournalTables
 import akka.persistence.jdbc.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
 import akka.persistence.jdbc.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
+import akka.persistence.jdbc.tag.EventTagDao
 import akka.persistence.jdbc.{JournalRow, SharedActorSystemTestSpec}
 import akka.serialization.SerializationExtension
 import akka.stream.scaladsl.{Sink, Source}
@@ -161,7 +162,7 @@ abstract class JournalSequenceActorTest(configFile: String)
       implicit system: ActorSystem): Unit = {
     import system.dispatcher
     implicit val mat: Materializer = SystemMaterializer(system).materializer
-    val readJournalDao = new ByteArrayReadJournalDao(db, readJournalConfig, SerializationExtension(system))
+    val readJournalDao = new ByteArrayReadJournalDao(db, readJournalConfig, SerializationExtension(system), new EventTagDao(db))
     val actor =
       system.actorOf(JournalSequenceActor.props(readJournalDao, journalSequenceActorConfig.copy(maxTries = maxTries)))
     try f(actor)

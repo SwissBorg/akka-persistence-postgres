@@ -26,9 +26,8 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
   def db: Database
   def queries: ReadJournalQueries
   def serializer: FlowPersistentReprSerializer[JournalRow]
+  def tagConverter: EventTagConverter
   def readJournalConfig: ReadJournalConfig
-  // TODO extract
-  val converter: EventTagConverter = new EventTagDao(db)
 
   import akka.persistence.jdbc.db.Postgres11Profile.api._
 
@@ -42,7 +41,7 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
       max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
     val publisher: Int => DatabasePublisher[JournalRow] = tagId => db.stream(queries.eventsByTag(List(tagId), offset, maxOffset, max).result)
     // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
-    Source.future(converter.getIdByName(tag))
+    Source.future(tagConverter.getIdByName(tag))
       .flatMapConcat(tagId => Source.fromPublisher(publisher(tagId)))
       .via(serializer.deserializeFlow)
   }
@@ -72,7 +71,8 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
 class ByteArrayReadJournalDao(
     val db: Database,
     val readJournalConfig: ReadJournalConfig,
-    serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
+    serialization: Serialization,
+    val tagConverter: EventTagConverter)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayReadJournalDao {
   val queries = new ReadJournalQueries(readJournalConfig)
   val serializer = new ByteArrayJournalSerializer(serialization, new EventTagDao(db))
