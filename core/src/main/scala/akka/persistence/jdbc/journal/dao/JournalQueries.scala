@@ -30,8 +30,7 @@ class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: Jou
    * Updates (!) a payload stored in a specific events row.
    * Intended to be used sparingly, e.g. moving all events to their encrypted counterparts.
    */
-  // tODO it should update tag also based on documentation: akka.persistence.jdbc.journal.JdbcAsyncWriteJournal.InPlaceUpdateEvent
-  def update(persistenceId: String, seqNr: Long, replacement: Array[Byte]) = {
+  def update(persistenceId: String, seqNr: Long, replacement: Array[Byte]): FixedSqlAction[Int, NoStream, Effect.Write] = {
     val baseQuery = JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
 
     baseQuery.map(_.message).update(replacement)
