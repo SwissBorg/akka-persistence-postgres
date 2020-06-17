@@ -7,7 +7,6 @@ package akka.persistence.jdbc
 package journal.dao
 
 import akka.persistence.jdbc.config.JournalTableConfiguration
-import slick.dbio.Effect
 import slick.jdbc.JdbcProfile
 import slick.sql.FixedSqlAction
 
@@ -31,6 +30,7 @@ class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: Jou
    * Updates (!) a payload stored in a specific events row.
    * Intended to be used sparingly, e.g. moving all events to their encrypted counterparts.
    */
+  // tODO it should update tag also based on documentation: akka.persistence.jdbc.journal.JdbcAsyncWriteJournal.InPlaceUpdateEvent
   def update(persistenceId: String, seqNr: Long, replacement: Array[Byte]) = {
     val baseQuery = JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
 
@@ -45,8 +45,8 @@ class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: Jou
       .map(_.deleted)
       .update(true)
 
-  private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Query[Rep[Long], Long, Seq] =
-    selectAllJournalForPersistenceId(persistenceId).map(_.sequenceNumber).take(1)
+  private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
+    JournalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     JournalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
@@ -64,12 +64,6 @@ class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: Jou
     JournalTable.map(_.persistenceId).distinct
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
-
-  def journalRowByPersistenceIds(persistenceIds: Iterable[String]): Query[Rep[String], String, Seq] =
-    for {
-      query <- JournalTable.map(_.persistenceId)
-      if query.inSetBind(persistenceIds)
-    } yield query
 
   private def _messagesQuery(
       persistenceId: Rep[String],
