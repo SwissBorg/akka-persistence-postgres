@@ -1,11 +1,9 @@
 package akka.persistence.jdbc.journal.dao
 
-import akka.persistence.jdbc.{JournalRow, SingleActorSystemPerTestSpec}
-import slick.lifted.RunnableCompiled
+import akka.persistence.jdbc.JournalRow
+import akka.persistence.jdbc.util.BaseQueryTest
 
 class JournalQueriesTest extends BaseQueryTest {
-
-  behavior.of("Slick")
 
   it should "produce SQL query for distinct persistenceID" in withJournalQueries { queries =>
     queries.allPersistenceIdsDistinct shouldBeSQL """select distinct "persistence_id" from "journal""""
@@ -20,11 +18,11 @@ class JournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for selectByPersistenceIdAndMaxSequenceNumber" in withJournalQueries { queries =>
-    queries.selectByPersistenceIdAndMaxSequenceNumber(("aaa", 11L)) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ("persistence_id" = ?) and ("sequence_number" <= ?) order by "sequence_number" desc"""
+    queries.selectByPersistenceIdAndMaxSequenceNumber("aaa", 11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ("persistence_id" = ?) and ("sequence_number" <= ?) order by "sequence_number" desc"""
   }
 
   it should "create SQL query for messagesQuery" in withJournalQueries { queries =>
-    queries.messagesQuery(("aaa", 11L, 11L, 11L)) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ((("persistence_id" = ?) and ("deleted" = false)) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
+    queries.messagesQuery("aaa", 11L, 11L, 11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ((("persistence_id" = ?) and ("deleted" = false)) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
   }
 
   it should "create SQL query for markJournalMessagesAsDeleted" in withJournalQueries { queries =>
@@ -44,32 +42,9 @@ class JournalQueriesTest extends BaseQueryTest {
     queries.writeJournalRows(Seq(row, row, row)) shouldBeSQL """insert into "journal" ("deleted","persistence_id","sequence_number","message","tags")  values (?,?,?,?,?)"""
   }
 
-  def withJournalQueries(f: JournalQueries => Unit): Unit = {
+  private def withJournalQueries(f: JournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
       f(new JournalQueries(profile, journalConfig.journalTableConfiguration))
-    }
-  }
-}
-
-class BaseQueryTest extends SingleActorSystemPerTestSpec {
-  import profile.api._
-  implicit class SQLStringMatcherRunnableCompiled(under: RunnableCompiled[_, _]) {
-    def toSQL: String = {
-      under.result.toSQL
-    }
-
-    def shouldBeSQL(expected: String): Unit = {
-      under.toSQL shouldBe expected
-    }
-  }
-  implicit class SQLStringMatcherProfileAction(under: profile.ProfileAction[_, _, _]) {
-
-    def toSQL: String = {
-      under.statements.toList.mkString(" ")
-    }
-
-    def shouldBeSQL(expected: String): Unit = {
-      under.toSQL shouldBe expected
     }
   }
 }

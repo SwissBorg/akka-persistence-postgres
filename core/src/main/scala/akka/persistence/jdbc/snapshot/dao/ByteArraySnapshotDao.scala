@@ -76,7 +76,7 @@ class ByteArraySnapshotDao(
 
   override def deleteAllSnapshots(persistenceId: String): Future[Unit] =
     for {
-      _ <- db.run(queries.selectAll(persistenceId).delete)
+      _ <- db.run(queries.selectAllByPersistenceId(persistenceId).delete)
     } yield ()
 
   override def deleteUpToMaxSequenceNr(persistenceId: String, maxSequenceNr: Long): Future[Unit] =
