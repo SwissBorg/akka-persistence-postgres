@@ -10,6 +10,7 @@ import java.sql.SQLException
 
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
+import akka.persistence.jdbc.db.PostgresErrorCodes
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
 import akka.persistence.jdbc.tag.{EventTagConverter, EventTagDao}
 import akka.persistence.journal.Tagged
@@ -274,13 +275,6 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
       }
       .mapConcat(identity)
   }
-}
-
-// TODO move it
-object PostgresErrorCodes {
-  val PgCheckViolation: String = "23514"
-  val PgDuplicateTable: String = "42P07"
-  val PgUniqueValidation: String = "23505"
 }
 
 class ByteArrayJournalDao(

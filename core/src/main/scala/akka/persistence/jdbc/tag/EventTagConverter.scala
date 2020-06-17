@@ -2,11 +2,11 @@ package akka.persistence.jdbc.tag
 
 import java.util.concurrent.ConcurrentHashMap
 
-import akka.persistence.jdbc.journal.dao.PostgresErrorCodes
+import akka.persistence.jdbc.db.PostgresErrorCodes
 import org.postgresql.util.PSQLException
 import slick.jdbc.JdbcBackend._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 trait EventTagConverter {
   def getIdByName(name: String): Future[Int]
