@@ -5,27 +5,26 @@
 
 package akka.persistence.jdbc.journal
 
-import java.util.{ HashMap => JHMap, Map => JMap }
+import java.util.{HashMap => JHMap, Map => JMap}
 
 import akka.Done
-import akka.actor.{ ActorSystem, ExtendedActorSystem }
+import akka.actor.{ActorSystem, ExtendedActorSystem}
+import akka.pattern.pipe
 import akka.persistence.jdbc.config.JournalConfig
-import akka.persistence.jdbc.journal.JdbcAsyncWriteJournal.{ InPlaceUpdateEvent, WriteFinished }
-import akka.persistence.jdbc.journal.dao.{ JournalDao, JournalDaoWithUpdates }
-import akka.persistence.jdbc.db.{ SlickDatabase, SlickExtension }
+import akka.persistence.jdbc.db.{SlickDatabase, SlickExtension}
+import akka.persistence.jdbc.journal.JdbcAsyncWriteJournal.{InPlaceUpdateEvent, WriteFinished}
+import akka.persistence.jdbc.journal.dao.{JournalDao, JournalDaoWithUpdates}
+import akka.persistence.jdbc.util.PluginVersionChecker
 import akka.persistence.journal.AsyncWriteJournal
-import akka.persistence.{ AtomicWrite, PersistentRepr }
-import akka.serialization.{ Serialization, SerializationExtension }
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.persistence.{AtomicWrite, PersistentRepr}
+import akka.serialization.{Serialization, SerializationExtension}
+import akka.stream.{Materializer, SystemMaterializer}
 import com.typesafe.config.Config
-import slick.jdbc.JdbcProfile
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
-import akka.pattern.pipe
-import akka.persistence.jdbc.util.PluginVersionChecker
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 object JdbcAsyncWriteJournal {
   private case class WriteFinished(pid: String, f: Future[_])
@@ -44,7 +43,7 @@ class JdbcAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
 
   implicit val ec: ExecutionContext = context.dispatcher
   implicit val system: ActorSystem = context.system
-  implicit val mat: Materializer = ActorMaterializer()
+  implicit val mat: Materializer = SystemMaterializer(system).materializer
   val journalConfig = new JournalConfig(config)
 
   PluginVersionChecker.check()
@@ -54,10 +53,8 @@ class JdbcAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
 
   val journalDao: JournalDao = {
     val fqcn = journalConfig.pluginConfig.dao
-    val profile: JdbcProfile = slickDb.profile
     val args = Seq(
       (classOf[Database], db),
-      (classOf[JdbcProfile], profile),
       (classOf[JournalConfig], journalConfig),
       (classOf[Serialization], SerializationExtension(system)),
       (classOf[ExecutionContext], ec),
@@ -117,7 +114,7 @@ class JdbcAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
   }
 
   override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(
-      recoveryCallback: (PersistentRepr) => Unit): Future[Unit] =
+      recoveryCallback: PersistentRepr => Unit): Future[Unit] =
     journalDao
       .messagesWithBatch(persistenceId, fromSequenceNr, toSequenceNr, journalConfig.daoConfig.replayBatchSize, None)
       .take(max)

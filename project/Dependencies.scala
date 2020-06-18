@@ -14,6 +14,7 @@ object Dependencies {
 
   val SlickVersion = "3.3.2"
   val ScalaTestVersion = "3.1.2"
+  val SlickPgVersion = "0.19.0"
 
   val JdbcDrivers = Seq(
     "org.postgresql" % "postgresql" % "42.2.12")
@@ -22,6 +23,7 @@ object Dependencies {
       "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
       "com.typesafe.slick" %% "slick" % SlickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
+      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-persistence-tck" % AkkaVersion % Test,

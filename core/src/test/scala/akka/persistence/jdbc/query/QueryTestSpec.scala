@@ -5,25 +5,26 @@
 
 package akka.persistence.jdbc.query
 
-import akka.actor.{ ActorRef, ActorSystem, Props, Stash, Status }
+import akka.actor.{ActorRef, ActorSystem, Props, Stash, Status}
 import akka.event.LoggingReceive
-import akka.persistence.{ DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor }
 import akka.persistence.jdbc.SingleActorSystemPerTestSpec
-import akka.persistence.jdbc.query.EventAdapterTest.{ Event, TaggedAsyncEvent, TaggedEvent }
-import akka.persistence.jdbc.query.javadsl.{ JdbcReadJournal => JavaJdbcReadJournal }
+import akka.persistence.jdbc.query.EventAdapterTest.{Event, TaggedAsyncEvent, TaggedEvent}
+import akka.persistence.jdbc.query.javadsl.{JdbcReadJournal => JavaJdbcReadJournal}
 import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.jdbc.util.Schema.{Postgres, SchemaType}
 import akka.persistence.journal.Tagged
-import akka.persistence.query.{ EventEnvelope, Offset, PersistenceQuery }
+import akka.persistence.query.{EventEnvelope, Offset, PersistenceQuery}
+import akka.persistence.{DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor}
 import akka.stream.scaladsl.Sink
 import akka.stream.testkit.TestSubscriber
-import akka.stream.testkit.javadsl.{ TestSink => JavaSink }
+import akka.stream.testkit.javadsl.{TestSink => JavaSink}
 import akka.stream.testkit.scaladsl.TestSink
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.{Materializer, SystemMaterializer}
 import com.typesafe.config.ConfigValue
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Future
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration.{FiniteDuration, _}
 
 trait ReadJournalOperations {
   def withCurrentPersistenceIds(within: FiniteDuration = 60.second)(f: TestSubscriber.Probe[String] => Unit): Unit
@@ -48,7 +49,7 @@ class ScalaJdbcReadJournalOperations(readJournal: JdbcReadJournal)(implicit syst
   def this(system: ActorSystem) =
     this(PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier))(
       system,
-      ActorMaterializer()(system))
+      SystemMaterializer(system).materializer)
 
   import system.dispatcher
 
@@ -113,7 +114,7 @@ class JavaDslJdbcReadJournalOperations(readJournal: javadsl.JdbcReadJournal)(
     this(
       PersistenceQuery.get(system).getReadJournalFor(classOf[javadsl.JdbcReadJournal], JavaJdbcReadJournal.Identifier))(
       system,
-      ActorMaterializer()(system))
+      SystemMaterializer(system).materializer)
 
   import system.dispatcher
 
@@ -305,21 +306,22 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
 }
 
 trait PostgresCleaner extends QueryTestSpec {
-  import akka.persistence.jdbc.util.Schema.Postgres
+
+  def schemaType: SchemaType = Postgres()
 
   val actionsClearPostgres =
-    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""").transactionally
+    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE event_tag""").transactionally
 
   def clearPostgres(): Unit =
     withDatabase(_.run(actionsClearPostgres).futureValue)
 
   override def beforeAll(): Unit = {
-    dropCreate(Postgres())
+    dropCreate(schemaType)
     super.beforeAll()
   }
 
   override def beforeEach(): Unit = {
-    dropCreate(Postgres())
+    dropCreate(schemaType)
     super.beforeEach()
   }
 }

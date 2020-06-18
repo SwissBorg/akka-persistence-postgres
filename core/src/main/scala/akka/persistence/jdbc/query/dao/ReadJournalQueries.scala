@@ -8,12 +8,11 @@ package query.dao
 
 import akka.persistence.jdbc.config.{ JournalTableConfiguration, ReadJournalConfig }
 import akka.persistence.jdbc.journal.dao.JournalTables
-import slick.jdbc.JdbcProfile
 
-class ReadJournalQueries(val profile: JdbcProfile, val readJournalConfig: ReadJournalConfig) extends JournalTables {
+class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends JournalTables {
   override val journalTableCfg: JournalTableConfiguration = readJournalConfig.journalTableConfiguration
 
-  import profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
@@ -38,13 +37,13 @@ class ReadJournalQueries(val profile: JdbcProfile, val readJournalConfig: ReadJo
 
   val messagesQuery = Compiled(_messagesQuery _)
 
-  private def _eventsByTag(
-      tag: Rep[String],
+  protected def _eventsByTag(
+      tag: Rep[List[Int]],
       offset: ConstColumn[Long],
       maxOffset: ConstColumn[Long],
       max: ConstColumn[Long]) = {
     baseTableQuery()
-      .filter(_.tags.like(tag))
+      .filter(_.tags @> tag)
       .sortBy(_.ordering.asc)
       .filter(row => row.ordering > offset && row.ordering <= maxOffset)
       .take(max)

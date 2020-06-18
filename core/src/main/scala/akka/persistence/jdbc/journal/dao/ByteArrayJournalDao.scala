@@ -11,7 +11,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
+import akka.persistence.jdbc.db.PostgresErrorCodes
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
+import akka.persistence.jdbc.tag.{EventTagConverter, EventTagDao}
+import akka.persistence.journal.Tagged
 import akka.persistence.{AtomicWrite, PersistentRepr}
 import akka.serialization.Serialization
 import akka.stream.scaladsl.{Keep, Sink, Source}
@@ -19,7 +22,6 @@ import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
 import akka.{Done, NotUsed}
 import org.slf4j.{Logger, LoggerFactory}
 import slick.jdbc.JdbcBackend._
-import slick.jdbc.JdbcProfile
 
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
@@ -31,15 +33,15 @@ import scala.util.{Failure, Success, Try}
  */
 trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoWithReadMessages {
   val db: Database
-  val profile: JdbcProfile
   val queries: JournalQueries
   val journalConfig: JournalConfig
   val serializer: FlowPersistentReprSerializer[JournalRow]
+  val eventTagConverter: EventTagConverter
   implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
   import journalConfig.daoConfig.{batchSize, bufferSize, logicalDelete, parallelism}
-  import profile.api._
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
@@ -91,18 +93,37 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
    * @see [[akka.persistence.journal.AsyncWriteJournal.asyncWriteMessages(messages)]]
    */
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
-    val serializedTries = serializer.serialize(messages)
-
     // If serialization fails for some AtomicWrites, the other AtomicWrites may still be written
-    val rowsToWrite = for {
-      serializeTry <- serializedTries
-      row <- serializeTry.getOrElse(Seq.empty)
-    } yield row
-    def resultWhenWriteComplete =
-      if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
+    ensureTagForMessagesExists(messages)
+      .map(_ => serializer.serialize(messages))
+      .flatMap { serializedTries =>
+        val rowsToWrite: Seq[JournalRow] = for {
+          serializeTry: Try[Seq[JournalRow]] <- serializedTries
+          row: JournalRow <- serializeTry.getOrElse(Seq.empty)
+        } yield row
 
-    queueWriteJournalRows(rowsToWrite).map(_ => resultWhenWriteComplete)
+        def resultWhenWriteComplete =
+          if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
+
+        queueWriteJournalRows(rowsToWrite).map(_ => resultWhenWriteComplete)
+      }
   }
+
+  private def ensureTagForMessagesExists(messages: Seq[AtomicWrite]): Future[Unit] = {
+    Future.sequence(extractTags(messages).map(eventTagConverter.getIdByName)).map(_ => ())
+  }
+
+  private def extractTags(messages: Seq[AtomicWrite]): Set[String] = {
+    messages
+      .flatMap(_.payload)
+      .map(_.payload)
+      .flatMap {
+        case Tagged(_, tags) => tags.toSeq
+        case _ => Seq.empty
+      }
+      .toSet
+  }
+
 
   override def delete(persistenceId: String, maxSequenceNr: Long): Future[Unit] =
     if (logicalDelete) {
@@ -127,13 +148,12 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
 
   def update(persistenceId: String, sequenceNr: Long, payload: AnyRef): Future[Done] = {
     val write = PersistentRepr(payload, sequenceNr, persistenceId)
-    val serializedRow = serializer.serialize(write) match {
-      case Success(t) => t
+    serializer.serialize(write) match {
+      case Success(t) => db.run(queries.update(persistenceId, sequenceNr, t.message).map(_ => Done))
       case Failure(ex) =>
         throw new IllegalArgumentException(
           s"Failed to serialize ${write.getClass} for update of [$persistenceId] @ [$sequenceNr]")
     }
-    db.run(queries.update(persistenceId, sequenceNr, serializedRow.message).map(_ => Done))
   }
 
   private def highestMarkedSequenceNr(persistenceId: String) =
@@ -152,11 +172,6 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
     Source
       .fromPublisher(db.stream(queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result))
       .via(serializer.deserializeFlow)
-      .map {
-        case Success((repr, _, ordering)) => Success(repr -> ordering)
-        case Failure(e)                   => Failure(e)
-      }
-
 }
 
 trait PostgresPartitions extends BaseByteArrayJournalDao {
@@ -164,13 +179,6 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
 
 //  TODO extract as parameter
   private lazy val partitionSize = 20000L
-
-  val profile: JdbcProfile
-
-  private lazy val isPostgresDriver = profile match {
-    case slick.jdbc.PostgresProfile => true
-    case _                          => false
-  }
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] = {
     // Write atomically without auto-commit
@@ -180,7 +188,7 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
   private val createdPartitions = new ConcurrentHashMap[String, List[Long]]()
 
   def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
-    import slick.jdbc.PostgresProfile.api.{ DBIO => _, _ }
+    import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
     val persistenceIdToMaxSequenceNumber =
       xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
@@ -279,18 +287,13 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
   }
 }
 
-object PostgresErrorCodes {
-  val PgCheckViolation: String = "23514"
-  val PgDuplicateTable: String = "42P07"
-}
-
 class ByteArrayJournalDao(
     val db: Database,
-    val profile: JdbcProfile,
     val journalConfig: JournalConfig,
     serialization: Serialization)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayJournalDao
     with PostgresPartitions {
-  val queries = new JournalQueries(profile, journalConfig.journalTableConfiguration)
-  val serializer = new ByteArrayJournalSerializer(serialization, journalConfig.pluginConfig.tagSeparator)
+  val queries = new JournalQueries(journalConfig.journalTableConfiguration)
+  val eventTagConverter = new EventTagDao(db)
+  val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)
 }

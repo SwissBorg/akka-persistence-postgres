@@ -7,13 +7,11 @@ package akka.persistence.jdbc.query.dao
 
 import akka.persistence.jdbc.TablesTestSpec
 import akka.persistence.jdbc.journal.dao.JournalTables
-import slick.jdbc.JdbcProfile
 
 class ReadJournalTablesTest extends TablesTestSpec {
   val readJournalTableConfiguration = readJournalConfig.journalTableConfiguration
 
   object TestByteAReadJournalTables extends JournalTables {
-    override val profile: JdbcProfile = slick.jdbc.PostgresProfile
     override val journalTableCfg = readJournalTableConfiguration
   }
 
