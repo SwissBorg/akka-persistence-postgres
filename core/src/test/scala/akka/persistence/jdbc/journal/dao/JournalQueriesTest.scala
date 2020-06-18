@@ -38,13 +38,13 @@ class JournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for writeJournalRows" in withJournalQueries { queries =>
-    val row = JournalRow(1L, deleted = false, "p", 3L, Array.ofDim(0), Option("tag"))
+    val row = JournalRow(1L, deleted = false, "p", 3L, Array.ofDim(0), List(1,2,3))
     queries.writeJournalRows(Seq(row, row, row)) shouldBeSQL """insert into "journal" ("deleted","persistence_id","sequence_number","message","tags")  values (?,?,?,?,?)"""
   }
 
   private def withJournalQueries(f: JournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(new JournalQueries(profile, journalConfig.journalTableConfiguration))
+      f(new JournalQueries(journalConfig.journalTableConfiguration))
     }
   }
 }

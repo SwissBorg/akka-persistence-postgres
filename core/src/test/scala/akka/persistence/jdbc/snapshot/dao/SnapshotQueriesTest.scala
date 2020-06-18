@@ -82,7 +82,7 @@ class SnapshotQueriesTest extends BaseQueryTest {
 
   private def withSnapshotQueries(f: SnapshotQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(new SnapshotQueries(profile, new SnapshotConfig(cfg).snapshotTableConfiguration))
+      f(new SnapshotQueries(new SnapshotConfig(cfg).snapshotTableConfiguration))
     }
   }
 }
