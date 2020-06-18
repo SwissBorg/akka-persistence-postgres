@@ -2,14 +2,18 @@ package akka.persistence.jdbc.tag
 
 import java.util.concurrent.ThreadLocalRandom
 
-import org.scalatest.concurrent.{ IntegrationPatience, ScalaFutures }
+import akka.actor.ActorSystem
+import akka.persistence.jdbc.config.{JournalConfig, SlickConfiguration}
+import akka.persistence.jdbc.db.SlickDatabase
+import com.typesafe.config.{Config, ConfigFactory}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ BeforeAndAfter, BeforeAndAfterAll }
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import slick.jdbc
 import slick.jdbc.JdbcBackend
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class EventTagDaoSpec
     extends AnyFlatSpecLike
@@ -23,23 +27,8 @@ class EventTagDaoSpec
 
   private implicit val global: ExecutionContext = ExecutionContext.global
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-//    withDB { db =>
-//      val createTable =
-//        sqlu"""CREATE TABLE IF NOT EXISTS event_tag (
-//                            id SERIAL,
-//                            name VARCHAR(255) NOT NULL,
-//                            PRIMARY KEY(id)
-//                            )"""
-//      val nameIdx = sqlu"""CREATE UNIQUE INDEX IF NOT EXISTS event_tag_name_idx ON public.event_tag(name)"""
-//      db.run(DBIO.seq(createTable, nameIdx).transactionally).futureValue
-//    }
-  }
-
   before {
     withDB { db =>
-//      db.run(DBIO.seq(sqlu"""DELETE FROM event_tag WHERE name like ('dao-spec-%')""").transactionally)
       db.run(DBIO.seq(sqlu"""TRUNCATE event_tag""").transactionally)
     }
   }
@@ -102,12 +91,14 @@ class EventTagDaoSpec
       f(dao)
     }
 
+  lazy val journalConfig: Config = {
+    val globalConfig = ConfigFactory.load("postgres-application.conf")
+    globalConfig.getConfig("jdbc-journal")
+  }
+  lazy val slickConfig: SlickConfiguration = new SlickConfiguration(journalConfig.getConfig("slick"))
+
   private def withDB(f: jdbc.JdbcBackend.Database => Unit): Unit = {
-    val db: jdbc.JdbcBackend.Database = JdbcBackend.Database.forURL(
-      url = "jdbc:postgresql://localhost:5432/docker",
-      user = "docker",
-      password = "docker",
-      driver = "org.postgresql.Driver")
+    lazy val db = SlickDatabase.database(journalConfig, slickConfig, "slick.db")
     try {
       f(db)
     } finally {
