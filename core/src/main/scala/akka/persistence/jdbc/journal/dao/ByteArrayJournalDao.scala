@@ -112,14 +112,14 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
       // We don't want to log warnings for users that are not using this,
       // so we make it happen only when effectively used.
       logWarnAboutLogicalDeletionDeprecation
-      db.run(queries.markJournalMessagesAsDeleted(persistenceId, maxSequenceNr)).map(_ => ())
+      db.run(queries.selectDeleteByPersistenceIdAndMaxSequenceNumber(persistenceId, maxSequenceNr).update(true)).map(_ => ())
     } else {
       // We should keep journal record with highest sequence number in order to be compliant
       // with @see [[akka.persistence.journal.JournalSpec]]
       val actions = for {
-        _ <- queries.markJournalMessagesAsDeleted(persistenceId, maxSequenceNr)
-        highestMarkedSequenceNr <- highestMarkedSequenceNr(persistenceId)
-        _ <- queries.delete(persistenceId, highestMarkedSequenceNr.getOrElse(0L) - 1)
+        _ <- queries.selectDeleteByPersistenceIdAndMaxSequenceNumber(persistenceId, maxSequenceNr).update(true)
+        highestMarkedSequenceNr: Option[Long] <- highestMarkedSequenceNr(persistenceId)
+        _ <- queries.selectDeleteByPersistenceIdAndMaxSequenceNumber(persistenceId, highestMarkedSequenceNr.getOrElse(0L) - 1).delete
       } yield ()
 
       db.run(actions.transactionally)
@@ -133,7 +133,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
         throw new IllegalArgumentException(
           s"Failed to serialize ${write.getClass} for update of [$persistenceId] @ [$sequenceNr]")
     }
-    db.run(queries.update(persistenceId, sequenceNr, serializedRow.message).map(_ => Done))
+    db.run(queries.selectMessageByPersistenceIdAndSequenceNumber(persistenceId, sequenceNr).update(serializedRow.message).map(_ => Done))
   }
 
   private def highestMarkedSequenceNr(persistenceId: String) =

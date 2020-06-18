@@ -22,32 +22,27 @@ class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: Jou
   private def selectAllJournalForPersistenceId(persistenceId: Rep[String]) =
     JournalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
 
-  def delete(persistenceId: String, toSequenceNr: Long): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
-    JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
-  }
-
   /**
    * Updates (!) a payload stored in a specific events row.
    * Intended to be used sparingly, e.g. moving all events to their encrypted counterparts.
    */
-  def update(persistenceId: String, seqNr: Long, replacement: Array[Byte]): FixedSqlAction[Int, NoStream, Effect.Write] = {
-    val baseQuery = JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
+  private def _selectMessageByPersistenceIdAndSequenceNumber(persistenceId: Rep[String], seqNr: Rep[Long]) =
+    JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr).map(_.message)
 
-    baseQuery.map(_.message).update(replacement)
-  }
+  val selectMessageByPersistenceIdAndSequenceNumber = Compiled(_selectMessageByPersistenceIdAndSequenceNumber _)
 
-  def markJournalMessagesAsDeleted(persistenceId: String, maxSequenceNr: Long) =
-    JournalTable
-      .filter(_.persistenceId === persistenceId)
-      .filter(_.sequenceNumber <= maxSequenceNr)
-      .filter(_.deleted === false)
-      .map(_.deleted)
-      .update(true)
+  val selectDeleteByPersistenceIdAndMaxSequenceNumber = Compiled(
+    (persistenceId: Rep[String], maxSequenceNr: Rep[Long]) =>
+      JournalTable
+        .filter(_.persistenceId === persistenceId)
+        .filter(_.sequenceNumber <= maxSequenceNr)
+        .filter(_.deleted === false)
+        .map(_.deleted))
 
   private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     JournalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
-  private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
+  private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]) =
     JournalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
   val highestSequenceNrForPersistenceId = Compiled(_highestSequenceNrForPersistenceId _)
