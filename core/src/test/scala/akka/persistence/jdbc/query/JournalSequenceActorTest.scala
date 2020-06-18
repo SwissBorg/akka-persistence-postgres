@@ -138,7 +138,7 @@ abstract class JournalSequenceActorTest(configFile: String)
             .runWith(Sink.ignore)
             .futureValue
 
-          val highestValue =  maxElement
+          val highestValue = maxElement
 
           withJournalSequenceActor(db, maxTries = 2) { actor =>
             // The actor should assume the max after 2 seconds
@@ -274,4 +274,18 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
 
 class PostgresJournalSequenceActorTest
     extends JournalSequenceActorTest("postgres-application.conf")
-    with PostgresCleaner
+    with PostgresCleaner {
+
+  import profile.api._
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    withActorSystem { implicit system: ActorSystem =>
+      withDatabase { db =>
+        db.run(sqlu"""
+              CREATE TABLE IF NOT EXISTS j_id PARTITION OF journal FOR VALUES IN ('id') PARTITION BY RANGE (sequence_number);
+              CREATE TABLE IF NOT EXISTS j_id_1 PARTITION OF j_id FOR VALUES FROM (0) TO (1000000000);""")
+      }
+    }
+  }
+}
