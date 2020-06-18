@@ -38,8 +38,3 @@ class ByteArrayJournalSerializer(serialization: Serialization, tagConverter: Eve
         .map((_, journalRow.ordering))
 
 }
-
-object ByteArrayJournalSerializer {
-  val tagToIdMap: Map[String, Int] = Map("firstEvent" -> 1, "longtag" -> 2, "multiT1" -> 3, "multiT2" -> 4, "firstUnique" -> 5, "tag" -> 6, "expected" -> 7, "multi" -> 8, "companion" -> 9, "xxx" -> 10, "ended" -> 11, "last" -> 12, "mul" -> 13)
-  val idToTagMap: Map[Int, String] = tagToIdMap.map { case (tag, id) => (id, tag) }
-}
