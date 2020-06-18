@@ -4,7 +4,6 @@ import akka.persistence.jdbc.JournalRow
 import akka.persistence.jdbc.util.BaseQueryTest
 
 class JournalQueriesTest extends BaseQueryTest {
-  import profile.api._
 
   it should "produce SQL query for distinct persistenceID" in withJournalQueries { queries =>
     queries.allPersistenceIdsDistinct shouldBeSQL """select distinct "persistence_id" from "journal""""
@@ -26,24 +25,16 @@ class JournalQueriesTest extends BaseQueryTest {
     queries.messagesQuery("aaa", 11L, 11L, 11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ((("persistence_id" = ?) and ("deleted" = false)) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
   }
 
-  it should "create SQL query for selectDeleteByPersistenceIdAndMaxSequenceNumber" in withJournalQueries { queries =>
-    queries.selectDeleteByPersistenceIdAndMaxSequenceNumber("aaa", 11L) shouldBeSQL """select "deleted" from "journal" where (("persistence_id" = ?) and ("sequence_number" <= ?)) and ("deleted" = false)"""
+  it should "create SQL query for markJournalMessagesAsDeleted" in withJournalQueries { queries =>
+    queries.markJournalMessagesAsDeleted("aaa", 11L) shouldBeSQL """update "journal" set "deleted" = ? where (("journal"."persistence_id" = 'aaa') and ("journal"."sequence_number" <= 11)) and ("journal"."deleted" = false)"""
   }
 
-  it should "create SQL query for selectDeleteByPersistenceIdAndMaxSequenceNumber.update" in withJournalQueries { queries =>
-    queries.selectDeleteByPersistenceIdAndMaxSequenceNumber("aaa", 11L).update(true) shouldBeSQL """update "journal" set "deleted" = ? where (("journal"."persistence_id" = ?) and ("journal"."sequence_number" <= ?)) and ("journal"."deleted" = false)"""
+  it should "create SQL query for update" in withJournalQueries { queries =>
+    queries.update("aaa", 11L, Array.ofDim(0)) shouldBeSQL """update "journal" set "message" = ? where ("journal"."persistence_id" = 'aaa') and ("journal"."sequence_number" = 11)"""
   }
 
-  it should "create SQL query for selectDeleteByPersistenceIdAndMaxSequenceNumber.delete" in withJournalQueries { queries =>
-    queries.selectDeleteByPersistenceIdAndMaxSequenceNumber("aaa", 11L).delete shouldBeSQL """delete from "journal" where (("journal"."persistence_id" = ?) and ("journal"."sequence_number" <= ?)) and ("journal"."deleted" = false)"""
-  }
-
-  it should "create SQL query for selectByPersistenceIdAndSequenceNumber" in withJournalQueries { queries =>
-    queries.selectMessageByPersistenceIdAndSequenceNumber("aaa", 11L) shouldBeSQL """select "message" from "journal" where ("persistence_id" = ?) and ("sequence_number" = ?)"""
-  }
-
-  it should "create SQL query for selectByPersistenceIdAndSequenceNumber.update" in withJournalQueries { queries =>
-    queries.selectMessageByPersistenceIdAndSequenceNumber("aaa", 11L).update(Array.ofDim(0)) shouldBeSQL """update "journal" set "message" = ? where ("journal"."persistence_id" = ?) and ("journal"."sequence_number" = ?)"""
+  it should "create SQL query for delete" in withJournalQueries { queries =>
+    queries.delete("aaa", 11L) shouldBeSQL """delete from "journal" where ("journal"."persistence_id" = 'aaa') and ("journal"."sequence_number" <= 11)"""
   }
 
   it should "create SQL query for writeJournalRows" in withJournalQueries { queries =>

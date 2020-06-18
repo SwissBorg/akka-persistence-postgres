@@ -18,6 +18,7 @@ class SnapshotQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for insertOrUpdate" in withSnapshotQueries { queries =>
+    //TODO to zapytanie mogłoby wyglądać lepiej
     queries.insertOrUpdate(SnapshotRow("p1", 32L, 1333L, Array.ofDim(0))) shouldBeSQL """update "snapshot" set "created"=?,"snapshot"=? where "persistence_id"=? and "sequence_number"=?; insert into "snapshot" ("persistence_id","sequence_number","created","snapshot") select ?,?,?,? where not exists (select 1 from "snapshot" where "persistence_id"=? and "sequence_number"=?)"""
   }
 
