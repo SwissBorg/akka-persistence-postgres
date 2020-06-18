@@ -42,5 +42,5 @@ abstract class JdbcSnapshotStoreSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PostgresSnapshotStoreSpec
-    extends JdbcSnapshotStoreSpec(ConfigFactory.load("postgres-application.conf"), Postgres())
+class PostgresPartitionedSnapshotStoreSpec
+    extends JdbcSnapshotStoreSpec(ConfigFactory.load("postgres-application.conf"), PostgresPartitioned())
