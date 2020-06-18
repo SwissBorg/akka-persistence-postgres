@@ -18,13 +18,12 @@ import scala.util.{ Failure, Success }
 
 class ByteArraySnapshotDao(
     db: JdbcBackend#Database,
-    profile: JdbcProfile,
     snapshotConfig: SnapshotConfig,
     serialization: Serialization)(implicit ec: ExecutionContext, val mat: Materializer)
     extends SnapshotDao {
-  import profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
-  val queries = new SnapshotQueries(profile, snapshotConfig.snapshotTableConfiguration)
+  val queries = new SnapshotQueries(snapshotConfig.snapshotTableConfiguration)
 
   val serializer = new ByteArraySnapshotSerializer(serialization)
 

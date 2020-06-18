@@ -7,13 +7,12 @@ package akka.persistence.jdbc
 package journal.dao
 
 import akka.persistence.jdbc.config.JournalTableConfiguration
-import slick.dbio.Effect
-import slick.jdbc.JdbcProfile
 import slick.sql.FixedSqlAction
 
-class JournalQueries(val profile: JdbcProfile, override val journalTableCfg: JournalTableConfiguration)
+class JournalQueries(override val journalTableCfg: JournalTableConfiguration)
     extends JournalTables {
-  import profile.api._
+
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   private val JournalTableC = Compiled(JournalTable)
 

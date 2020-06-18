@@ -5,21 +5,20 @@
 
 package akka.persistence.jdbc.snapshot
 
-import akka.actor.{ ActorSystem, ExtendedActorSystem }
+import akka.actor.{ActorSystem, ExtendedActorSystem}
 import akka.persistence.jdbc.config.SnapshotConfig
+import akka.persistence.jdbc.db.{SlickDatabase, SlickExtension}
 import akka.persistence.jdbc.snapshot.dao.SnapshotDao
-import akka.persistence.jdbc.db.{ SlickDatabase, SlickExtension }
 import akka.persistence.snapshot.SnapshotStore
-import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
-import akka.serialization.{ Serialization, SerializationExtension }
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
+import akka.serialization.{Serialization, SerializationExtension}
+import akka.stream.{Materializer, SystemMaterializer}
 import com.typesafe.config.Config
-import slick.jdbc.JdbcProfile
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object JdbcSnapshotStore {
   def toSelectedSnapshot(tupled: (SnapshotMetadata, Any)): SelectedSnapshot = tupled match {
@@ -32,7 +31,7 @@ class JdbcSnapshotStore(config: Config) extends SnapshotStore {
 
   implicit val ec: ExecutionContext = context.dispatcher
   implicit val system: ActorSystem = context.system
-  implicit val mat: Materializer = ActorMaterializer()
+  implicit val mat: Materializer = SystemMaterializer(system).materializer
   val snapshotConfig = new SnapshotConfig(config)
 
   val slickDb: SlickDatabase = SlickExtension(system).database(config)
@@ -40,10 +39,8 @@ class JdbcSnapshotStore(config: Config) extends SnapshotStore {
 
   val snapshotDao: SnapshotDao = {
     val fqcn = snapshotConfig.pluginConfig.dao
-    val profile: JdbcProfile = slickDb.profile
     val args = Seq(
       (classOf[Database], db),
-      (classOf[JdbcProfile], profile),
       (classOf[SnapshotConfig], snapshotConfig),
       (classOf[Serialization], SerializationExtension(system)),
       (classOf[ExecutionContext], ec),

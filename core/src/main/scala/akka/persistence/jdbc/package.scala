@@ -12,5 +12,5 @@ package object jdbc {
       persistenceId: String,
       sequenceNumber: Long,
       message: Array[Byte],
-      tags: Option[String] = None)
+      tags: List[Int])
 }
