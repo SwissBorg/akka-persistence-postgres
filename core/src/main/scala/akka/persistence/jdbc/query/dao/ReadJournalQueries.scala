@@ -54,7 +54,7 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends Journ
   private def _journalSequenceQuery(from: ConstColumn[Long], limit: ConstColumn[Long]) =
     JournalTable.filter(_.ordering > from).map(_.ordering).sorted.take(limit)
 
-  val eventsByOrdering = Compiled(_journalSequenceQuery _)
+  val orderingByOrdering = Compiled(_journalSequenceQuery _)
 
   val maxOrdering = Compiled {
     JournalTable.map(_.ordering).max.getOrElse(0L)

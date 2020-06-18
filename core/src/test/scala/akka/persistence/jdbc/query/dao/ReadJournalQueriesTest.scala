@@ -17,7 +17,7 @@ class ReadJournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for journalSequenceQuery" in withReadJournalQueries { queries =>
-    queries.eventsByOrdering(11L, 23L) shouldBeSQL """select "ordering" from "journal" where "ordering" > ? order by "ordering" limit ?"""
+    queries.orderingByOrdering(11L, 23L) shouldBeSQL """select "ordering" from "journal" where "ordering" > ? order by "ordering" limit ?"""
   }
 
   it should "create SQL query for maxJournalSequenceQuery" in withReadJournalQueries { queries =>

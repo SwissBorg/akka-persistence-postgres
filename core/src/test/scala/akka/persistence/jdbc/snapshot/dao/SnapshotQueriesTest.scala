@@ -18,7 +18,7 @@ class SnapshotQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for insertOrUpdate" in withSnapshotQueries { queries =>
-    queries.insertOrUpdate(SnapshotRow("p1", 32L, 1333L, Array.ofDim(0))) shouldBeSQL """update "snapshot" set "created"=?,"snapshot"=? where "persistence_id"=? and "sequence_number"=?; insert into "snapshot" ("persistence_id","sequence_number","created","snapshot") select ?,?,?,? where not exists (select 1 from "snapshot" where "persistence_id"=? and "sequence_number"=?)"""
+    queries.insertOrUpdate(SnapshotRow("p1", 32L, 1333L, Array.ofDim(0))) shouldBeSQL """insert into "snapshot" ("persistence_id","sequence_number","created","snapshot") values (?,?,?,?) on conflict ("persistence_id", "sequence_number") do update set "created"=EXCLUDED."created","snapshot"=EXCLUDED."snapshot""""
   }
 
   it should "create SQL query for selectLatestByPersistenceId" in withSnapshotQueries { queries =>
