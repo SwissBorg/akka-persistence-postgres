@@ -211,6 +211,6 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
 
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
 
-class PostgresScalaCurrentEventsByPersistenceIdTest
+class PostgresPartitionedScalaCurrentEventsByPersistenceIdTest
     extends CurrentEventsByPersistenceIdTest("postgres-shared-db-application.conf")
-    with PostgresCleaner
+    with PostgresPartitionedCleaner

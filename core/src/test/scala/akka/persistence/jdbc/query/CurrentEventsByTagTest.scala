@@ -202,6 +202,6 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
 
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
 
-class PostgresScalaCurrentEventsByTagTest
+class PostgresPartitionedScalaCurrentEventsByTagTest
     extends CurrentEventsByTagTest("postgres-shared-db-application.conf")
-    with PostgresCleaner
+    with PostgresPartitionedCleaner

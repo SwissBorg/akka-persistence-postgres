@@ -123,5 +123,5 @@ abstract class StoreOnlySerializableMessagesTest(config: String, schemaType: Sch
   }
 }
 
-class PostgresStoreOnlySerializableMessagesTest
-    extends StoreOnlySerializableMessagesTest("postgres-application.conf", Postgres())
+class PostgresPartitionedStoreOnlySerializableMessagesTest
+    extends StoreOnlySerializableMessagesTest("postgres-application.conf", PostgresPartitioned())

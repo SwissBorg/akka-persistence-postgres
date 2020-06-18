@@ -272,9 +272,9 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
   }
 }
 
-class PostgresJournalSequenceActorTest
+class PostgresPartitionedJournalSequenceActorTest
     extends JournalSequenceActorTest("postgres-application.conf")
-    with PostgresCleaner {
+    with PostgresPartitionedCleaner {
 
   import profile.api._
 

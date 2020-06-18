@@ -50,9 +50,9 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PostgresJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), Postgres())
-class PostgresJournalSpecSharedDb
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres()) {
+class PostgresPartitionedJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), PostgresPartitioned())
+class PostgresPartitionedJournalSpecSharedDb
+    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), PostgresPartitioned()) {
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
@@ -105,9 +105,9 @@ class PostgresJournalSpecSharedDb
 
 
 }
-class PostgresJournalSpecPhysicalDelete
+class PostgresPartitionedJournalSpecPhysicalDelete
     extends JdbcJournalSpec(
       ConfigFactory
         .load("postgres-application.conf")
         .withValue("jdbc-journal.logicalDelete", ConfigValueFactory.fromAnyRef(false)),
-      Postgres())
+      PostgresPartitioned())

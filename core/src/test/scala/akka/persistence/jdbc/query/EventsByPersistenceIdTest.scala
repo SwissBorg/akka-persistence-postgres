@@ -332,6 +332,6 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 }
 
-class PostgresScalaEventsByPersistenceIdTest
+class PostgresPartitionedScalaEventsByPersistenceIdTest
     extends EventsByPersistenceIdTest("postgres-application.conf")
-    with PostgresCleaner
+    with PostgresPartitionedCleaner

@@ -139,6 +139,6 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
   }
 }
 
-class PostgresJournalDaoStreamMessagesMemoryTest
+class PostgresPartitionedJournalDaoStreamMessagesMemoryTest
     extends JournalDaoStreamMessagesMemoryTest("postgres-application.conf")
-    with PostgresCleaner
+    with PostgresPartitionedCleaner
