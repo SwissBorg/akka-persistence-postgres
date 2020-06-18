@@ -35,7 +35,7 @@ object JdbcAsyncWriteJournal {
    * To be used only for data migrations such as "encrypt all events" and similar operations.
    *
    * The write payload may be wrapped in a [[akka.persistence.journal.Tagged]],
-   * in which case the new tags will skipped and the old tags remain unchanged.
+   * in which case the new tags will be skipped and the old tags remain unchanged.
    */
   final case class InPlaceUpdateEvent(persistenceId: String, seqNr: Long, write: AnyRef)
 }
