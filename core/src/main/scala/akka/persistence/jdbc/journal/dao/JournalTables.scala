@@ -9,7 +9,7 @@ package journal.dao
 import akka.persistence.jdbc.config.JournalTableConfiguration
 
 trait JournalTables {
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   def journalTableCfg: JournalTableConfiguration
 

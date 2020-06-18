@@ -9,7 +9,7 @@ import akka.persistence.jdbc.config.SnapshotTableConfiguration
 import akka.persistence.jdbc.snapshot.dao.SnapshotTables.SnapshotRow
 
 class SnapshotQueries(override val snapshotTableCfg: SnapshotTableConfiguration) extends SnapshotTables {
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   private val SnapshotTableC = Compiled(SnapshotTable)
 

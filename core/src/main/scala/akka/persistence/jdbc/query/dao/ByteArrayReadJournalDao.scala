@@ -29,7 +29,7 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
   def tagConverter: EventTagConverter
   def readJournalConfig: ReadJournalConfig
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   override def allPersistenceIdsSource(max: Long): Source[String, NotUsed] =
     Source.fromPublisher(db.stream(queries.allPersistenceIdsDistinct(max).result))

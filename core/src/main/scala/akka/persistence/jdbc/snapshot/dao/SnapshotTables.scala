@@ -13,7 +13,7 @@ object SnapshotTables {
 }
 
 trait SnapshotTables {
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   def snapshotTableCfg: SnapshotTableConfiguration
 

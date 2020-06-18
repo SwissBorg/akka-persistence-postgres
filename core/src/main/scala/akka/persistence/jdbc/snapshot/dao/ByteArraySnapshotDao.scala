@@ -21,7 +21,7 @@ class ByteArraySnapshotDao(
     snapshotConfig: SnapshotConfig,
     serialization: Serialization)(implicit ec: ExecutionContext, val mat: Materializer)
     extends SnapshotDao {
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   val queries = new SnapshotQueries(snapshotConfig.snapshotTableConfiguration)
 

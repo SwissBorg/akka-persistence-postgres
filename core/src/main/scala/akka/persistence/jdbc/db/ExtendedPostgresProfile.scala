@@ -4,7 +4,7 @@ import com.github.tminglei.slickpg._
 import slick.basic.Capability
 import slick.jdbc.JdbcCapabilities
 
-trait Postgres11Profile
+trait ExtendedPostgresProfile
     extends ExPostgresProfile
     with PgArraySupport
     with PgDate2Support
@@ -33,4 +33,4 @@ trait Postgres11Profile
       with SearchAssistants
 }
 
-object Postgres11Profile extends Postgres11Profile
+object ExtendedPostgresProfile extends ExtendedPostgresProfile

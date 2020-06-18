@@ -7,7 +7,7 @@ package akka.persistence.jdbc.tag
 
 trait TagTables {
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   class EventTagTableDefinition(_tableTag: Tag)
     extends Table[EventTag](

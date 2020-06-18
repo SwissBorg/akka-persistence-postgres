@@ -24,7 +24,7 @@ class EventTagDao(db: Database)(implicit ctx: ExecutionContext) extends EventTag
 
   db.run(queries.selectAll).foreach(_.foreach(updateCache))
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   override def getIdByNameForce(name: String): Int = nameToId.get(name)
 

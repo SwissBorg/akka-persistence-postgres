@@ -39,7 +39,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
   import journalConfig.daoConfig.{batchSize, bufferSize, logicalDelete, parallelism}
 
   val logger = LoggerFactory.getLogger(this.getClass)

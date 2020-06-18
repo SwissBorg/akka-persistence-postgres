@@ -12,7 +12,7 @@ import akka.persistence.jdbc.journal.dao.JournalTables
 class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends JournalTables {
   override val journalTableCfg: JournalTableConfiguration = readJournalConfig.journalTableConfiguration
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   def journalRowByPersistenceIds(persistenceIds: Iterable[String]) =
     for {

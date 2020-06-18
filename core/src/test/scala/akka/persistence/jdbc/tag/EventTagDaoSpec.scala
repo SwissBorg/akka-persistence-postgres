@@ -19,7 +19,7 @@ class EventTagDaoSpec
     with BeforeAndAfter
     with IntegrationPatience {
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   private implicit val global: ExecutionContext = ExecutionContext.global
 

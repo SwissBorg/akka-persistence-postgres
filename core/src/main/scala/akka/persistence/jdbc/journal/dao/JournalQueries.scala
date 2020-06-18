@@ -12,7 +12,7 @@ import slick.sql.FixedSqlAction
 class JournalQueries(override val journalTableCfg: JournalTableConfiguration)
     extends JournalTables {
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   private val JournalTableC = Compiled(JournalTable)
 

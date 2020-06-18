@@ -2,7 +2,7 @@ package akka.persistence.jdbc.tag
 
 class EventTagQueries extends TagTables {
 
-  import akka.persistence.jdbc.db.Postgres11Profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   def add(xs: EventTag) =
     EventTagTable.returning(EventTagTable.map(_.id)) += xs
