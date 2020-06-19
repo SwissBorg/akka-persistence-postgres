@@ -1,8 +1,8 @@
 
 CREATE OR REPLACE PROCEDURE fifi(IN _basetableschema TEXT, IN _basetablename TEXT, IN min_sequence_number_in_parent BIGINT) AS $$
 DECLARE
-    row     record;
-max_sequence_number BIGINT;
+    row                     record;
+    sequence_number_range   record;
 BEGIN
     FOR row IN
         SELECT
@@ -17,13 +17,14 @@ BEGIN
           AND nmsp_parent.nspname =_basetableschema
         LOOP
 
-            EXECUTE 'select max(sequence_number) from ' || quote_ident(row.child_schema) || '.' || quote_ident(row.child)
-                INTO max_sequence_number;
-            IF min_sequence_number_in_parent > max_sequence_number THEN
-                raise notice 'can be detached: % for %' , max_sequence_number, quote_ident(row.child);
-                raise notice 'ALTER TABLE %.% DETACH PARTITION %.%;', quote_ident(_basetableschema), quote_ident(_basetablename), quote_ident(row.child_schema), quote_ident(row.child);
-            ELSE
-                raise notice 'should stay: % for %' , max_sequence_number, quote_ident(row.child);
+            EXECUTE 'SELECT max(sequence_number) AS max, min(sequence_number) AS min, persistence_id FROM ' || quote_ident(row.child_schema) || '.' || quote_ident(row.child) || ' GROUP BY persistence_id'
+                INTO sequence_number_range;
+
+--          > - because we would like that last event remain in journal
+            IF min_sequence_number_in_parent > sequence_number_range.max THEN
+                INSERT INTO public.archivisation(persistence_id, min_sequence_number, max_sequence_number, schemaname, tablename, parent_schemaname, parent_tablename, status)
+                VALUES(sequence_number_range.persistence_id, sequence_number_range.min, sequence_number_range.max, row.child_schema, row.child, _basetableschema, _basetablename, 'NEW');
+                raise notice 'can be detached: % for %' , sequence_number_range.max, quote_ident(row.child);
             END IF;
         END LOOP;
 END; $$ LANGUAGE plpgsql;
@@ -45,7 +46,11 @@ BEGIN
         WHERE parent.relname=_basetablename
           AND nmsp_parent.nspname =_basetableschema
         LOOP
-            EXECUTE 'select min(sequence_number) from ' || quote_ident(row.child_schema) || '.' || quote_ident(row.child) || ' where deleted = false'
+            EXECUTE 'SELECT max(snp.sequence_number) ' ||
+                    'FROM snapshot AS snp ' ||
+                        'JOIN ' || quote_ident(row.child_schema) || '.' || quote_ident(row.child) || ' AS jrn ' ||
+                            'ON snp.persistence_id = jrn.persistence_id ' ||
+                            'AND snp.sequence_number = jrn.sequence_number'
                 INTO min_sequence_number;
             CALL fifi(row.child_schema, row.child, min_sequence_number);
         END LOOP;
