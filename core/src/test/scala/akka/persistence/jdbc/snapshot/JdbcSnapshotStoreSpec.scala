@@ -43,4 +43,4 @@ abstract class JdbcSnapshotStoreSpec(config: Config, schemaType: SchemaType)
 }
 
 class PlainSnapshotStoreSpec
-  extends JdbcSnapshotStoreSpec(ConfigFactory.load("postgres-application.conf"), Plain())
+  extends JdbcSnapshotStoreSpec(ConfigFactory.load("plain-application.conf"), Plain())

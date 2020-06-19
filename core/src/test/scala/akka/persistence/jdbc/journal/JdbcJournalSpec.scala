@@ -103,14 +103,14 @@ abstract class BasePartitionedJournalSpec(config: String)
     ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
-class PartitionedJournalSpec extends BasePartitionedJournalSpec("postgres-partitioned-application.conf")
+class PartitionedJournalSpec extends BasePartitionedJournalSpec("partitioned-application.conf")
 class PartitionedJournalSpecSharedDb
-    extends BasePartitionedJournalSpec("postgres-partitioned-shared-db-application.conf")
+    extends BasePartitionedJournalSpec("partitioned-shared-db-application.conf")
 class PartitionedJournalSpecPhysicalDelete
-    extends BasePartitionedJournalSpec("postgres-partitioned-application-with-hard-delete.conf")
+    extends BasePartitionedJournalSpec("partitioned-application-with-hard-delete.conf")
 
-class PlainJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), Plain())
+class PlainJournalSpec extends JdbcJournalSpec(ConfigFactory.load("plain-application.conf"), Plain())
 class PlainJournalSpecSharedDb
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Plain())
+    extends JdbcJournalSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
 class PlainJournalSpecPhysicalDelete
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-application-with-hard-delete.conf"), Plain())
+    extends JdbcJournalSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())

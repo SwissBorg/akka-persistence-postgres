@@ -35,9 +35,9 @@ abstract class CurrentPersistenceIdsTest(config: String) extends QueryTestSpec(c
 // Note: these tests use the shared-db configs, the test for all persistence ids use the regular db config
 
 class PartitionedScalaCurrentPersistenceIdsTest
-    extends CurrentPersistenceIdsTest("postgres-partitioned-shared-db-application.conf")
+    extends CurrentPersistenceIdsTest("partitioned-shared-db-application.conf")
     with PartitionedDbCleaner
 
 class PlainScalaCurrentPersistenceIdsTest
-    extends CurrentPersistenceIdsTest("postgres-shared-db-application.conf")
+    extends CurrentPersistenceIdsTest("plain-shared-db-application.conf")
     with DbCleaner

@@ -54,7 +54,7 @@ abstract class AllPersistenceIdsTest(config: String) extends QueryTestSpec(confi
 }
 
 class PartitionedScalaAllPersistenceIdsTest
-    extends AllPersistenceIdsTest("postgres-partitioned-application.conf")
+    extends AllPersistenceIdsTest("partitioned-application.conf")
     with PartitionedDbCleaner
 
-class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest("postgres-application.conf") with DbCleaner
+class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest("plain-application.conf") with DbCleaner

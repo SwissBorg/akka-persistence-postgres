@@ -140,9 +140,9 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
 }
 
 class PartitionedJournalDaoStreamMessagesMemoryTest
-    extends JournalDaoStreamMessagesMemoryTest("postgres-partitioned-application.conf")
+    extends JournalDaoStreamMessagesMemoryTest("partitioned-application.conf")
     with PartitionedDbCleaner
 
 class PlainJournalDaoStreamMessagesMemoryTest
-    extends JournalDaoStreamMessagesMemoryTest("postgres-application.conf")
+    extends JournalDaoStreamMessagesMemoryTest("plain-application.conf")
     with DbCleaner

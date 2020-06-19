@@ -274,7 +274,7 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
 }
 
 class PartitionedJournalSequenceActorTest
-    extends JournalSequenceActorTest("postgres-partitioned-application.conf")
+    extends JournalSequenceActorTest("partitioned-application.conf")
     with PartitionedDbCleaner {
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -290,5 +290,5 @@ class PartitionedJournalSequenceActorTest
 }
 
 class PlainJournalSequenceActorTest
-    extends JournalSequenceActorTest("postgres-application.conf")
+    extends JournalSequenceActorTest("plain-application.conf")
     with DbCleaner

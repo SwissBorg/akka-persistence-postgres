@@ -416,7 +416,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
 }
 
 class PartitionedScalaEventsByTagTest
-    extends EventsByTagTest("postgres-partitioned-application.conf")
+    extends EventsByTagTest("partitioned-application.conf")
     with PartitionedDbCleaner
 
-class PlainScalaEventsByTagTest extends EventsByTagTest("postgres-application.conf") with DbCleaner
+class PlainScalaEventsByTagTest extends EventsByTagTest("plain-application.conf") with DbCleaner

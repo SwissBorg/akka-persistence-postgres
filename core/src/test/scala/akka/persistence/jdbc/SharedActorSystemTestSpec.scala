@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 abstract class SharedActorSystemTestSpec(val config: Config) extends SimpleSpec with DropCreate with BeforeAndAfterAll {
-  def this(config: String = "postgres-application.conf", configOverrides: Map[String, ConfigValue] = Map.empty) =
+  def this(config: String = "plain-application.conf", configOverrides: Map[String, ConfigValue] = Map.empty) =
     this(configOverrides.foldLeft(ConfigFactory.load(config)) {
       case (conf, (path, configValue)) => conf.withValue(path, configValue)
     })

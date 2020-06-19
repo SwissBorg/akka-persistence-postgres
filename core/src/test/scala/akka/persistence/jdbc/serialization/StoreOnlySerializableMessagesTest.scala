@@ -124,7 +124,7 @@ abstract class StoreOnlySerializableMessagesTest(config: String, schemaType: Sch
 }
 
 class PartitionedStoreOnlySerializableMessagesTest
-    extends StoreOnlySerializableMessagesTest("postgres-partitioned-application.conf", Partitioned())
+    extends StoreOnlySerializableMessagesTest("partitioned-application.conf", Partitioned())
 
 class PlainStoreOnlySerializableMessagesTest
-    extends StoreOnlySerializableMessagesTest("postgres-application.conf", Plain())
+    extends StoreOnlySerializableMessagesTest("plain-application.conf", Plain())
