@@ -5,7 +5,7 @@ import akka.persistence.jdbc.snapshot.dao.SnapshotTables.SnapshotRow
 import akka.persistence.jdbc.util.BaseQueryTest
 
 class SnapshotQueriesTest extends BaseQueryTest {
-  import profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   it should "create SQL query for selectAllByPersistenceId.delete" in withSnapshotQueries { queries =>
     queries

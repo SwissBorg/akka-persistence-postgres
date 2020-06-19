@@ -5,21 +5,22 @@
 
 package akka.persistence.jdbc.query
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.persistence.jdbc.config.JournalSequenceRetrievalConfig
+import akka.persistence.jdbc.db.ExtendedPostgresProfile
 import akka.persistence.jdbc.journal.dao.JournalTables
-import akka.persistence.jdbc.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
-import akka.persistence.jdbc.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
+import akka.persistence.jdbc.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
+import akka.persistence.jdbc.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
 import akka.persistence.jdbc.tag.EventTagDao
-import akka.persistence.jdbc.{ JournalRow, SharedActorSystemTestSpec }
+import akka.persistence.jdbc.{JournalRow, SharedActorSystemTestSpec}
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.{ Materializer, SystemMaterializer }
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{Materializer, SystemMaterializer}
 import akka.testkit.TestProbe
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
-import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
+import slick.jdbc.{JdbcBackend, JdbcCapabilities}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -30,7 +31,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
   val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
   val journalTableCfg = journalConfig.journalTableConfiguration
 
-  import profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   implicit val askTimeout = 50.millis
 
@@ -54,7 +55,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
     }
   }
 
-  private def canForceInsert: Boolean = profile.capabilities.contains(JdbcCapabilities.forceInsert)
+  private def canForceInsert: Boolean = ExtendedPostgresProfile.capabilities.contains(JdbcCapabilities.forceInsert)
 
   if (canForceInsert) {
     it should s"recover one million events quickly if no ids are missing" in {
