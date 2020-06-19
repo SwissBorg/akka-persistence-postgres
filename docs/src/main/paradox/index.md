@@ -144,7 +144,7 @@ The `ReadJournal` is retrieved via the `akka.persistence.query.PersistenceQuery`
 
 ```java
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.jdbc.query.javadsl.JdbcReadJournal
+import akka.persistence.postgres.query.javadsl.JdbcReadJournal
 
 final JdbcReadJournal readJournal = PersistenceQuery.get(system).getReadJournalFor(JdbcReadJournal.class, JdbcReadJournal.Identifier());
 ```
