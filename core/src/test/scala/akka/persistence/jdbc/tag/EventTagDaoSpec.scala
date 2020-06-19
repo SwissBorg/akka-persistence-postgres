@@ -92,7 +92,7 @@ class EventTagDaoSpec
     }
 
   lazy val journalConfig: Config = {
-    val globalConfig = ConfigFactory.load("postgres-application.conf")
+    val globalConfig = ConfigFactory.load("plain-application.conf")
     globalConfig.getConfig("jdbc-journal")
   }
   lazy val slickConfig: SlickConfiguration = new SlickConfiguration(journalConfig.getConfig("slick"))

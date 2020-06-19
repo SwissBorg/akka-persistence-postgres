@@ -95,10 +95,10 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   }
 }
 
-class PostgresPartitionedHardDeleteQueryTest
-    extends HardDeleteQueryTest("postgres-partitioned-application-with-hard-delete.conf")
-    with PostgresPartitionedCleaner
+class PartitionedHardDeleteQueryTest
+    extends HardDeleteQueryTest("partitioned-application-with-hard-delete.conf")
+    with PartitionedDbCleaner
 
-class PostgresHardDeleteQueryTest
-    extends HardDeleteQueryTest("postgres-application-with-hard-delete.conf")
-    with PostgresCleaner
+class PlainHardDeleteQueryTest
+    extends HardDeleteQueryTest("plain-application-with-hard-delete.conf")
+    with PlainDbCleaner

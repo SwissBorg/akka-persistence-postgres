@@ -50,8 +50,8 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-abstract class BasePostgresPartitionedJournalSpec(config: String)
-    extends JdbcJournalSpec(ConfigFactory.load(config), PostgresPartitioned()) {
+abstract class BasePartitionedJournalSpec(config: String)
+    extends JdbcJournalSpec(ConfigFactory.load(config), Partitioned()) {
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
@@ -103,14 +103,14 @@ abstract class BasePostgresPartitionedJournalSpec(config: String)
     ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
-class PostgresPartitionedJournalSpec extends BasePostgresPartitionedJournalSpec("postgres-partitioned-application.conf")
-class PostgresPartitionedJournalSpecSharedDb
-    extends BasePostgresPartitionedJournalSpec("postgres-partitioned-shared-db-application.conf")
-class PostgresPartitionedJournalSpecPhysicalDelete
-    extends BasePostgresPartitionedJournalSpec("postgres-partitioned-application-with-hard-delete.conf")
+class PartitionedJournalSpec extends BasePartitionedJournalSpec("partitioned-application.conf")
+class PartitionedJournalSpecSharedDb
+    extends BasePartitionedJournalSpec("partitioned-shared-db-application.conf")
+class PartitionedJournalSpecPhysicalDelete
+    extends BasePartitionedJournalSpec("partitioned-application-with-hard-delete.conf")
 
-class PostgresJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), Postgres())
-class PostgresJournalSpecSharedDb
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres())
-class PostgresJournalSpecPhysicalDelete
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-application-with-hard-delete.conf"), Postgres())
+class PlainJournalSpec extends JdbcJournalSpec(ConfigFactory.load("plain-application.conf"), Plain())
+class PlainJournalSpecSharedDb
+    extends JdbcJournalSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
+class PlainJournalSpecPhysicalDelete
+    extends JdbcJournalSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())
