@@ -8,8 +8,7 @@ package akka.persistence.jdbc.query
 import akka.Done
 import akka.persistence.Persistence
 import akka.persistence.jdbc.journal.JdbcAsyncWriteJournal
-import akka.persistence.query.Offset
-import akka.persistence.query.{ EventEnvelope, Sequence }
+import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
 import akka.testkit.TestProbe
 
 abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTestSpec(config) {
@@ -212,5 +211,9 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
 
 class PostgresPartitionedScalaCurrentEventsByPersistenceIdTest
-    extends CurrentEventsByPersistenceIdTest("postgres-shared-db-application.conf")
+    extends CurrentEventsByPersistenceIdTest("postgres-partitioned-shared-db-application.conf")
     with PostgresPartitionedCleaner
+
+class PostgresScalaCurrentEventsByPersistenceIdTest
+    extends CurrentEventsByPersistenceIdTest("postgres-shared-db-application.conf")
+    with PostgresCleaner

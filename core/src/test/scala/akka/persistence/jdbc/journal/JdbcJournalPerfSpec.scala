@@ -104,15 +104,28 @@ abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PostgresPartitionedJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application.conf"), PostgresPartitioned()) {
+class PostgresPartitionedJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-application.conf"), PostgresPartitioned()) {
   override def eventsCount: Int = 100
 }
 
 class PostgresPartitionedJournalPerfSpecSharedDb
-    extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-shared-db-application.conf"), PostgresPartitioned()) {
+    extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-shared-db-application.conf"), PostgresPartitioned()) {
   override def eventsCount: Int = 100
 }
 
 class PostgresPartitionedJournalPerfSpecPhysicalDelete extends PostgresPartitionedJournalPerfSpec {
+  this.cfg.withValue("jdbc-journal.logicalDelete", ConfigValueFactory.fromAnyRef(false))
+}
+
+class PostgresJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application.conf"), Postgres()) {
+  override def eventsCount: Int = 100
+}
+
+class PostgresJournalPerfSpecSharedDb
+  extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres()) {
+  override def eventsCount: Int = 100
+}
+
+class PostgresJournalPerfSpecPhysicalDelete extends PostgresJournalPerfSpec {
   this.cfg.withValue("jdbc-journal.logicalDelete", ConfigValueFactory.fromAnyRef(false))
 }

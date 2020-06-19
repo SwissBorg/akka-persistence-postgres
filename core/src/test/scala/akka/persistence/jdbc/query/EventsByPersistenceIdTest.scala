@@ -6,13 +6,12 @@
 package akka.persistence.jdbc.query
 
 import akka.Done
+import akka.pattern.ask
 import akka.persistence.jdbc.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
-import akka.persistence.query.{ EventEnvelope, Sequence }
+import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
-import akka.pattern.ask
-import akka.persistence.query.Offset
 
 abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(config) {
   import QueryTestSpec.EventEnvelopeProbeOps
@@ -333,5 +332,9 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
 }
 
 class PostgresPartitionedScalaEventsByPersistenceIdTest
-    extends EventsByPersistenceIdTest("postgres-application.conf")
+    extends EventsByPersistenceIdTest("postgres-partitioned-application.conf")
     with PostgresPartitionedCleaner
+
+class PostgresScalaEventsByPersistenceIdTest
+    extends EventsByPersistenceIdTest("postgres-application.conf")
+    with PostgresCleaner

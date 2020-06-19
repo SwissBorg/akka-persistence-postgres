@@ -6,17 +6,17 @@
 package akka.persistence.jdbc.journal
 
 import akka.actor.Actor
-import akka.persistence.{CapabilityFlag, PersistentImpl}
-import akka.persistence.JournalProtocol.{RecoverySuccess, ReplayMessages, ReplayedMessage}
+import akka.persistence.JournalProtocol.{ RecoverySuccess, ReplayMessages, ReplayedMessage }
 import akka.persistence.jdbc.config._
+import akka.persistence.jdbc.db.SlickExtension
 import akka.persistence.jdbc.util.Schema._
-import akka.persistence.jdbc.util.{ClasspathResources, DropCreate}
-import akka.persistence.jdbc.db.{SlickDatabase, SlickExtension}
+import akka.persistence.jdbc.util.{ ClasspathResources, DropCreate }
 import akka.persistence.journal.JournalSpec
+import akka.persistence.{ CapabilityFlag, PersistentImpl }
 import akka.testkit.TestProbe
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
 
@@ -50,15 +50,14 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PostgresPartitionedJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), PostgresPartitioned())
-class PostgresPartitionedJournalSpecSharedDb
-    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), PostgresPartitioned()) {
+abstract class BasePostgresPartitionedJournalSpec(config: String)
+    extends JdbcJournalSpec(ConfigFactory.load(config), PostgresPartitioned()) {
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
       //given
-      val pId1 ="persist1"
-      val pId2 ="persist2"
+      val pId1 = "persist1"
+      val pId2 = "persist2"
       val sender1 = TestProbe()
       val sender2 = TestProbe()
       val receiverProbe = TestProbe()
@@ -82,7 +81,7 @@ class PostgresPartitionedJournalSpecSharedDb
 
     "create new sub-partition for new events" in {
       //given
-      val pId ="persist3"
+      val pId = "persist3"
       val sender = TestProbe()
       val receiverProbe = TestProbe()
       //when
@@ -102,12 +101,16 @@ class PostgresPartitionedJournalSpecSharedDb
 
   def replayedPostgreSQLMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
     ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
-
-
 }
+
+class PostgresPartitionedJournalSpec extends BasePostgresPartitionedJournalSpec("postgres-partitioned-application.conf")
+class PostgresPartitionedJournalSpecSharedDb
+    extends BasePostgresPartitionedJournalSpec("postgres-partitioned-shared-db-application.conf")
 class PostgresPartitionedJournalSpecPhysicalDelete
-    extends JdbcJournalSpec(
-      ConfigFactory
-        .load("postgres-application.conf")
-        .withValue("jdbc-journal.logicalDelete", ConfigValueFactory.fromAnyRef(false)),
-      PostgresPartitioned())
+    extends BasePostgresPartitionedJournalSpec("postgres-partitioned-application-with-hard-delete.conf")
+
+class PostgresJournalSpec extends JdbcJournalSpec(ConfigFactory.load("postgres-application.conf"), Postgres())
+class PostgresJournalSpecSharedDb
+    extends JdbcJournalSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres())
+class PostgresJournalSpecPhysicalDelete
+    extends JdbcJournalSpec(ConfigFactory.load("postgres-application-with-hard-delete.conf"), Postgres())

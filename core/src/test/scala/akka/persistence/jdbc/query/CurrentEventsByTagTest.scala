@@ -5,16 +5,15 @@
 
 package akka.persistence.jdbc.query
 
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
+import akka.Done
 import akka.pattern.ask
+import akka.persistence.jdbc.query.CurrentEventsByTagTest._
+import akka.persistence.jdbc.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
+import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 
-import scala.concurrent.duration._
-import akka.Done
-import akka.persistence.jdbc.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
-
 import scala.concurrent.Future
-import CurrentEventsByTagTest._
+import scala.concurrent.duration._
 
 object CurrentEventsByTagTest {
   val maxBufferSize = 20
@@ -203,5 +202,9 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
 
 class PostgresPartitionedScalaCurrentEventsByTagTest
-    extends CurrentEventsByTagTest("postgres-shared-db-application.conf")
+    extends CurrentEventsByTagTest("postgres-partitioned-shared-db-application.conf")
     with PostgresPartitionedCleaner
+
+class PostgresScalaCurrentEventsByTagTest
+    extends CurrentEventsByTagTest("postgres-shared-db-application.conf")
+    with PostgresCleaner

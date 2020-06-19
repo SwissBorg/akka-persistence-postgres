@@ -5,17 +5,17 @@
 
 package akka.persistence.jdbc.query
 
-import java.lang.management.{ManagementFactory, MemoryMXBean}
+import java.lang.management.{ ManagementFactory, MemoryMXBean }
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.persistence.jdbc.journal.dao.{ByteArrayJournalDao, JournalTables}
-import akka.persistence.{AtomicWrite, PersistentRepr}
+import akka.persistence.jdbc.journal.dao.{ ByteArrayJournalDao, JournalTables }
+import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.testkit.scaladsl.TestSink
-import akka.stream.{Materializer, SystemMaterializer}
-import com.typesafe.config.{ConfigValue, ConfigValueFactory}
+import akka.stream.{ Materializer, SystemMaterializer }
+import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.matchers.should
 import org.slf4j.LoggerFactory
@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory
 import scala.collection.immutable
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object JournalDaoStreamMessagesMemoryTest {
 
@@ -140,5 +140,9 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
 }
 
 class PostgresPartitionedJournalDaoStreamMessagesMemoryTest
-    extends JournalDaoStreamMessagesMemoryTest("postgres-application.conf")
+    extends JournalDaoStreamMessagesMemoryTest("postgres-partitioned-application.conf")
     with PostgresPartitionedCleaner
+
+class PostgresJournalDaoStreamMessagesMemoryTest
+    extends JournalDaoStreamMessagesMemoryTest("postgres-application.conf")
+    with PostgresCleaner

@@ -5,11 +5,11 @@
 
 package akka.persistence.jdbc.query
 
+import akka.pattern.ask
+import akka.persistence.journal.{ EventSeq, ReadEventAdapter, Tagged, WriteEventAdapter }
 import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 
 import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.persistence.journal.{ EventSeq, ReadEventAdapter, Tagged, WriteEventAdapter }
 
 object EventAdapterTest {
   case class Event(value: String) {
@@ -176,4 +176,8 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 }
 
-class PostgresPartitionedScalaEventAdapterTest extends EventAdapterTest("postgres-application.conf") with PostgresPartitionedCleaner
+class PostgresPartitionedScalaEventAdapterTest
+    extends EventAdapterTest("postgres-partitioned-application.conf")
+    with PostgresPartitionedCleaner
+
+class PostgresScalaEventAdapterTest extends EventAdapterTest("postgres-application.conf") with PostgresCleaner

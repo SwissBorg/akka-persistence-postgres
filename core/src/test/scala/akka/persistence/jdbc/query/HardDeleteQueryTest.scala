@@ -5,13 +5,11 @@
 
 package akka.persistence.jdbc.query
 
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import akka.pattern._
-import com.typesafe.config.ConfigFactory
-import org.scalactic.source.Position
+import akka.persistence.query.NoOffset
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-import org.scalatest.matchers.should.Matchers
 
 abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config) with Matchers {
   implicit val askTimeout = 500.millis
@@ -98,5 +96,9 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
 }
 
 class PostgresPartitionedHardDeleteQueryTest
-    extends HardDeleteQueryTest("postgres-application-with-hard-delete.conf")
+    extends HardDeleteQueryTest("postgres-partitioned-application-with-hard-delete.conf")
     with PostgresPartitionedCleaner
+
+class PostgresHardDeleteQueryTest
+    extends HardDeleteQueryTest("postgres-application-with-hard-delete.conf")
+    with PostgresCleaner

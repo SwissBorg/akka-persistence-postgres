@@ -5,28 +5,26 @@
 
 package akka.persistence.jdbc.query
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.pattern.ask
 import akka.persistence.jdbc.config.JournalSequenceRetrievalConfig
 import akka.persistence.jdbc.journal.dao.JournalTables
-import akka.persistence.jdbc.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
-import akka.persistence.jdbc.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
+import akka.persistence.jdbc.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
+import akka.persistence.jdbc.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
 import akka.persistence.jdbc.tag.EventTagDao
-import akka.persistence.jdbc.{JournalRow, SharedActorSystemTestSpec}
+import akka.persistence.jdbc.{ JournalRow, SharedActorSystemTestSpec }
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{Sink, Source}
-import akka.stream.{Materializer, SystemMaterializer}
+import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.{ Materializer, SystemMaterializer }
 import akka.testkit.TestProbe
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
-import slick.jdbc.{JdbcBackend, JdbcCapabilities}
+import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-abstract class JournalSequenceActorTest(configFile: String)
-    extends QueryTestSpec(configFile)
-    with JournalTables {
+abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpec(configFile) with JournalTables {
   private val log = LoggerFactory.getLogger(classOf[JournalSequenceActorTest])
 
   val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
@@ -44,7 +42,8 @@ abstract class JournalSequenceActorTest(configFile: String)
     withActorSystem { implicit system: ActorSystem =>
       withDatabase { db =>
         val numberOfRows = 15000
-        val rows = for (i <- 1 to numberOfRows) yield JournalRow(generateId, deleted = false, "id", i, Array(0.toByte), Nil)
+        val rows =
+          for (i <- 1 to numberOfRows) yield JournalRow(generateId, deleted = false, "id", i, Array(0.toByte), Nil)
         db.run(JournalTable ++= rows).futureValue
         withJournalSequenceActor(db, maxTries = 100) { actor =>
           eventually {
@@ -162,7 +161,8 @@ abstract class JournalSequenceActorTest(configFile: String)
       implicit system: ActorSystem): Unit = {
     import system.dispatcher
     implicit val mat: Materializer = SystemMaterializer(system).materializer
-    val readJournalDao = new ByteArrayReadJournalDao(db, readJournalConfig, SerializationExtension(system), new EventTagDao(db))
+    val readJournalDao =
+      new ByteArrayReadJournalDao(db, readJournalConfig, SerializationExtension(system), new EventTagDao(db))
     val actor =
       system.actorOf(JournalSequenceActor.props(readJournalDao, journalSequenceActorConfig.copy(maxTries = maxTries)))
     try f(actor)
@@ -273,17 +273,15 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
 }
 
 class PostgresPartitionedJournalSequenceActorTest
-    extends JournalSequenceActorTest("postgres-application.conf")
+    extends JournalSequenceActorTest("postgres-partitioned-application.conf")
     with PostgresPartitionedCleaner {
-
   override def beforeEach(): Unit = {
     super.beforeEach()
     if (journalConfig.daoConfig.partitioned) {
       import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
-          db.run(
-            sqlu"""
+          db.run(sqlu"""
               CREATE TABLE IF NOT EXISTS j_id PARTITION OF journal FOR VALUES IN ('id') PARTITION BY RANGE (sequence_number);
               CREATE TABLE IF NOT EXISTS j_id_1 PARTITION OF j_id FOR VALUES FROM (0) TO (1000000000);""")
         }
@@ -291,3 +289,7 @@ class PostgresPartitionedJournalSequenceActorTest
     }
   }
 }
+
+class PostgresJournalSequenceActorTest
+    extends JournalSequenceActorTest("postgres-application.conf")
+    with PostgresCleaner
