@@ -14,12 +14,6 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends Journ
 
   import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
-  def journalRowByPersistenceIds(persistenceIds: Iterable[String]) =
-    for {
-      query <- JournalTable.map(_.persistenceId)
-      if query.inSetBind(persistenceIds)
-    } yield query
-
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
 
@@ -57,14 +51,12 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends Journ
 
   val eventsByTag = Compiled(_eventsByTag _)
 
-  def writeJournalRows(xs: Seq[JournalRow]) = JournalTable ++= xs.sortBy(_.sequenceNumber)
-
   private def _journalSequenceQuery(from: ConstColumn[Long], limit: ConstColumn[Long]) =
     JournalTable.filter(_.ordering > from).map(_.ordering).sorted.take(limit)
 
-  val journalSequenceQuery = Compiled(_journalSequenceQuery _)
+  val orderingByOrdering = Compiled(_journalSequenceQuery _)
 
-  val maxJournalSequenceQuery = Compiled {
+  val maxOrdering = Compiled {
     JournalTable.map(_.ordering).max.getOrElse(0L)
   }
 }

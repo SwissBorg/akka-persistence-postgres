@@ -154,11 +154,11 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   }
 
   private def highestMarkedSequenceNr(persistenceId: String) =
-    queries.highestMarkedSequenceNrForPersistenceId(persistenceId).result.headOption
+    queries.highestMarkedSequenceNrForPersistenceId(persistenceId).result
 
   override def highestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     for {
-      maybeHighestSeqNo <- db.run(queries.highestSequenceNrForPersistenceId(persistenceId).result.headOption)
+      maybeHighestSeqNo <- db.run(queries.highestSequenceNrForPersistenceId(persistenceId).result)
     } yield maybeHighestSeqNo.getOrElse(0L)
 
   override def messages(
@@ -176,7 +176,7 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
   val journalConfig: JournalConfig
 
 //  TODO extract as parameter
-  private lazy val partitionSize = 2000L
+  private lazy val partitionSize = 20000L
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] =
     if (journalConfig.daoConfig.partitioned) {

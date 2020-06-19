@@ -11,7 +11,7 @@ import akka.persistence.jdbc.SingleActorSystemPerTestSpec
 import akka.persistence.jdbc.query.EventAdapterTest.{Event, TaggedAsyncEvent, TaggedEvent}
 import akka.persistence.jdbc.query.javadsl.{JdbcReadJournal => JavaJdbcReadJournal}
 import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
-import akka.persistence.jdbc.util.Schema.{Postgres, SchemaType}
+import akka.persistence.jdbc.util.Schema.{Postgres, PostgresPartitioned, SchemaType}
 import akka.persistence.journal.Tagged
 import akka.persistence.query.{EventEnvelope, Offset, PersistenceQuery}
 import akka.persistence.{DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor}
@@ -305,9 +305,17 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
 
 }
 
-trait PostgresCleaner extends QueryTestSpec {
+trait PostgresCleaner extends BasePostgresCleaner {
+  override def schemaType: SchemaType = Postgres()
+}
 
-  def schemaType: SchemaType = Postgres()
+trait PostgresPartitionedCleaner extends BasePostgresCleaner {
+  override def schemaType: SchemaType = PostgresPartitioned()
+}
+
+trait BasePostgresCleaner extends QueryTestSpec {
+
+  def schemaType: SchemaType
 
   val actionsClearPostgres =
     DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE event_tag""").transactionally

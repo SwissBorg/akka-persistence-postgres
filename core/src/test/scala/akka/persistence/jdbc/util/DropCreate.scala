@@ -26,10 +26,7 @@ trait DropCreate extends ClasspathResources {
     for {
       schema <- Option(fromClasspathAsString(schema))
     } withStatement { stmt =>
-      try stmt.executeUpdate(schema)
-      catch {
-        case t: java.sql.SQLSyntaxErrorException if t.getMessage contains "ORA-00942" => // suppress known error message in the test
-      }
+      stmt.executeUpdate(schema)
     }
 
   def withDatabase[A](f: Database => A): A =

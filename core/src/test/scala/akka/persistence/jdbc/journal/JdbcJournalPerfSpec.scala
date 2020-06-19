@@ -33,7 +33,7 @@ abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
 
   implicit def pc: PatienceConfig = PatienceConfig(timeout = 10.minutes)
 
-  override def eventsCount: Int = 1000
+  override def eventsCount: Int = 100
 
   override def awaitDurationMillis: Long = 10.minutes.toMillis
 
@@ -104,15 +104,18 @@ abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PostgresJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application.conf"), Postgres()) {
-  override def eventsCount: Int = 100
-}
+class PostgresPartitionedJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-application.conf"), PostgresPartitioned())
+
+class PostgresPartitionedJournalPerfSpecSharedDb
+    extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-shared-db-application.conf"), PostgresPartitioned())
+
+class PostgresPartitionedJournalPerfSpecPhysicalDelete
+  extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-application-with-hard-delete.conf"), PostgresPartitioned())
+
+class PostgresJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application.conf"), Postgres())
 
 class PostgresJournalPerfSpecSharedDb
-    extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres()) {
-  override def eventsCount: Int = 100
-}
+  extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Postgres())
 
-class PostgresJournalPerfSpecPhysicalDelete extends PostgresJournalPerfSpec {
-  this.cfg.withValue("jdbc-journal.logicalDelete", ConfigValueFactory.fromAnyRef(false))
-}
+class PostgresJournalPerfSpecPhysicalDelete
+  extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application-with-hard-delete.conf"), Postgres())

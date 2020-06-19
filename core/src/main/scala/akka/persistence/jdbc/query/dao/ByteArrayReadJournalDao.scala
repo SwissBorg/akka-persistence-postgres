@@ -61,10 +61,10 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
   }
 
   override def journalSequence(offset: Long, limit: Long): Source[Long, NotUsed] =
-    Source.fromPublisher(db.stream(queries.journalSequenceQuery(offset, limit).result))
+    Source.fromPublisher(db.stream(queries.orderingByOrdering(offset, limit).result))
 
   override def maxJournalSequence(): Future[Long] = {
-    db.run(queries.maxJournalSequenceQuery.result)
+    db.run(queries.maxOrdering.result)
   }
 }
 

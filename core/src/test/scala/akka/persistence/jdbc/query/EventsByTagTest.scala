@@ -6,15 +6,14 @@
 package akka.persistence.jdbc.query
 
 import akka.Done
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import akka.pattern.ask
 import akka.persistence.jdbc.query.EventAdapterTest.{ Event, EventRestored, TaggedAsyncEvent, TaggedEvent }
+import akka.persistence.jdbc.query.EventsByTagTest._
+import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 
-import scala.concurrent.duration._
 import scala.concurrent.Future
-
-import EventsByTagTest._
+import scala.concurrent.duration._
 
 object EventsByTagTest {
   val maxBufferSize = 20
@@ -415,5 +414,9 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
     }
   }
 }
+
+class PostgresPartitionedScalaEventsByTagTest
+    extends EventsByTagTest("postgres-partitioned-application.conf")
+    with PostgresPartitionedCleaner
 
 class PostgresScalaEventsByTagTest extends EventsByTagTest("postgres-application.conf") with PostgresCleaner

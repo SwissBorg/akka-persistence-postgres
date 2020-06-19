@@ -12,7 +12,7 @@ import akka.persistence.{ AtomicWrite, PersistentRepr }
 import scala.collection.immutable._
 import scala.concurrent.Future
 
-class ByteArrayJournalSerializerTest extends SharedActorSystemTestSpec() {
+class ByteArrayJournalSerializerTest extends SharedActorSystemTestSpec {
   it should "serialize a serializable message and indicate whether or not the serialization succeeded" in {
     val serializer = new ByteArrayJournalSerializer(serialization, FakeEventTagConverter)
     val result = serializer.serialize(Seq(AtomicWrite(PersistentRepr("foo"))))
