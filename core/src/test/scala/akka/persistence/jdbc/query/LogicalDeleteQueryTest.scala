@@ -98,8 +98,8 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
   }
 }
 
-class PostgresPartitionedLogicalDeleteQueryTest
+class PartitionedLogicalDeleteQueryTest
     extends LogicalDeleteQueryTest("postgres-partitioned-application.conf")
-    with PostgresPartitionedCleaner
+    with PartitionedDbCleaner
 
-class PostgresLogicalDeleteQueryTest extends LogicalDeleteQueryTest("postgres-application.conf") with PostgresCleaner
+class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest("postgres-application.conf") with DbCleaner

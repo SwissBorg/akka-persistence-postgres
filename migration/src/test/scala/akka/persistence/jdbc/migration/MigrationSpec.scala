@@ -14,7 +14,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class PostgresSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
+class MigrationSpec extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   val postgres: PostgreSQLContainer[_] = {
     val c = new PostgreSQLContainer()

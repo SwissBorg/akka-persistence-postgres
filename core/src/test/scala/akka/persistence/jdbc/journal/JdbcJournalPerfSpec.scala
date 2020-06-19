@@ -104,18 +104,18 @@ abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PostgresPartitionedJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-application.conf"), Partitioned())
+class PartitionedJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-application.conf"), Partitioned())
 
-class PostgresPartitionedJournalPerfSpecSharedDb
+class PartitionedJournalPerfSpecSharedDb
     extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-shared-db-application.conf"), Partitioned())
 
-class PostgresPartitionedJournalPerfSpecPhysicalDelete
+class PartitionedJournalPerfSpecPhysicalDelete
   extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-partitioned-application-with-hard-delete.conf"), Partitioned())
 
-class PostgresJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application.conf"), Plain())
+class PlainJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application.conf"), Plain())
 
-class PostgresJournalPerfSpecSharedDb
+class PlainJournalPerfSpecSharedDb
   extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-shared-db-application.conf"), Plain())
 
-class PostgresJournalPerfSpecPhysicalDelete
+class PlainJournalPerfSpecPhysicalDelete
   extends JdbcJournalPerfSpec(ConfigFactory.load("postgres-application-with-hard-delete.conf"), Plain())

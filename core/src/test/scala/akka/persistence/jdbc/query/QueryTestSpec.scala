@@ -305,23 +305,23 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
 
 }
 
-trait PostgresCleaner extends BasePostgresCleaner {
+trait DbCleaner extends BaseDbCleaner {
   override def schemaType: SchemaType = Plain()
 }
 
-trait PostgresPartitionedCleaner extends BasePostgresCleaner {
+trait PartitionedDbCleaner extends BaseDbCleaner {
   override def schemaType: SchemaType = Partitioned()
 }
 
-trait BasePostgresCleaner extends QueryTestSpec {
+trait BaseDbCleaner extends QueryTestSpec {
 
   def schemaType: SchemaType
 
-  val actionsClearPostgres =
+  val clearActions =
     DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE event_tag""").transactionally
 
   def clearPostgres(): Unit =
-    withDatabase(_.run(actionsClearPostgres).futureValue)
+    withDatabase(_.run(clearActions).futureValue)
 
   override def beforeAll(): Unit = {
     dropCreate(schemaType)

@@ -176,8 +176,8 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 }
 
-class PostgresPartitionedScalaEventAdapterTest
+class PartitionedScalaEventAdapterTest
     extends EventAdapterTest("postgres-partitioned-application.conf")
-    with PostgresPartitionedCleaner
+    with PartitionedDbCleaner
 
-class PostgresScalaEventAdapterTest extends EventAdapterTest("postgres-application.conf") with PostgresCleaner
+class PlainScalaEventAdapterTest extends EventAdapterTest("postgres-application.conf") with DbCleaner

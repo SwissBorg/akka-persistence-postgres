@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.Scheduler
 import akka.persistence.jdbc.config.JournalConfig
-import akka.persistence.jdbc.db.PostgresErrorCodes
+import akka.persistence.jdbc.db.DbErrorCodes
 import akka.persistence.jdbc.serialization.FlowPersistentReprSerializer
 import akka.persistence.jdbc.tag.{ EventTagConverter, EventTagDao }
 import akka.persistence.journal.Tagged
@@ -171,7 +171,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
       .via(serializer.deserializeFlow)
 }
 
-trait PostgresPartitions extends BaseByteArrayJournalDao {
+trait PartitionedJournalDao extends BaseByteArrayJournalDao {
   def logger: Logger
   val journalConfig: JournalConfig
 
@@ -218,7 +218,7 @@ trait PostgresPartitions extends BaseByteArrayJournalDao {
           } yield ()
           db.run(actions)
             .recoverWith {
-              case ex: SQLException if ex.getSQLState == PostgresErrorCodes.PgDuplicateTable =>
+              case ex: SQLException if ex.getSQLState == DbErrorCodes.PgDuplicateTable =>
                 // Partition already created from another session, all good, recovery succeeded
                 Future.successful(())
             }
@@ -292,8 +292,7 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
 class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, serialization: Serialization)(
     implicit val ec: ExecutionContext,
     val mat: Materializer)
-    extends BaseByteArrayJournalDao
-    with PostgresPartitions {
+    extends PartitionedJournalDao {
   val queries = new JournalQueries(journalConfig.journalTableConfiguration)
   val eventTagConverter = new EventTagDao(db)
   val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)

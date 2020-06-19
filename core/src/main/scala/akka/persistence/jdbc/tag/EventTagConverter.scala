@@ -2,7 +2,7 @@ package akka.persistence.jdbc.tag
 
 import java.util.concurrent.ConcurrentHashMap
 
-import akka.persistence.jdbc.db.PostgresErrorCodes
+import akka.persistence.jdbc.db.DbErrorCodes
 import org.postgresql.util.PSQLException
 import slick.jdbc.JdbcBackend._
 
@@ -44,7 +44,7 @@ class EventTagDao(db: Database)(implicit ctx: ExecutionContext) extends EventTag
             .map(updateCache)
             .map(_.id)
             .recoverWith {
-              case ex: PSQLException if retryAttempts > 0 && ex.getSQLState == PostgresErrorCodes.PgUniqueValidation =>
+              case ex: PSQLException if retryAttempts > 0 && ex.getSQLState == DbErrorCodes.PgUniqueValidation =>
                 get(retryAttempts - 1)
             }
       }
