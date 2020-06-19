@@ -277,14 +277,12 @@ class PostgresPartitionedJournalSequenceActorTest
     with PostgresPartitionedCleaner {
   override def beforeEach(): Unit = {
     super.beforeEach()
-    if (journalConfig.daoConfig.partitioned) {
-      import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
-      withActorSystem { implicit system: ActorSystem =>
-        withDatabase { db =>
-          db.run(sqlu"""
+    import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
+    withActorSystem { implicit system: ActorSystem =>
+      withDatabase { db =>
+        db.run(sqlu"""
               CREATE TABLE IF NOT EXISTS j_id PARTITION OF journal FOR VALUES IN ('id') PARTITION BY RANGE (sequence_number);
               CREATE TABLE IF NOT EXISTS j_id_1 PARTITION OF j_id FOR VALUES FROM (0) TO (1000000000);""")
-        }
       }
     }
   }
