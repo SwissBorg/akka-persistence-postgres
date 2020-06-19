@@ -11,7 +11,7 @@ import akka.persistence.jdbc.SingleActorSystemPerTestSpec
 import akka.persistence.jdbc.query.EventAdapterTest.{Event, TaggedAsyncEvent, TaggedEvent}
 import akka.persistence.jdbc.query.javadsl.{JdbcReadJournal => JavaJdbcReadJournal}
 import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
-import akka.persistence.jdbc.util.Schema.{Postgres, PostgresPartitioned, SchemaType}
+import akka.persistence.jdbc.util.Schema.{Plain, Partitioned, SchemaType}
 import akka.persistence.journal.Tagged
 import akka.persistence.query.{EventEnvelope, Offset, PersistenceQuery}
 import akka.persistence.{DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor}
@@ -306,11 +306,11 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
 }
 
 trait PostgresCleaner extends BasePostgresCleaner {
-  override def schemaType: SchemaType = Postgres()
+  override def schemaType: SchemaType = Plain()
 }
 
 trait PostgresPartitionedCleaner extends BasePostgresCleaner {
-  override def schemaType: SchemaType = PostgresPartitioned()
+  override def schemaType: SchemaType = Partitioned()
 }
 
 trait BasePostgresCleaner extends QueryTestSpec {

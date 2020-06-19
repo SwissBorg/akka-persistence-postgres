@@ -12,8 +12,8 @@ import slick.jdbc.JdbcBackend.{ Database, Session }
 
 object Schema {
   sealed trait SchemaType { def schema: String }
-  final case class Postgres(schema: String = "schema/postgres/postgres-schema.sql") extends SchemaType
-  final case class PostgresPartitioned(schema: String = "schema/postgres/postgres-partitioned-schema.sql") extends SchemaType
+  final case class Plain(schema: String = "schema/postgres/plain-schema.sql") extends SchemaType
+  final case class Partitioned(schema: String = "schema/postgres/partitioned-schema.sql") extends SchemaType
 }
 
 trait DropCreate extends ClasspathResources {
