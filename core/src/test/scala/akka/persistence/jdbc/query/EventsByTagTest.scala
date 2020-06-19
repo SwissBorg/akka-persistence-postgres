@@ -419,4 +419,4 @@ class PartitionedScalaEventsByTagTest
     extends EventsByTagTest("partitioned-application.conf")
     with PartitionedDbCleaner
 
-class PlainScalaEventsByTagTest extends EventsByTagTest("plain-application.conf") with DbCleaner
+class PlainScalaEventsByTagTest extends EventsByTagTest("plain-application.conf") with PlainDbCleaner

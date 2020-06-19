@@ -305,7 +305,7 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
 
 }
 
-trait DbCleaner extends BaseDbCleaner {
+trait PlainDbCleaner extends BaseDbCleaner {
   override def schemaType: SchemaType = Plain()
 }
 

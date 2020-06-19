@@ -337,4 +337,4 @@ class PartitionedScalaEventsByPersistenceIdTest
 
 class PlainScalaEventsByPersistenceIdTest
     extends EventsByPersistenceIdTest("plain-application.conf")
-    with DbCleaner
+    with PlainDbCleaner

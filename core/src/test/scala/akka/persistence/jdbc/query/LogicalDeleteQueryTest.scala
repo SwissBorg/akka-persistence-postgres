@@ -102,4 +102,4 @@ class PartitionedLogicalDeleteQueryTest
     extends LogicalDeleteQueryTest("partitioned-application.conf")
     with PartitionedDbCleaner
 
-class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest("plain-application.conf") with DbCleaner
+class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest("plain-application.conf") with PlainDbCleaner

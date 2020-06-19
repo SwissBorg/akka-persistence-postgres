@@ -291,4 +291,4 @@ class PartitionedJournalSequenceActorTest
 
 class PlainJournalSequenceActorTest
     extends JournalSequenceActorTest("plain-application.conf")
-    with DbCleaner
+    with PlainDbCleaner

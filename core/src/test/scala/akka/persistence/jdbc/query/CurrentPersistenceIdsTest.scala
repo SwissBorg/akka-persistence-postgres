@@ -40,4 +40,4 @@ class PartitionedScalaCurrentPersistenceIdsTest
 
 class PlainScalaCurrentPersistenceIdsTest
     extends CurrentPersistenceIdsTest("plain-shared-db-application.conf")
-    with DbCleaner
+    with PlainDbCleaner

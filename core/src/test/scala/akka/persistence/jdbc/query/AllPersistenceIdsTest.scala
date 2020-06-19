@@ -57,4 +57,4 @@ class PartitionedScalaAllPersistenceIdsTest
     extends AllPersistenceIdsTest("partitioned-application.conf")
     with PartitionedDbCleaner
 
-class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest("plain-application.conf") with DbCleaner
+class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest("plain-application.conf") with PlainDbCleaner

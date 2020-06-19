@@ -145,4 +145,4 @@ class PartitionedJournalDaoStreamMessagesMemoryTest
 
 class PlainJournalDaoStreamMessagesMemoryTest
     extends JournalDaoStreamMessagesMemoryTest("plain-application.conf")
-    with DbCleaner
+    with PlainDbCleaner

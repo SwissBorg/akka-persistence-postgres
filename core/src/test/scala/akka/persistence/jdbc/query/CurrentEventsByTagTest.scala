@@ -207,4 +207,4 @@ class PartitionedScalaCurrentEventsByTagTest
 
 class PlainScalaCurrentEventsByTagTest
     extends CurrentEventsByTagTest("plain-shared-db-application.conf")
-    with DbCleaner
+    with PlainDbCleaner

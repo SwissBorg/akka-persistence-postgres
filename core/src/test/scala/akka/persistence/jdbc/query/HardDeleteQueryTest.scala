@@ -101,4 +101,4 @@ class PartitionedHardDeleteQueryTest
 
 class PlainHardDeleteQueryTest
     extends HardDeleteQueryTest("plain-application-with-hard-delete.conf")
-    with DbCleaner
+    with PlainDbCleaner

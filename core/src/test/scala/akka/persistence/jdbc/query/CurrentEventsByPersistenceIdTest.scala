@@ -216,4 +216,4 @@ class PartitionedScalaCurrentEventsByPersistenceIdTest
 
 class PlainScalaCurrentEventsByPersistenceIdTest
     extends CurrentEventsByPersistenceIdTest("plain-shared-db-application.conf")
-    with DbCleaner
+    with PlainDbCleaner
