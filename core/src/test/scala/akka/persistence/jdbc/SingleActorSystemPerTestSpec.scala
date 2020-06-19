@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import akka.persistence.jdbc.config.{ JournalConfig, ReadJournalConfig, SlickConfiguration }
 import akka.persistence.jdbc.query.javadsl.JdbcReadJournal
 import akka.persistence.jdbc.util.DropCreate
-import akka.persistence.jdbc.db.{ SlickDatabase, SlickDriver }
+import akka.persistence.jdbc.db.SlickDatabase
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValue }
 import org.scalatest.BeforeAndAfterEach
@@ -31,9 +31,6 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
 
   val cfg = config.getConfig("jdbc-journal")
   val journalConfig = new JournalConfig(cfg)
-  val profile = if (cfg.hasPath("slick.profile")) {
-    SlickDatabase.profile(cfg, "slick")
-  } else SlickDatabase.profile(config, "akka-persistence-jdbc.shared-databases.slick")
   val readJournalConfig = new ReadJournalConfig(config.getConfig(JdbcReadJournal.Identifier))
 
   // The db is initialized in the before and after each bocks

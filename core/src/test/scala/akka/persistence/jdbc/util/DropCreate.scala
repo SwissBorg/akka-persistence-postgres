@@ -13,6 +13,7 @@ import slick.jdbc.JdbcBackend.{ Database, Session }
 object Schema {
   sealed trait SchemaType { def schema: String }
   final case class Postgres(schema: String = "schema/postgres/postgres-schema.sql") extends SchemaType
+  final case class PostgresPartitioned(schema: String = "schema/postgres/postgres-partitioned-schema.sql") extends SchemaType
 }
 
 trait DropCreate extends ClasspathResources {
@@ -25,10 +26,7 @@ trait DropCreate extends ClasspathResources {
     for {
       schema <- Option(fromClasspathAsString(schema))
     } withStatement { stmt =>
-      try stmt.executeUpdate(schema)
-      catch {
-        case t: java.sql.SQLSyntaxErrorException if t.getMessage contains "ORA-00942" => // suppress known error message in the test
-      }
+      stmt.executeUpdate(schema)
     }
 
   def withDatabase[A](f: Database => A): A =

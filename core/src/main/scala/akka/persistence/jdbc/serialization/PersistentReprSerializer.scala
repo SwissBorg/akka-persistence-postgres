@@ -8,10 +8,10 @@ package akka.persistence.jdbc.serialization
 import akka.NotUsed
 import akka.persistence.jdbc.util.TrySeq
 import akka.persistence.journal.Tagged
-import akka.persistence.{ AtomicWrite, PersistentRepr }
+import akka.persistence.{AtomicWrite, PersistentRepr}
 import akka.stream.scaladsl.Flow
-import scala.collection.immutable._
 
+import scala.collection.immutable._
 import scala.util.Try
 
 trait PersistentReprSerializer[T] {
@@ -40,7 +40,7 @@ trait PersistentReprSerializer[T] {
   /**
    * deserialize into a PersistentRepr, a set of tags and a Long representing the global ordering of events
    */
-  def deserialize(t: T): Try[(PersistentRepr, Set[String], Long)]
+  def deserialize(t: T): Try[(PersistentRepr, Long)]
 }
 
 trait FlowPersistentReprSerializer[T] extends PersistentReprSerializer[T] {
@@ -49,7 +49,7 @@ trait FlowPersistentReprSerializer[T] extends PersistentReprSerializer[T] {
    * A flow which deserializes each element into a PersistentRepr,
    * a set of tags and a Long representing the global ordering of events
    */
-  def deserializeFlow: Flow[T, Try[(PersistentRepr, Set[String], Long)], NotUsed] = {
+  def deserializeFlow: Flow[T, Try[(PersistentRepr, Long)], NotUsed] = {
     Flow[T].map(deserialize)
   }
 

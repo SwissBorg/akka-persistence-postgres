@@ -5,26 +5,25 @@
 
 package akka.persistence.jdbc.query
 
-import java.lang.management.ManagementFactory
-import java.lang.management.MemoryMXBean
+import java.lang.management.{ ManagementFactory, MemoryMXBean }
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.persistence.jdbc.journal.dao.{ ByteArrayJournalDao, JournalTables }
+import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.SerializationExtension
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.testkit.scaladsl.TestSink
+import akka.stream.{ Materializer, SystemMaterializer }
 import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
+import org.scalatest.matchers.should
 import org.slf4j.LoggerFactory
+
 import scala.collection.immutable
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
-
-import akka.stream.testkit.scaladsl.TestSink
-import org.scalatest.Matchers
 
 object JournalDaoStreamMessagesMemoryTest {
 
@@ -36,15 +35,13 @@ object JournalDaoStreamMessagesMemoryTest {
 abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
     extends QueryTestSpec(configFile, JournalDaoStreamMessagesMemoryTest.configOverrides)
     with JournalTables
-    with Matchers {
+    with should.Matchers {
   import JournalDaoStreamMessagesMemoryTest.MB
 
   private val log = LoggerFactory.getLogger(this.getClass)
 
   val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
   val journalTableCfg = journalConfig.journalTableConfiguration
-
-  import profile.api._
 
   implicit val askTimeout = 50.millis
 
@@ -57,11 +54,11 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
   it should "stream events" in {
     withActorSystem { implicit system: ActorSystem =>
       withDatabase { db =>
-        implicit val mat: ActorMaterializer = ActorMaterializer()
+        implicit val mat: Materializer = SystemMaterializer(system).materializer
         implicit val ec: ExecutionContextExecutor = system.dispatcher
 
         val persistenceId = UUID.randomUUID().toString
-        val dao = new ByteArrayJournalDao(db, profile, journalConfig, SerializationExtension(system))
+        val dao = new ByteArrayJournalDao(db, journalConfig, SerializationExtension(system))
 
         val payloadSize = 5000 // 5000 bytes
         val eventsPerBatch = 1000
@@ -141,6 +138,10 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
     }
   }
 }
+
+class PostgresPartitionedJournalDaoStreamMessagesMemoryTest
+    extends JournalDaoStreamMessagesMemoryTest("postgres-partitioned-application.conf")
+    with PostgresPartitionedCleaner
 
 class PostgresJournalDaoStreamMessagesMemoryTest
     extends JournalDaoStreamMessagesMemoryTest("postgres-application.conf")

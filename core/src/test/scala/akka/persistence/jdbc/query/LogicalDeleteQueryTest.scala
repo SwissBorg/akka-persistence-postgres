@@ -5,8 +5,9 @@
 
 package akka.persistence.jdbc.query
 
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import akka.pattern._
+import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
+
 import scala.concurrent.duration._
 
 abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(config) {
@@ -96,5 +97,9 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
       }
   }
 }
+
+class PostgresPartitionedLogicalDeleteQueryTest
+    extends LogicalDeleteQueryTest("postgres-partitioned-application.conf")
+    with PostgresPartitionedCleaner
 
 class PostgresLogicalDeleteQueryTest extends LogicalDeleteQueryTest("postgres-application.conf") with PostgresCleaner

@@ -5,20 +5,22 @@
 
 package akka.persistence.jdbc.query
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.persistence.jdbc.config.JournalSequenceRetrievalConfig
+import akka.persistence.jdbc.db.ExtendedPostgresProfile
 import akka.persistence.jdbc.journal.dao.JournalTables
-import akka.persistence.jdbc.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
-import akka.persistence.jdbc.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
-import akka.persistence.jdbc.{ JournalRow, SharedActorSystemTestSpec }
+import akka.persistence.jdbc.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
+import akka.persistence.jdbc.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
+import akka.persistence.jdbc.tag.EventTagDao
+import akka.persistence.jdbc.{JournalRow, SharedActorSystemTestSpec}
 import akka.serialization.SerializationExtension
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{Materializer, SystemMaterializer}
 import akka.testkit.TestProbe
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
-import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
+import slick.jdbc.{JdbcBackend, JdbcCapabilities}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -29,7 +31,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
   val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
   val journalTableCfg = journalConfig.journalTableConfiguration
 
-  import profile.api._
+  import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
 
   implicit val askTimeout = 50.millis
 
@@ -41,7 +43,8 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
     withActorSystem { implicit system: ActorSystem =>
       withDatabase { db =>
         val numberOfRows = 15000
-        val rows = for (i <- 1 to numberOfRows) yield JournalRow(generateId, deleted = false, "id", i, Array(0.toByte))
+        val rows =
+          for (i <- 1 to numberOfRows) yield JournalRow(generateId, deleted = false, "id", i, Array(0.toByte), Nil)
         db.run(JournalTable ++= rows).futureValue
         withJournalSequenceActor(db, maxTries = 100) { actor =>
           eventually {
@@ -52,17 +55,17 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
     }
   }
 
-  private def canForceInsert: Boolean = profile.capabilities.contains(JdbcCapabilities.forceInsert)
+  private def canForceInsert: Boolean = ExtendedPostgresProfile.capabilities.contains(JdbcCapabilities.forceInsert)
 
   if (canForceInsert) {
     it should s"recover one million events quickly if no ids are missing" in {
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
-          implicit val materializer: ActorMaterializer = ActorMaterializer()
+          implicit val materializer: Materializer = SystemMaterializer(system).materializer
           val elements = 1000000
           Source
             .fromIterator(() => (1 to elements).iterator)
-            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte)))
+            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
             .grouped(10000)
             .mapAsync(4) { rows =>
               db.run(JournalTable.forceInsertAll(rows))
@@ -89,14 +92,14 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
     it should "recover after the specified max number if tries if the first event has a very high sequence number and lots of large gaps exist" in {
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
-          implicit val materializer: ActorMaterializer = ActorMaterializer()
+          implicit val materializer: Materializer = SystemMaterializer(system).materializer
           val numElements = 1000
           val gapSize = 10000
           val firstElement = 100000000
           val lastElement = firstElement + (numElements * gapSize)
           Source
             .fromIterator(() => (firstElement to lastElement by gapSize).iterator)
-            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte)))
+            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
             .grouped(10000)
             .mapAsync(4) { rows =>
               db.run(JournalTable.forceInsertAll(rows))
@@ -121,13 +124,13 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
     it should s"assume that the max ordering id in the database on startup is the max after (queryDelay * maxTries)" in {
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
-          implicit val materializer: ActorMaterializer = ActorMaterializer()
+          implicit val materializer: Materializer = SystemMaterializer(system).materializer
           val maxElement = 100000
           // only even numbers, odd numbers are missing
           val idSeq = 2 to maxElement by 2
           Source
             .fromIterator(() => idSeq.iterator)
-            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte)))
+            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
             .grouped(10000)
             .mapAsync(4) { rows =>
               db.run(JournalTable.forceInsertAll(rows))
@@ -158,8 +161,9 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
   def withJournalSequenceActor(db: JdbcBackend.Database, maxTries: Int)(f: ActorRef => Unit)(
       implicit system: ActorSystem): Unit = {
     import system.dispatcher
-    implicit val mat: ActorMaterializer = ActorMaterializer()
-    val readJournalDao = new ByteArrayReadJournalDao(db, profile, readJournalConfig, SerializationExtension(system))
+    implicit val mat: Materializer = SystemMaterializer(system).materializer
+    val readJournalDao =
+      new ByteArrayReadJournalDao(db, readJournalConfig, SerializationExtension(system), new EventTagDao(db))
     val actor =
       system.actorOf(JournalSequenceActor.props(readJournalDao, journalSequenceActorConfig.copy(maxTries = maxTries)))
     try f(actor)
@@ -269,14 +273,12 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
   }
 }
 
-class PostgresJournalSequenceActorTest
-    extends JournalSequenceActorTest("postgres-application.conf")
-    with PostgresCleaner {
-
-  import profile.api._
-
+class PostgresPartitionedJournalSequenceActorTest
+    extends JournalSequenceActorTest("postgres-partitioned-application.conf")
+    with PostgresPartitionedCleaner {
   override def beforeEach(): Unit = {
     super.beforeEach()
+    import akka.persistence.jdbc.db.ExtendedPostgresProfile.api._
     withActorSystem { implicit system: ActorSystem =>
       withDatabase { db =>
         db.run(sqlu"""
@@ -286,3 +288,7 @@ class PostgresJournalSequenceActorTest
     }
   }
 }
+
+class PostgresJournalSequenceActorTest
+    extends JournalSequenceActorTest("postgres-application.conf")
+    with PostgresCleaner
