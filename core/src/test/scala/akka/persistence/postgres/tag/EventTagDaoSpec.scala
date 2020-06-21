@@ -2,18 +2,16 @@ package akka.persistence.postgres.tag
 
 import java.util.concurrent.ThreadLocalRandom
 
-import akka.actor.ActorSystem
-import akka.persistence.postgres.config.{JournalConfig, SlickConfiguration}
+import akka.persistence.postgres.config.SlickConfiguration
 import akka.persistence.postgres.db.SlickDatabase
-import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import com.typesafe.config.{ Config, ConfigFactory }
+import org.scalatest.concurrent.{ IntegrationPatience, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
+import org.scalatest.{ BeforeAndAfter, BeforeAndAfterAll }
 import slick.jdbc
-import slick.jdbc.JdbcBackend
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class EventTagDaoSpec
     extends AnyFlatSpecLike
@@ -36,9 +34,9 @@ class EventTagDaoSpec
   it should "return id of existing tag" in withConnection { dao =>
     // given
     val tagName = generateTagName()
-    val expectedTagId = dao.getIdByName(tagName).futureValue
+    val expectedTagId = dao.getOrAssignIdsFor(Set(tagName)).futureValue
     // when
-    val returnedTagId = dao.getIdByName(tagName).futureValue
+    val returnedTagId = dao.getOrAssignIdsFor(Set(tagName)).futureValue
     // then
     expectedTagId shouldBe returnedTagId
   }
@@ -51,11 +49,12 @@ class EventTagDaoSpec
     val listOfTagQueries = List.fill(300)(listOfTags(ThreadLocalRandom.current().nextInt(listOfTags.size)))
 
     // when
-    val stored = Future.traverse(listOfTagQueries)(tag => dao.getIdByName(tag).map((_, tag))).futureValue
+    val stored = Future.traverse(listOfTagQueries)(tag => dao.getOrAssignIdsFor(Set(tag)).map((_, tag))).futureValue
 
     // then
     // take ids of tagsName
-    val expected = Future.sequence(listOfTags.map(tag => dao.getIdByName(tag).map((tag, _)))).map(_.toMap).futureValue
+    val expected =
+      Future.sequence(listOfTags.map(tag => dao.getOrAssignIdsFor(Set(tag)).map((tag, _)))).map(_.toMap).futureValue
     stored.foreach {
       case (id, name) =>
         expected(name) shouldBe id
@@ -71,12 +70,12 @@ class EventTagDaoSpec
 
     // when
     val stored =
-      Future.traverse(listOfTagQueries)(tag => new EventTagDao(db).getIdByName(tag).map((_, tag))).futureValue
+      Future.traverse(listOfTagQueries)(tag => new TagDao(db).getOrAssignIdsFor(Set(tag)).map((_, tag))).futureValue
 
     // then
     // take ids of tagsName
     val expected = Future
-      .sequence(listOfTags.map(tag => new EventTagDao(db).getIdByName(tag).map((tag, _))))
+      .sequence(listOfTags.map(tag => new TagDao(db).getOrAssignIdsFor(Set(tag)).map((tag, _))))
       .map(_.toMap)
       .futureValue
     stored.foreach {
@@ -85,9 +84,9 @@ class EventTagDaoSpec
     }
   }
 
-  private def withConnection(f: EventTagConverter => Unit): Unit =
+  private def withConnection(f: TagIdResolver => Unit): Unit =
     withDB { db =>
-      val dao = new EventTagDao(db)
+      val dao = new TagDao(db)
       f(dao)
     }
 

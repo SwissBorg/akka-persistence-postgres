@@ -8,19 +8,21 @@ package journal.dao
 
 import akka.persistence.PersistentRepr
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.EventTagConverter
+import akka.persistence.postgres.tag.TagIdResolver
 import akka.serialization.Serialization
 
 import scala.collection.immutable._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
-class ByteArrayJournalSerializer(serialization: Serialization, tagConverter: EventTagConverter)(
+class ByteArrayJournalSerializer(serialization: Serialization, tagConverter: TagIdResolver)(
     implicit val executionContext: ExecutionContext)
     extends FlowPersistentReprSerializer[JournalRow] {
 
   override def serialize(persistentRepr: PersistentRepr, tags: Set[String]): Future[JournalRow] = {
-    val convertedTagsFut = Future.sequence(tags.map(tagConverter.getIdByName))
+    val convertedTagsFut =
+      if (tags.nonEmpty) tagConverter.getOrAssignIdsFor(tags).map(_.values)
+      else Future.successful(Nil)
     val serializedEventFut: Future[Array[Byte]] = Future.fromTry(serialization.serialize(persistentRepr))
     for {
       convertedTags <- convertedTagsFut

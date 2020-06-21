@@ -10,11 +10,10 @@ import java.sql.SQLException
 import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.Scheduler
-import akka.persistence.journal.Tagged
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.DbErrorCodes
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.{ EventTagConverter, EventTagDao }
+import akka.persistence.postgres.tag.{ TagDao, TagIdResolver }
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.Serialization
 import akka.stream.scaladsl.{ Keep, Sink, Source }
@@ -36,7 +35,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   val queries: JournalQueries
   val journalConfig: JournalConfig
   val serializer: FlowPersistentReprSerializer[JournalRow]
-  val eventTagConverter: EventTagConverter
+  val eventTagConverter: TagIdResolver
   implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
@@ -93,35 +92,23 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
    * @see [[akka.persistence.journal.AsyncWriteJournal.asyncWriteMessages(messages)]]
    */
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] =
-    // If serialization fails for some AtomicWrites, the other AtomicWrites may still be written
-    ensureTagForMessagesExists(messages).flatMap { _ =>
-      Future
-        .sequence {
-          serializer.serialize(messages).map(_.map(Success(_)).recover { case ex => Failure(ex) })
-        }
-        .flatMap { serializedTries =>
-          def resultWhenWriteComplete =
-            if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
-
-          val rowsToWrite = serializedTries.flatMap(_.getOrElse(Seq.empty))
-          queueWriteJournalRows(rowsToWrite).map(_ => resultWhenWriteComplete)
-        }
-    }
-
-  private def ensureTagForMessagesExists(messages: Seq[AtomicWrite]): Future[Unit] = {
-    Future.sequence(extractTags(messages).map(eventTagConverter.getIdByName)).map(_ => ())
-  }
-
-  private def extractTags(messages: Seq[AtomicWrite]): Set[String] = {
-    messages
-      .flatMap(_.payload)
-      .map(_.payload)
-      .flatMap {
-        case Tagged(_, tags) => tags.toSeq
-        case _               => Seq.empty
+    Future
+      .sequence {
+        serializer
+          .serialize(messages)
+          // If serialization fails for some AtomicWrites, the other AtomicWrites may still be written
+          .map(_.map(Success(_)).recover {
+            case ex =>
+              Failure(ex)
+          })
       }
-      .toSet
-  }
+      .flatMap { serializedTries =>
+        def resultWhenWriteComplete =
+          if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
+
+        val rowsToWrite = serializedTries.flatMap(_.getOrElse(Seq.empty))
+        queueWriteJournalRows(rowsToWrite).map(_ => resultWhenWriteComplete)
+      }
 
   override def delete(persistenceId: String, maxSequenceNr: Long): Future[Unit] =
     if (logicalDelete) {
@@ -295,6 +282,6 @@ class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, se
     val mat: Materializer)
     extends PartitionedJournalDao {
   val queries = new JournalQueries(journalConfig.journalTableConfiguration)
-  val eventTagConverter = new EventTagDao(db)
+  val eventTagConverter = new TagDao(db)
   val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)
 }

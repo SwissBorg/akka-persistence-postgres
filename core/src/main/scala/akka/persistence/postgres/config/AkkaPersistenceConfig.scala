@@ -58,6 +58,7 @@ class SnapshotTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
+  // TODO get rid of tagSeparator (incl docs)
   val tagSeparator: String = config.as[String]("tagSeparator", ",")
   val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
   override def toString: String = s"JournalPluginConfig($tagSeparator,$dao)"
