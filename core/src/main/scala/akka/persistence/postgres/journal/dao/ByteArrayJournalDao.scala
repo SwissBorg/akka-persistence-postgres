@@ -194,7 +194,7 @@ trait PartitionedJournalDao extends BaseByteArrayJournalDao {
       xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
       case (persistenceId, (minSeqNr, maxSeqNr)) =>
-        val requiredPartitions = minSeqNr / partitionSize to maxSeqNr / partitionSize + 1
+        val requiredPartitions = minSeqNr / partitionSize to maxSeqNr / partitionSize
         val existingPartitions = createdPartitions.getOrDefault(persistenceId, Nil)
         val partitionsToCreate = requiredPartitions.toList.filter(!existingPartitions.contains(_))
 
