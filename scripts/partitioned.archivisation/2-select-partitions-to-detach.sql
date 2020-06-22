@@ -23,7 +23,8 @@ BEGIN
 --          > - because we would like that last event remain in journal
             IF min_sequence_number_in_parent > sequence_number_range.max THEN
                 INSERT INTO public.archivisation(persistence_id, min_sequence_number, max_sequence_number, schemaname, tablename, parent_schemaname, parent_tablename, status)
-                VALUES(sequence_number_range.persistence_id, sequence_number_range.min, sequence_number_range.max, row.child_schema, row.child, _basetableschema, _basetablename, 'NEW');
+                VALUES(sequence_number_range.persistence_id, sequence_number_range.min, sequence_number_range.max, row.child_schema, row.child, _basetableschema, _basetablename, 'NEW')
+                ON CONFLICT DO NOTHING;
             END IF;
         END LOOP;
 END; $$ LANGUAGE plpgsql;
