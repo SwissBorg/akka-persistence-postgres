@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE detach() AS $$
+CREATE OR REPLACE PROCEDURE detach_partitions_from_archivisation() AS $$
 DECLARE
     row         record;
 BEGIN
@@ -12,4 +12,4 @@ BEGIN
     END LOOP;
 END; $$ LANGUAGE plpgsql;
 
-CALL detach();
+CALL detach_partitions_from_archivisation();

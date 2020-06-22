@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE drop_detached() AS $$
+CREATE OR REPLACE PROCEDURE drop_detached_partitions() AS $$
 DECLARE
     row         record;
 BEGIN
@@ -12,4 +12,4 @@ BEGIN
     END LOOP;
 END; $$ LANGUAGE plpgsql;
 
-CALL drop_detached();
+CALL drop_detached_partitions();
