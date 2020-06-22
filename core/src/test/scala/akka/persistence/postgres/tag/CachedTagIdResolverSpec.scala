@@ -13,7 +13,7 @@ import slick.jdbc
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class EventTagDaoSpec
+class CachedTagIdResolverSpec
     extends AnyFlatSpecLike
     with Matchers
     with ScalaFutures
@@ -70,12 +70,16 @@ class EventTagDaoSpec
 
     // when
     val stored =
-      Future.traverse(listOfTagQueries)(tag => new TagDao(db).getOrAssignIdsFor(Set(tag)).map((_, tag))).futureValue
+      Future
+        .traverse(listOfTagQueries)(tag =>
+          new CachedTagIdResolver(new SimpleTagDao(db)).getOrAssignIdsFor(Set(tag)).map((_, tag)))
+        .futureValue
 
     // then
     // take ids of tagsName
     val expected = Future
-      .sequence(listOfTags.map(tag => new TagDao(db).getOrAssignIdsFor(Set(tag)).map((tag, _))))
+      .sequence(
+        listOfTags.map(tag => new CachedTagIdResolver(new SimpleTagDao(db)).getOrAssignIdsFor(Set(tag)).map((tag, _))))
       .map(_.toMap)
       .futureValue
     stored.foreach {
@@ -86,7 +90,7 @@ class EventTagDaoSpec
 
   private def withConnection(f: TagIdResolver => Unit): Unit =
     withDB { db =>
-      val dao = new TagDao(db)
+      val dao = new CachedTagIdResolver(new SimpleTagDao(db))
       f(dao)
     }
 

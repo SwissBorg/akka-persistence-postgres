@@ -13,7 +13,7 @@ import akka.actor.Scheduler
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.DbErrorCodes
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.{ TagDao, TagIdResolver }
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.Serialization
 import akka.stream.scaladsl.{ Keep, Sink, Source }
@@ -282,6 +282,7 @@ class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, se
     val mat: Materializer)
     extends PartitionedJournalDao {
   val queries = new JournalQueries(journalConfig.journalTableConfiguration)
-  val eventTagConverter = new TagDao(db)
+  val tagDao = new SimpleTagDao(db)
+  val eventTagConverter = new CachedTagIdResolver(tagDao)
   val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)
 }

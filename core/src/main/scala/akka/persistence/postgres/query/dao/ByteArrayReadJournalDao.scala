@@ -11,7 +11,7 @@ import akka.persistence.PersistentRepr
 import akka.persistence.postgres.config.ReadJournalConfig
 import akka.persistence.postgres.journal.dao.{ BaseJournalDaoWithReadMessages, ByteArrayJournalSerializer }
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.{ TagDao, TagIdResolver }
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.serialization.Serialization
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
@@ -26,7 +26,7 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
   def db: Database
   def queries: ReadJournalQueries
   def serializer: FlowPersistentReprSerializer[JournalRow]
-  def tagConverter: TagIdResolver
+  def tagIdResolver: TagIdResolver
   def readJournalConfig: ReadJournalConfig
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -43,7 +43,7 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
       db.stream(queries.eventsByTag(List(tagId), offset, maxOffset, max).result)
     // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
     Source
-      .future(tagConverter.lookupIdFor(tag))
+      .future(tagIdResolver.lookupIdFor(tag))
       .flatMapConcat(_.fold(Source.empty[JournalRow])(tagId => Source.fromPublisher(publisher(tagId))))
       .via(serializer.deserializeFlow)
   }
@@ -74,8 +74,8 @@ class ByteArrayReadJournalDao(
     val db: Database,
     val readJournalConfig: ReadJournalConfig,
     serialization: Serialization,
-    val tagConverter: TagIdResolver)(implicit val ec: ExecutionContext, val mat: Materializer)
+    val tagIdResolver: TagIdResolver)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayReadJournalDao {
   val queries = new ReadJournalQueries(readJournalConfig)
-  val serializer = new ByteArrayJournalSerializer(serialization, new TagDao(db))
+  val serializer = new ByteArrayJournalSerializer(serialization, new CachedTagIdResolver(new SimpleTagDao(db)))
 }

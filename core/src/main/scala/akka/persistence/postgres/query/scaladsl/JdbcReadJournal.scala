@@ -13,7 +13,7 @@ import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.journal.dao.FlowControl
 import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
 import akka.persistence.postgres.query.dao.ReadJournalDao
-import akka.persistence.postgres.tag.{ TagDao, TagIdResolver }
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.persistence.postgres.util.PluginVersionChecker
 import akka.persistence.query.scaladsl._
 import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
@@ -56,7 +56,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
     val slickDb = SlickExtension(system).database(config)
     val db = slickDb.database
     // TODO cache should be shared
-    val tagConverter = new TagDao(db)
+    val tagConverter = new CachedTagIdResolver(new SimpleTagDao(db))
     if (readJournalConfig.addShutdownHook && slickDb.allowShutdown) {
       system.registerOnTermination {
         db.close()
