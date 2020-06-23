@@ -1,6 +1,3 @@
-export PGPASSWORD='docker'
-CONNECTION_OPTIONS=' --dbname=docker --username=docker --host=localhost '
-
 for i in $(psql -qt ${CONNECTION_OPTIONS} --command="SELECT schemaname || '.' || tablename FROM public.archivisation WHERE status='DETACHED';")
 do
    echo "dumping $i"

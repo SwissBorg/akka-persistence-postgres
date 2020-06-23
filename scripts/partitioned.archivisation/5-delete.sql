@@ -11,5 +11,3 @@ BEGIN
         UPDATE public.archivisation SET STATUS = 'DROPPED' WHERE schemaname = row.schemaname AND tablename = row.tablename;
     END LOOP;
 END; $$ LANGUAGE plpgsql;
-
-CALL drop_detached_partitions();

@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE attach_partitions_from_archivisation() AS $$
+CREATE OR REPLACE PROCEDURE reattach_partitions_from_archivisation() AS $$
 DECLARE
     row         record;
 BEGIN
@@ -11,5 +11,3 @@ BEGIN
         DELETE FROM public.archivisation WHERE schemaname = row.schemaname AND tablename = row.tablename;
     END LOOP;
 END; $$ LANGUAGE plpgsql;
-
-CALL attach_partitions_from_archivisation();

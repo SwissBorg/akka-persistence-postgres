@@ -11,5 +11,3 @@ BEGIN
         UPDATE public.archivisation SET STATUS = 'DETACHED' WHERE schemaname = row.schemaname AND tablename = row.tablename;
     END LOOP;
 END; $$ LANGUAGE plpgsql;
-
-CALL detach_partitions_from_archivisation();

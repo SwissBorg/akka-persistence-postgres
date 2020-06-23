@@ -55,5 +55,3 @@ BEGIN
             CALL mark_sub_sub_journal_partitions_to_detach(row.child_schema, row.child, min_sequence_number);
         END LOOP;
 END; $$ LANGUAGE plpgsql;
-
-CALL mark_sub_journal_partitions_to_detach('public','journal');
