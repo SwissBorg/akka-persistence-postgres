@@ -25,7 +25,7 @@ function showStructure() {
 
 # create schema for journal, snapshots, eventTag, drop schema for archivisation
 psql -qt ${CONNECTION_OPTIONS} --file="../../core/src/test/resources/schema/postgres/partitioned-schema.sql"
-psql -qt ${CONNECTION_OPTIONS} --file="test-prepare.sql"
+psql -qt ${CONNECTION_OPTIONS} --file="demo-prepare.sql"
 
 # create table
 echo "create archivisation table"
