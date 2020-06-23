@@ -1,21 +1,21 @@
 export PGPASSWORD='docker'
 export CONNECTION_OPTIONS=' --dbname=docker --username=docker --host=localhost '
 
-JOURNAL_PARTITIONS_QUERY="SELECT nmsp_child.nspname  AS child_schema, child.relname AS child FROM pg_inherits JOIN pg_class parent ON pg_inherits.inhparent = parent.oid JOIN pg_class child ON pg_inherits.inhrelid = child.oid JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace WHERE parent.relname='journal' AND nmsp_parent.nspname ='public'"
-J_P_1__PARTITIONS_QUERY="SELECT nmsp_child.nspname  AS child_schema, child.relname AS child FROM pg_inherits JOIN pg_class parent ON pg_inherits.inhparent = parent.oid JOIN pg_class child ON pg_inherits.inhrelid = child.oid JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace WHERE parent.relname='j_p_1' AND nmsp_parent.nspname ='public'"
+JOURNAL_PARTITIONS_QUERY="SELECT child.relname AS child FROM pg_inherits JOIN pg_class parent ON pg_inherits.inhparent = parent.oid JOIN pg_class child ON pg_inherits.inhrelid = child.oid JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace WHERE parent.relname='journal' AND nmsp_parent.nspname ='public'"
+J_P_1__PARTITIONS_QUERY="SELECT child.relname AS child FROM pg_inherits JOIN pg_class parent ON pg_inherits.inhparent = parent.oid JOIN pg_class child ON pg_inherits.inhrelid = child.oid JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace WHERE parent.relname='j_p_1' AND nmsp_parent.nspname ='public'"
 
 function showStructure() {
   echo ""
   echo "existing tables:"
-  psql -q ${CONNECTION_OPTIONS} --command="select table_name from information_schema.tables where table_schema = 'public'"
+  psql -qt ${CONNECTION_OPTIONS} --command="select table_name from information_schema.tables where table_schema = 'public'"
   sleep 1
   echo ""
   echo "journal partitions:"
-  psql -q ${CONNECTION_OPTIONS} --command="$JOURNAL_PARTITIONS_QUERY"
+  psql -qt ${CONNECTION_OPTIONS} --command="$JOURNAL_PARTITIONS_QUERY"
   sleep 1
   echo ""
   echo "j_p_1 partitions:"
-  psql -q ${CONNECTION_OPTIONS} --command="$J_P_1__PARTITIONS_QUERY"
+  psql -qt ${CONNECTION_OPTIONS} --command="$J_P_1__PARTITIONS_QUERY"
   sleep 1
   echo ""
   echo "archivisation:"
@@ -24,8 +24,11 @@ function showStructure() {
 }
 
 # create schema for journal, snapshots, eventTag, drop schema for archivisation
+showStructure
 psql -qt ${CONNECTION_OPTIONS} --file="../../core/src/test/resources/schema/postgres/partitioned-schema.sql"
+showStructure
 psql -qt ${CONNECTION_OPTIONS} --file="demo-prepare.sql"
+showStructure
 
 # create table
 echo "create archivisation table"
