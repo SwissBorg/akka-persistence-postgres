@@ -1,0 +1,19 @@
+DROP TABLE IF EXISTS public.archivisation;
+
+CREATE TABLE IF NOT EXISTS public.j_p_1 PARTITION OF public.journal FOR VALUES IN ('p-1') PARTITION BY RANGE (sequence_number);
+CREATE TABLE IF NOT EXISTS public.j_p_1_1 PARTITION OF public.j_p_1 FOR VALUES FROM (0) TO (10);
+CREATE TABLE IF NOT EXISTS public.j_p_1_2 PARTITION OF public.j_p_1 FOR VALUES FROM (10) TO (20);
+CREATE TABLE IF NOT EXISTS public.j_p_1_3 PARTITION OF public.j_p_1 FOR VALUES FROM (20) TO (30);
+CREATE TABLE IF NOT EXISTS public.j_p_1_4 PARTITION OF public.j_p_1 FOR VALUES FROM (30) TO (40);
+CREATE TABLE IF NOT EXISTS public.j_p_1_5 PARTITION OF public.j_p_1 FOR VALUES FROM (40) TO (50);
+CREATE TABLE IF NOT EXISTS public.j_p_1_6 PARTITION OF public.j_p_1 FOR VALUES FROM (50) TO (60);
+CREATE TABLE IF NOT EXISTS public.j_p_1_7 PARTITION OF public.j_p_1 FOR VALUES FROM (60) TO (70);
+CREATE TABLE IF NOT EXISTS public.j_p_1_8 PARTITION OF public.j_p_1 FOR VALUES FROM (70) TO (80);
+CREATE TABLE IF NOT EXISTS public.j_p_1_9 PARTITION OF public.j_p_1 FOR VALUES FROM (80) TO (90);
+CREATE TABLE IF NOT EXISTS public.j_p_1_10 PARTITION OF public.j_p_1 FOR VALUES FROM (90) TO (100);
+CREATE TABLE IF NOT EXISTS public.j_p_1_11 PARTITION OF public.j_p_1 FOR VALUES FROM (100) TO (110);
+CREATE TABLE IF NOT EXISTS public.j_p_1_12 PARTITION OF public.j_p_1 FOR VALUES FROM (110) TO (120);
+
+INSERT INTO public.journal(persistence_id, sequence_number, deleted, tags, message)
+select 'p-1', i, false , '{2,4}', '0x22'
+from generate_series(1, 115) s(i);
