@@ -14,7 +14,8 @@ class CachedTagIdResolver(dao: TagDao)(implicit ctx: ExecutionContext) extends T
 
   // TODO configure TTL & retry attempts
   // TODO add support for loading many tags at once
-  private val cache: AsyncLoadingCache[String, Int] =
+  // Package private - for testing purposes
+  private[tag] val cache: AsyncLoadingCache[String, Int] =
     Scaffeine().expireAfterAccess(1.hour).buildAsyncFuture(findOrInsert(_, 1))
 
   private def findOrInsert(tagName: String, retryAttempts: Int): Future[Int] =

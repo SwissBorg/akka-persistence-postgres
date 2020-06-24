@@ -1,17 +1,17 @@
 package akka.persistence.postgres.tag
 
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.atomic.AtomicLong
 
-import akka.persistence.postgres.config.SlickConfiguration
-import akka.persistence.postgres.db.SlickDatabase
-import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.{ IntegrationPatience, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{ BeforeAndAfter, BeforeAndAfterAll }
-import slick.jdbc
 
+import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Random
+import scala.util.control.NoStackTrace
 
 class CachedTagIdResolverSpec
     extends AnyFlatSpecLike
@@ -21,94 +21,127 @@ class CachedTagIdResolverSpec
     with BeforeAndAfter
     with IntegrationPatience {
 
-  import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
-
   private implicit val global: ExecutionContext = ExecutionContext.global
 
-  before {
-    withDB { db =>
-      db.run(DBIO.seq(sqlu"""TRUNCATE event_tag""").transactionally)
-    }
-  }
-
-  it should "return id of existing tag" in withConnection { dao =>
+  it should "return id of existing tag" in {
     // given
-    val tagName = generateTagName()
-    val expectedTagId = dao.getOrAssignIdsFor(Set(tagName)).futureValue
+    val fakeTagName = generateTagName()
+    val fakeTagId = Random.nextInt()
+    val dao = new FakeTagDao(findF = tagName => {
+      tagName should equal(fakeTagName)
+      Future.successful(Some(fakeTagId))
+    },
+      insertF = _ => fail("Unwanted interaction with DAO (insert)"))
+    val resolver = new CachedTagIdResolver(dao)
+
     // when
-    val returnedTagId = dao.getOrAssignIdsFor(Set(tagName)).futureValue
+    val returnedTagIds = resolver.getOrAssignIdsFor(Set(fakeTagName)).futureValue
+
     // then
-    expectedTagId shouldBe returnedTagId
+    returnedTagIds should contain theSameElementsAs Map(fakeTagName -> fakeTagId)
   }
 
-  it should "allow to run async multiple requests" in withConnection { dao =>
+  it should "assign id if it does not exist" in {
+    // given
+    val fakeTagName = generateTagName()
+    val fakeTagId = Random.nextInt()
+    val dao = new FakeTagDao(findF = _ => Future.successful(None), insertF = tagName => {
+      tagName should equal(fakeTagName)
+      Future.successful(fakeTagId)
+    })
+    val resolver = new CachedTagIdResolver(dao)
+
+    // when
+    val returnedTagIds = resolver.getOrAssignIdsFor(Set(fakeTagName)).futureValue
+
+    // then
+    returnedTagIds should contain theSameElementsAs Map(fakeTagName -> fakeTagId)
+  }
+
+  it should "hit the DAO only once and then read from cache" in {
+    // given
+    val fakeTagName = generateTagName()
+    val fakeTagId = Random.nextInt()
+    val responses = mutable.Stack(() => Future.successful(None), () => fail("Unwanted 2nd interaction with DAO (find)"))
+    val dao = new FakeTagDao(findF = _ => responses.pop()(), insertF = tagName => {
+      tagName should equal(fakeTagName)
+      Future.successful(fakeTagId)
+    })
+    val resolver = new CachedTagIdResolver(dao)
+
+    // when
+    val firstReturnedTagIds = resolver.getOrAssignIdsFor(Set(fakeTagName)).futureValue
+    val secondReturnedTagIds = resolver.getOrAssignIdsFor(Set(fakeTagName)).futureValue
+
+    // then
+    firstReturnedTagIds should contain theSameElementsAs Map(fakeTagName -> fakeTagId)
+    firstReturnedTagIds should contain theSameElementsAs secondReturnedTagIds
+  }
+
+  it should "retry (constraint check failure caused by simultaneous inserts)" in {
+    val expectedNumOfRetry = 1
+    val fakeTagName = generateTagName()
+    val attemptsCount = new AtomicLong(0L)
+    val dao = new FakeTagDao(findF = _ => Future.successful(None), insertF = _ => {
+      attemptsCount.incrementAndGet()
+      Future.failed(FakeException)
+    })
+    val resolver = new CachedTagIdResolver(dao)
+
+    // when
+    resolver.getOrAssignIdsFor(Set(fakeTagName)).failed.futureValue
+
+    // then
+    attemptsCount.get() should equal(expectedNumOfRetry + 1)
+  }
+
+  it should "not hit DB if id is already cached" in {
+    // given
+    val fakeTagName = generateTagName()
+    val fakeTagId = Random.nextInt()
+    val dao = new FakeTagDao(
+      findF = _ => fail("Unwanted interaction with DAO (find)"),
+      insertF = _ => fail("Unwanted interaction with DAO (insert)"))
+    val resolver = new CachedTagIdResolver(dao)
+    resolver.cache.put(fakeTagName, Future.successful(fakeTagId))
+
+    // when
+    val returnedTagIds = resolver.getOrAssignIdsFor(Set(fakeTagName)).futureValue
+
+    // then
+    returnedTagIds should contain theSameElementsAs Map(fakeTagName -> fakeTagId)
+  }
+
+  it should "allow to run async multiple requests" in {
     // given
     // generate tags
-    val listOfTags = List.fill(30)(generateTagName())
+    val mapOfTags = List.fill(30)((generateTagName(), Random.nextInt())).toMap
     // list of tags for which we will execute test
-    val listOfTagQueries = List.fill(300)(listOfTags(ThreadLocalRandom.current().nextInt(listOfTags.size)))
+    val listOfTagQueries = List.fill(300)(mapOfTags.keys.toList(Random.nextInt(mapOfTags.size)))
+    val dao = new FakeTagDao(
+      findF = tagName => Future.successful(if (Random.nextBoolean()) Some(mapOfTags(tagName)) else None),
+      insertF = tagName => Future.successful(mapOfTags(tagName)))
+    val resolver = new CachedTagIdResolver(dao)
 
     // when
-    val stored = Future.traverse(listOfTagQueries)(tag => dao.getOrAssignIdsFor(Set(tag)).map((_, tag))).futureValue
+    val resolved = Future.traverse(listOfTagQueries)(tag => resolver.getOrAssignIdsFor(Set(tag))).futureValue
 
     // then
-    // take ids of tagsName
-    val expected =
-      Future.sequence(listOfTags.map(tag => dao.getOrAssignIdsFor(Set(tag)).map((tag, _)))).map(_.toMap).futureValue
-    stored.foreach {
-      case (id, name) =>
-        expected(name) shouldBe id
-    }
-  }
-
-  it should "allow to run async multiple daos" in withDB { db =>
-    // given
-    // generate tags
-    val listOfTags = List.fill(30)(generateTagName())
-    // list of tags for which we will execute test
-    val listOfTagQueries = List.fill(300)(listOfTags(ThreadLocalRandom.current().nextInt(listOfTags.size)))
-
-    // when
-    val stored =
-      Future
-        .traverse(listOfTagQueries)(tag =>
-          new CachedTagIdResolver(new SimpleTagDao(db)).getOrAssignIdsFor(Set(tag)).map((_, tag)))
-        .futureValue
-
-    // then
-    // take ids of tagsName
-    val expected = Future
-      .sequence(
-        listOfTags.map(tag => new CachedTagIdResolver(new SimpleTagDao(db)).getOrAssignIdsFor(Set(tag)).map((tag, _))))
-      .map(_.toMap)
-      .futureValue
-    stored.foreach {
-      case (id, name) =>
-        expected(name) shouldBe id
-    }
-  }
-
-  private def withConnection(f: TagIdResolver => Unit): Unit =
-    withDB { db =>
-      val dao = new CachedTagIdResolver(new SimpleTagDao(db))
-      f(dao)
-    }
-
-  lazy val journalConfig: Config = {
-    val globalConfig = ConfigFactory.load("plain-application.conf")
-    globalConfig.getConfig("jdbc-journal")
-  }
-  lazy val slickConfig: SlickConfiguration = new SlickConfiguration(journalConfig.getConfig("slick"))
-
-  private def withDB(f: jdbc.JdbcBackend.Database => Unit): Unit = {
-    lazy val db = SlickDatabase.database(journalConfig, slickConfig, "slick.db")
-    try {
-      f(db)
-    } finally {
-      db.close()
-    }
+    val expected = listOfTagQueries.map(tagName => Map(tagName -> mapOfTags(tagName)))
+    resolved should contain theSameElementsAs expected
   }
 
   private def generateTagName()(implicit position: org.scalactic.source.Position): String =
     s"dao-spec-${position.lineNumber}-${ThreadLocalRandom.current().nextInt()}"
+}
+
+case object FakeException extends Throwable with NoStackTrace
+
+class FakeTagDao(findF: String => Future[Option[Int]], insertF: String => Future[Int])
+    extends TagDao {
+
+  override def find(tagName: String): Future[Option[Int]] = findF(tagName)
+
+  override def insert(tagName: String): Future[Int] = insertF(tagName)
+
 }
