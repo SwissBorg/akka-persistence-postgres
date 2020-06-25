@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS public.journal_partitioned;
+DROP TABLE IF EXISTS public.event_tag;
 DROP TABLE IF EXISTS public.journal;
 DROP TABLE IF EXISTS public.tag_definition;
 
@@ -41,20 +43,28 @@ select 'p-1', i, false, tag, '0x22'
 from generate_series(1, 1000000) s(i)
          JOIN public.tag_definition on orders = mod(i, 12);
 
+select nextval('journal_ordering_seq'::regclass);
+
 INSERT INTO public.journal(persistence_id, sequence_number, deleted, tags, message)
 select 'p-2', i, false, tag, '0x22'
 from generate_series(1, 100000) s(i)
          JOIN public.tag_definition on orders =  mod(i, 12);
+
+select nextval('journal_ordering_seq'::regclass);
 
 INSERT INTO public.journal(persistence_id, sequence_number, deleted, tags, message)
 select 'p-3', i, false, tag, '0x22'
 from generate_series(1, 100000) s(i)
          JOIN public.tag_definition on orders =  mod(i, 12);
 
+select nextval('journal_ordering_seq'::regclass);
+
 INSERT INTO public.journal(persistence_id, sequence_number, deleted, tags, message)
 select 'p-4', i, false, tag, '0x22'
 from generate_series(1, 100000) s(i)
          JOIN public.tag_definition on orders =  mod(i, 12);
+
+select nextval('journal_ordering_seq'::regclass);
 
 INSERT INTO public.journal(persistence_id, sequence_number, deleted, tags, message)
 select 'p-5', i, false, tag, '0x22'

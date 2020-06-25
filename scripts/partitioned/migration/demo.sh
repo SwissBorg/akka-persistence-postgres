@@ -19,7 +19,7 @@ function showStructure() {
   VALUES=$(psql -qt ${CONNECTION_OPTIONS} --command="select table_name from information_schema.tables where table_schema = 'public'")
   echo "$VALUES"
   sleep 1
-  showPartitions "journal"
+  showPartitions "journal_partitioned"
   showPartitions "j_p_1"
   showPartitions "j_p_2"
   showPartitions "j_p_3"
@@ -29,23 +29,27 @@ function showStructure() {
 }
 
 #
+echo ""
 echo "prepare demo, fill table with data"
 showStructure
 psql -qt ${CONNECTION_OPTIONS} --file="demo-prepare.sql"
 showStructure
 
 #
+echo ""
 echo "create journal_partitioned"
 psql -q ${CONNECTION_OPTIONS} --file="1-create-tables.sql"
 showStructure
 
 #
+echo ""
 echo "create partitions"
 psql -q ${CONNECTION_OPTIONS} --file="2-create-partitions.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL create_sub_partitions(10000);"
 showStructure
 
 #
+echo ""
 echo "fill event-tag"
 psql -q ${CONNECTION_OPTIONS} --file="3-fill-event-tag.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL fill_event_tag(',');"
@@ -54,6 +58,7 @@ VALUES=$(psql -q ${CONNECTION_OPTIONS} --command="SELECT * from public.event_tag
 echo "$VALUES"
 
 #
+echo ""
 echo "copy data"
 psql -q ${CONNECTION_OPTIONS} --file="4-copy-data.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL copy_data(0, 10000, ',');"
@@ -64,4 +69,19 @@ psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_3"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_4"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_5"
 
+#
+function showMissingOrdering() {
+  table_name=$1
+  echo ""
+  echo "missing ordering for ${table_name}:"
+  MAX_ORDERING=$(psql -qt ${CONNECTION_OPTIONS} --command="SELECT max(ordering) from public.${table_name}")
+  VALUES=$(psql -qt ${CONNECTION_OPTIONS} --command="select i from generate_series(1, ${MAX_ORDERING}) s(i) LEFT JOIN public.${table_name} jrn ON jrn.ordering=i where jrn.ordering IS NULL ORDER BY i;")
+  # empty means that it is ok
+  echo "$VALUES"
+  sleep 1
+}
 
+echo ""
+echo "show missing ordering for original and partitioned table"
+showMissingOrdering journal
+showMissingOrdering journal_partitioned
