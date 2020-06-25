@@ -1,5 +1,4 @@
-DROP TABLE IF EXISTS public.journal_partitioned CASCADE;
-CREATE TABLE IF NOT EXISTS public.journal_partitioned
+CREATE TABLE public.journal_partitioned
 (
     ordering        BIGSERIAL,
     persistence_id  TEXT                  NOT NULL,
@@ -11,30 +10,13 @@ CREATE TABLE IF NOT EXISTS public.journal_partitioned
 ) PARTITION BY LIST (persistence_id);
 
 CREATE INDEX journal_partitioned_ordering_idx ON public.journal_partitioned USING BRIN (ordering);
+CREATE INDEX journal_partitioned_tags_idx ON public.journal USING GIN(tags);
 
-DROP TABLE IF EXISTS public.event_tag;
-CREATE TABLE IF NOT EXISTS public.event_tag
+CREATE TABLE public.event_tag
 (
     id   BIGSERIAL,
     name TEXT NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS event_tag_name_idx on public.event_tag (name);
-
--- tables only for migration
-
-DROP TABLE IF EXISTS public.migration_missing_orderings;
-CREATE TABLE IF NOT EXISTS public.migration_missing_orderings
-(
-    ordering BIGINT,
-    PRIMARY KEY (ordering)
-);
-
-DROP TABLE IF EXISTS public.migration_progress;
-CREATE TABLE IF NOT EXISTS public.migration_progress
-(
-    id                BIGSERIAL,
-    migrated_ordering BIGINT,
-    PRIMARY KEY (id)
-);
+CREATE UNIQUE INDEX event_tag_name_idx on public.event_tag (name);
