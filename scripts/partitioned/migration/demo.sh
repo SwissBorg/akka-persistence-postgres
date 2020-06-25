@@ -53,3 +53,15 @@ psql -q ${CONNECTION_OPTIONS} --command="CALL fill_event_tag(',');"
 VALUES=$(psql -q ${CONNECTION_OPTIONS} --command="SELECT * from public.event_tag")
 echo "$VALUES"
 
+#
+echo "copy data"
+psql -q ${CONNECTION_OPTIONS} --file="4-copy-data.sql"
+psql -q ${CONNECTION_OPTIONS} --command="CALL copy_data(0, 10000, ',');"
+#echo "$PARENT partitions:"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_1"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_2"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_3"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_4"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_5"
+
+

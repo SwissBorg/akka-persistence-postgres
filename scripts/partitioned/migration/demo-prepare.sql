@@ -31,7 +31,7 @@ VALUES (0, ''),
        (5, 'tag'),
        (6, 'expected'),
        (7, 'multi,companion'),
-       (8, 'companion,multiT1'),
+       (8, 'companion,multiT1,T3,T4'),
        (9, 'xxx'),
        (10, 'ended'),
        (11, 'expected');
