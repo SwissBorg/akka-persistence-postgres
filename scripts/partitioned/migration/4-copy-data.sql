@@ -17,7 +17,8 @@ BEGIN
                      JOIN public.event_tag ON name = single_tag;
 
             INSERT INTO public.journal_partitioned(ordering, persistence_id, sequence_number, deleted, tags, message)
-            VALUES (row.ordering, row.persistence_id, row.sequence_number, row.deleted, tagss, row.message);
+            VALUES (row.ordering, row.persistence_id, row.sequence_number, row.deleted, tagss, row.message)
+            ON CONFLICT DO NOTHING;
 
         END LOOP;
     COMMIT;
@@ -27,13 +28,14 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE copy_data(IN from_ordering BIGINT, IN batch_size BIGINT, IN tag_separator TEXT) AS
 $$
 DECLARE
-    batch_number BIGINT;
-    max_ordering BIGINT;
+    batch_number  BIGINT;
+    max_ordering  BIGINT;
 BEGIN
     SELECT max(ordering) INTO max_ordering FROM public.journal;
-    FOR batch_number IN 0..((max_ordering  - from_ordering) / batch_size)
+    FOR batch_number IN 0..((max_ordering - from_ordering) / batch_size)
         LOOP
-            CALL copy_piece_of_data(from_ordering + batch_number * batch_size, from_ordering + batch_size + batch_number * batch_size - 1, tag_separator);
+            CALL copy_piece_of_data(from_ordering + batch_number * batch_size,
+                                    from_ordering + batch_size + batch_number * batch_size - 1, tag_separator);
         END LOOP;
 END ;
 $$ LANGUAGE plpgsql;

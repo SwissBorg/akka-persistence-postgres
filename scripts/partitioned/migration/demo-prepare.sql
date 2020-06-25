@@ -68,5 +68,5 @@ select nextval('journal_ordering_seq'::regclass);
 
 INSERT INTO public.journal(persistence_id, sequence_number, deleted, tags, message)
 select 'p-5', i, false, tag, '0x22'
-from generate_series(1, 100000) s(i)
+from generate_series(1, 99999) s(i)
          JOIN public.tag_definition on orders =  mod(i, 12);

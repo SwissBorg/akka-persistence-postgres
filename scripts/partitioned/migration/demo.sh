@@ -62,13 +62,20 @@ echo ""
 echo "copy data"
 psql -q ${CONNECTION_OPTIONS} --file="4-copy-data.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL copy_data(0, 10000, ',');"
-#echo "$PARENT partitions:"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_1"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_2"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_3"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_4"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_5"
 
+echo ""
+echo "set sequence to prepare value"
+psql -q ${CONNECTION_OPTIONS} --file="5-move-sequence.sql"
+psql -q ${CONNECTION_OPTIONS} --command="CALL move_sequence();"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT currval('journal_partitioned_ordering_seq');"
+
+#
+# TESTING CORRECTNESS OF MIGRATION
 #
 function showMissingOrdering() {
   table_name=$1
@@ -85,3 +92,14 @@ echo ""
 echo "show missing ordering for original and partitioned table"
 showMissingOrdering journal
 showMissingOrdering journal_partitioned
+
+echo ""
+echo "missing orderings in journal or journal_partitioned"
+psql -qt ${CONNECTION_OPTIONS} --command="select jrn.ordering as original, jrp.ordering as partitioned from public.journal jrn LEFT JOIN public.journal_partitioned jrp ON jrn.ordering=jrp.ordering where jrn.ordering IS NULL OR jrp.ordering IS NULL ORDER BY jrp.ordering, jrn.ordering;"
+
+
+#psql -qt ${CONNECTION_OPTIONS} --command="INSERT INTO public.journal_partitioned(persistence_id, sequence_number, deleted, tags, message) VALUES ('p-1', 1000001, true, '{}', '0x22');"
+
+#echo ""
+#echo "next sequence number in partitioned"
+#psql -q ${CONNECTION_OPTIONS} --command="SELECT nextval('journal_partitioned_ordering_seq');" # dont do it on production !!!
