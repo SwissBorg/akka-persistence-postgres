@@ -1,9 +1,6 @@
 export PGPASSWORD='docker'
 export CONNECTION_OPTIONS=' --dbname=docker --username=docker --host=localhost '
 
-JOURNAL_PARTITIONS_QUERY="SELECT child.relname AS child FROM pg_inherits JOIN pg_class parent ON pg_inherits.inhparent = parent.oid JOIN pg_class child ON pg_inherits.inhrelid = child.oid JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace WHERE parent.relname='journal' AND nmsp_parent.nspname ='public'"
-J_P_1__PARTITIONS_QUERY="SELECT child.relname AS child FROM pg_inherits JOIN pg_class parent ON pg_inherits.inhparent = parent.oid JOIN pg_class child ON pg_inherits.inhrelid = child.oid JOIN pg_namespace nmsp_parent ON nmsp_parent.oid = parent.relnamespace JOIN pg_namespace nmsp_child ON nmsp_child.oid = child.relnamespace WHERE parent.relname='j_p_1' AND nmsp_parent.nspname ='public'"
-
 function showPartitions() {
   PARENT=$1
   echo ""
@@ -20,15 +17,16 @@ function showStructure() {
   echo "$VALUES"
   sleep 1
   showPartitions "journal_partitioned"
-  showPartitions "j_p_1"
-  showPartitions "j_p_2"
-  showPartitions "j_p_3"
-  showPartitions "j_p_4"
-  showPartitions "j_p_5"
+  showPartitions "j_pp_1"
+  showPartitions "j_pp_2"
+  showPartitions "j_pp_3"
+  showPartitions "j_pp_4"
+  showPartitions "j_pp_5"
   sleep 3
 }
 
 #
+wait 3
 echo ""
 echo "prepare demo, fill table with data"
 showStructure
@@ -61,18 +59,18 @@ echo "$VALUES"
 echo ""
 echo "copy data"
 psql -q ${CONNECTION_OPTIONS} --file="4-copy-data.sql"
-psql -q ${CONNECTION_OPTIONS} --command="CALL copy_data(0, 10000, ',');"
-psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_1"
-psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_2"
-psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_3"
-psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_4"
-psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_p_5"
+time psql -q ${CONNECTION_OPTIONS} --command="CALL copy_data(0, 10000, ',');"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_1"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_2"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_3"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_4"
+psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_5"
 
+wait 3
 echo ""
 echo "set sequence to prepare value"
 psql -q ${CONNECTION_OPTIONS} --file="5-move-sequence.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL move_sequence();"
-psql -q ${CONNECTION_OPTIONS} --command="SELECT currval('journal_partitioned_ordering_seq');"
 
 #
 # TESTING CORRECTNESS OF MIGRATION
@@ -88,14 +86,16 @@ function showMissingOrdering() {
   sleep 1
 }
 
+wait 3
 echo ""
 echo "show missing ordering for original and partitioned table"
 showMissingOrdering journal
 showMissingOrdering journal_partitioned
 
+wait 3
 echo ""
 echo "missing orderings in journal or journal_partitioned"
-psql -qt ${CONNECTION_OPTIONS} --command="select jrn.ordering as original, jrp.ordering as partitioned from public.journal jrn LEFT JOIN public.journal_partitioned jrp ON jrn.ordering=jrp.ordering where jrn.ordering IS NULL OR jrp.ordering IS NULL ORDER BY jrp.ordering, jrn.ordering;"
+psql -q ${CONNECTION_OPTIONS} --command="select jrn.ordering as original, jrp.ordering as partitioned from public.journal jrn LEFT JOIN public.journal_partitioned jrp ON jrn.ordering=jrp.ordering where jrn.ordering IS NULL OR jrp.ordering IS NULL ORDER BY jrp.ordering, jrn.ordering;"
 
 
 #psql -qt ${CONNECTION_OPTIONS} --command="INSERT INTO public.journal_partitioned(persistence_id, sequence_number, deleted, tags, message) VALUES ('p-1', 1000001, true, '{}', '0x22');"
