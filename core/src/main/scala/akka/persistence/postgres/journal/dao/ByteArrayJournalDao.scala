@@ -174,6 +174,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
 trait PartitionedJournalDao extends BaseByteArrayJournalDao {
   def logger: Logger
   val journalConfig: JournalConfig
+  private val journalTableCfg = journalConfig.journalTableConfiguration
 
 //  TODO extract as parameter
   private lazy val partitionSize = 20000L
@@ -204,15 +205,16 @@ trait PartitionedJournalDao extends BaseByteArrayJournalDao {
           val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
           //            TODO j_ should be parameter
           val tableName = s"j_$sanitizedPersistenceId"
+          val schema = journalTableCfg.schemaName.map(_ + ".").getOrElse("")
           val actions = for {
-            _ <- sqlu"""CREATE TABLE IF NOT EXISTS #$tableName PARTITION OF journal FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (sequence_number)"""
+            _ <- sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
             _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
               for (partitionNumber <- partitionsToCreate) yield {
                 //            TODO j_ should be parameter
                 val name = s"${tableName}_$partitionNumber"
                 val minRange = partitionNumber * partitionSize
                 val maxRange = minRange + partitionSize
-                sqlu"""CREATE TABLE IF NOT EXISTS #$name PARTITION OF #$tableName FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+                sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
               }
             }
           } yield ()
