@@ -66,12 +66,14 @@ psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_3"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_4"
 psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) from public.j_pp_5"
 
-wait 3
+sleep 3
 echo ""
 echo "set sequence to prepare value"
 psql -q ${CONNECTION_OPTIONS} --file="5-move-sequence.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL move_sequence();"
 
+echo ""
+echo "Remember to change journal table name in plugin configuration"
 #
 # TESTING CORRECTNESS OF MIGRATION
 #
@@ -86,13 +88,13 @@ function showMissingOrdering() {
   sleep 1
 }
 
-wait 3
+sleep 3
 echo ""
 echo "show missing ordering for original and partitioned table"
 showMissingOrdering journal
 showMissingOrdering journal_partitioned
 
-wait 3
+sleep 3
 echo ""
 echo "missing orderings in journal or journal_partitioned"
 psql -q ${CONNECTION_OPTIONS} --command="select jrn.ordering as original, jrp.ordering as partitioned from public.journal jrn LEFT JOIN public.journal_partitioned jrp ON jrn.ordering=jrp.ordering where jrn.ordering IS NULL OR jrp.ordering IS NULL ORDER BY jrp.ordering, jrn.ordering;"
