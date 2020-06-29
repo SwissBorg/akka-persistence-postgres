@@ -58,11 +58,11 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
   private def canForceInsert: Boolean = ExtendedPostgresProfile.capabilities.contains(JdbcCapabilities.forceInsert)
 
   if (canForceInsert) {
-    it should s"recover one million events quickly if no ids are missing" in {
+    it should s"recover one hundred thousand events quickly if no ids are missing" in {
       withActorSystem { implicit system: ActorSystem =>
         withDatabase { db =>
           implicit val materializer: Materializer = SystemMaterializer(system).materializer
-          val elements = 1000000
+          val elements = 100000
           Source
             .fromIterator(() => (1 to elements).iterator)
             .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
