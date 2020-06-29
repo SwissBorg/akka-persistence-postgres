@@ -33,8 +33,6 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |    }
       |  }
       |
-      |  tagSeparator = ","
-      |
       |  dao = "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
       |
       |  logicalDelete = true
@@ -164,8 +162,6 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |    }
       |  }
       |
-      |  tagSeparator = ","
-      |
       |  slick {
       |    profile = "slick.jdbc.OracleProfile$"
       |    db {
@@ -213,7 +209,6 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiDbName shouldBe None
 
     cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
-    cfg.pluginConfig.tagSeparator shouldBe ","
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -252,7 +247,6 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiDbName shouldBe None
 
     cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
-    cfg.pluginConfig.tagSeparator shouldBe ","
     cfg.refreshInterval shouldBe 1.second
     cfg.maxBufferSize shouldBe 500
 
@@ -274,7 +268,6 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiDbName shouldBe None
 
     cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
-    cfg.pluginConfig.tagSeparator shouldBe ","
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -311,7 +304,6 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiDbName shouldBe None
 
     cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
-    cfg.pluginConfig.tagSeparator shouldBe ","
     cfg.refreshInterval shouldBe 300.millis
     cfg.maxBufferSize shouldBe 10
 

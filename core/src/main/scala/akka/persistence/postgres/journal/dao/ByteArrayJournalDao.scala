@@ -13,8 +13,7 @@ import akka.actor.Scheduler
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.DbErrorCodes
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.{ EventTagConverter, EventTagDao }
-import akka.persistence.journal.Tagged
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.Serialization
 import akka.stream.scaladsl.{ Keep, Sink, Source }
@@ -36,7 +35,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   val queries: JournalQueries
   val journalConfig: JournalConfig
   val serializer: FlowPersistentReprSerializer[JournalRow]
-  val eventTagConverter: EventTagConverter
+  val eventTagConverter: TagIdResolver
   implicit val ec: ExecutionContext
   implicit val mat: Materializer
 
@@ -92,35 +91,24 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   /**
    * @see [[akka.persistence.journal.AsyncWriteJournal.asyncWriteMessages(messages)]]
    */
-  def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
-    // If serialization fails for some AtomicWrites, the other AtomicWrites may still be written
-    ensureTagForMessagesExists(messages).map(_ => serializer.serialize(messages)).flatMap { serializedTries =>
-      val rowsToWrite: Seq[JournalRow] = for {
-        serializeTry: Try[Seq[JournalRow]] <- serializedTries
-        row: JournalRow <- serializeTry.getOrElse(Seq.empty)
-      } yield row
-
-      def resultWhenWriteComplete =
-        if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
-
-      queueWriteJournalRows(rowsToWrite).map(_ => resultWhenWriteComplete)
-    }
-  }
-
-  private def ensureTagForMessagesExists(messages: Seq[AtomicWrite]): Future[Unit] = {
-    Future.sequence(extractTags(messages).map(eventTagConverter.getIdByName)).map(_ => ())
-  }
-
-  private def extractTags(messages: Seq[AtomicWrite]): Set[String] = {
-    messages
-      .flatMap(_.payload)
-      .map(_.payload)
-      .flatMap {
-        case Tagged(_, tags) => tags.toSeq
-        case _               => Seq.empty
+  def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] =
+    Future
+      .sequence {
+        serializer
+          .serialize(messages)
+          // If serialization fails for some AtomicWrites, the other AtomicWrites may still be written
+          .map(_.map(Success(_)).recover {
+            case ex =>
+              Failure(ex)
+          })
       }
-      .toSet
-  }
+      .flatMap { serializedTries =>
+        def resultWhenWriteComplete =
+          if (serializedTries.forall(_.isSuccess)) Nil else serializedTries.map(_.map(_ => ()))
+
+        val rowsToWrite = serializedTries.flatMap(_.getOrElse(Seq.empty))
+        queueWriteJournalRows(rowsToWrite).map(_ => resultWhenWriteComplete)
+      }
 
   override def delete(persistenceId: String, maxSequenceNr: Long): Future[Unit] =
     if (logicalDelete) {
@@ -145,9 +133,9 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
 
   def update(persistenceId: String, sequenceNr: Long, payload: AnyRef): Future[Done] = {
     val write = PersistentRepr(payload, sequenceNr, persistenceId)
-    serializer.serialize(write) match {
+    serializer.serialize(write).transformWith {
       case Success(t) => db.run(queries.update(persistenceId, sequenceNr, t.message).map(_ => Done))
-      case Failure(ex) =>
+      case Failure(_) =>
         throw new IllegalArgumentException(
           s"Failed to serialize ${write.getClass} for update of [$persistenceId] @ [$sequenceNr]")
     }
@@ -294,6 +282,7 @@ class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, se
     val mat: Materializer)
     extends PartitionedJournalDao {
   val queries = new JournalQueries(journalConfig.journalTableConfiguration)
-  val eventTagConverter = new EventTagDao(db)
+  val tagDao = new SimpleTagDao(db)
+  val eventTagConverter = new CachedTagIdResolver(tagDao)
   val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)
 }

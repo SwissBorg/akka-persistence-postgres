@@ -5,22 +5,22 @@
 
 package akka.persistence.postgres.query
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.pattern.ask
 import akka.persistence.postgres.config.JournalSequenceRetrievalConfig
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao.JournalTables
-import akka.persistence.postgres.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
-import akka.persistence.postgres.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
-import akka.persistence.postgres.tag.EventTagDao
-import akka.persistence.postgres.{JournalRow, SharedActorSystemTestSpec}
+import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
+import akka.persistence.postgres.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao }
+import akka.persistence.postgres.{ JournalRow, SharedActorSystemTestSpec }
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{Sink, Source}
-import akka.stream.{Materializer, SystemMaterializer}
+import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.{ Materializer, SystemMaterializer }
 import akka.testkit.TestProbe
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
-import slick.jdbc.{JdbcBackend, JdbcCapabilities}
+import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -163,7 +163,11 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
     import system.dispatcher
     implicit val mat: Materializer = SystemMaterializer(system).materializer
     val readJournalDao =
-      new ByteArrayReadJournalDao(db, readJournalConfig, SerializationExtension(system), new EventTagDao(db))
+      new ByteArrayReadJournalDao(
+        db,
+        readJournalConfig,
+        SerializationExtension(system),
+        new CachedTagIdResolver(new SimpleTagDao(db)))
     val actor =
       system.actorOf(JournalSequenceActor.props(readJournalDao, journalSequenceActorConfig.copy(maxTries = maxTries)))
     try f(actor)
@@ -289,6 +293,4 @@ class PartitionedJournalSequenceActorTest
   }
 }
 
-class PlainJournalSequenceActorTest
-    extends JournalSequenceActorTest("plain-application.conf")
-    with PlainDbCleaner
+class PlainJournalSequenceActorTest extends JournalSequenceActorTest("plain-application.conf") with PlainDbCleaner

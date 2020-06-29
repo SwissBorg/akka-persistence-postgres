@@ -9,9 +9,9 @@ package query.dao
 import akka.NotUsed
 import akka.persistence.PersistentRepr
 import akka.persistence.postgres.config.ReadJournalConfig
-import akka.persistence.postgres.journal.dao.{BaseJournalDaoWithReadMessages, ByteArrayJournalSerializer}
+import akka.persistence.postgres.journal.dao.{ BaseJournalDaoWithReadMessages, ByteArrayJournalSerializer }
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.{EventTagConverter, EventTagDao}
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.serialization.Serialization
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
@@ -19,14 +19,14 @@ import slick.basic.DatabasePublisher
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWithReadMessages {
   def db: Database
   def queries: ReadJournalQueries
   def serializer: FlowPersistentReprSerializer[JournalRow]
-  def tagConverter: EventTagConverter
+  def tagIdResolver: TagIdResolver
   def readJournalConfig: ReadJournalConfig
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -39,10 +39,12 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
       offset: Long,
       maxOffset: Long,
       max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
-    val publisher: Int => DatabasePublisher[JournalRow] = tagId => db.stream(queries.eventsByTag(List(tagId), offset, maxOffset, max).result)
+    val publisher: Int => DatabasePublisher[JournalRow] = tagId =>
+      db.stream(queries.eventsByTag(List(tagId), offset, maxOffset, max).result)
     // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
-    Source.future(tagConverter.getIdByName(tag))
-      .flatMapConcat(tagId => Source.fromPublisher(publisher(tagId)))
+    Source
+      .future(tagIdResolver.lookupIdFor(tag))
+      .flatMapConcat(_.fold(Source.empty[JournalRow])(tagId => Source.fromPublisher(publisher(tagId))))
       .via(serializer.deserializeFlow)
   }
 
@@ -72,8 +74,8 @@ class ByteArrayReadJournalDao(
     val db: Database,
     val readJournalConfig: ReadJournalConfig,
     serialization: Serialization,
-    val tagConverter: EventTagConverter)(implicit val ec: ExecutionContext, val mat: Materializer)
+    val tagIdResolver: TagIdResolver)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayReadJournalDao {
   val queries = new ReadJournalQueries(readJournalConfig)
-  val serializer = new ByteArrayJournalSerializer(serialization, new EventTagDao(db))
+  val serializer = new ByteArrayJournalSerializer(serialization, new CachedTagIdResolver(new SimpleTagDao(db)))
 }

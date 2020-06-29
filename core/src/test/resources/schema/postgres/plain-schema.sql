@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.journal
 );
 
 CREATE INDEX journal_ordering_idx ON public.journal USING BRIN (ordering);
+CREATE INDEX journal_tags_idx ON public.journal USING GIN(tags);
 
 DROP TABLE IF EXISTS public.event_tag;
 

@@ -41,8 +41,6 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |    }
       |  }
       |
-      |  tagSeparator = ","
-      |
       |  serialization = on // alter only when using a custom dao
       |
       |  dao = "akka.persistence.jdbc.dao.bytea.ByteArrayJournalDao"
@@ -174,8 +172,6 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |      }
       |    }
       |  }
-      |
-      |  tagSeparator = ","
       |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile"
