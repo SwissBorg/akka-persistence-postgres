@@ -163,9 +163,8 @@ trait PartitionedJournalDao extends BaseByteArrayJournalDao {
   def logger: Logger
   val journalConfig: JournalConfig
   private val journalTableCfg = journalConfig.journalTableConfiguration
-
-//  TODO extract as parameter
-  private lazy val partitionSize = 20000L
+  private val partitionSize = journalConfig.partition.size
+  private val partitionPrefix = journalConfig.partition.prefix
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] =
     if (journalConfig.daoConfig.partitioned) {
@@ -191,14 +190,12 @@ trait PartitionedJournalDao extends BaseByteArrayJournalDao {
           logger.info(s"Adding missing journal partition...")
           // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
           val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
-          //            TODO j_ should be parameter
-          val tableName = s"j_$sanitizedPersistenceId"
+          val tableName = s"${partitionPrefix}_$sanitizedPersistenceId"
           val schema = journalTableCfg.schemaName.map(_ + ".").getOrElse("")
           val actions = for {
             _ <- sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
             _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
               for (partitionNumber <- partitionsToCreate) yield {
-                //            TODO j_ should be parameter
                 val name = s"${tableName}_$partitionNumber"
                 val minRange = partitionNumber * partitionSize
                 val maxRange = minRange + partitionSize

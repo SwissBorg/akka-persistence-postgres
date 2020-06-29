@@ -21,6 +21,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |
       |  tables {
       |    journal {
+      |      partitioned {
+      |        size = 12345
+      |        prefix = "c"
+      |      }
       |      tableName = "journal"
       |      schemaName = ""
       |      columnNames {
@@ -329,6 +333,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
     cfg.tagsTableConfiguration.columnNames.id shouldBe "tagId"
     cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
+
+    cfg.partition.prefix shouldBe "c"
+    cfg.partition.size shouldBe 12345
   }
 
   it should "parse SnapshotConfig" in {
@@ -376,5 +383,4 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     cfg.tagsTableConfiguration.columnNames.id shouldBe "tagId"
     cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
   }
-
 }

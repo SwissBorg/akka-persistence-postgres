@@ -57,6 +57,13 @@ class SnapshotTableConfiguration(config: Config) {
   override def toString: String = s"SnapshotTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
+class PartitionedJournal(config: Config) {
+  private val cfg = config.asConfig("tables.journal.partitioned")
+  val size: Int = cfg.asInt("size", 10000000)
+  val prefix: String = cfg.asString("prefix", "j")
+  override def toString: String = s"PartitionedJournal($size, $prefix)"
+}
+
 class TagsTableColumnNames(config: Config) {
   private val cfg = config.asConfig("tables.tags.columnNames")
   val id: String = cfg.asString("id", "id")
@@ -75,7 +82,7 @@ class TagsTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
+  val dao: String = config.asString("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
 }
 
@@ -110,13 +117,14 @@ class TagsConfig(config: Config) {
 // aggregations
 
 class JournalConfig(config: Config) {
+  val partition = new PartitionedJournal(config)
   val journalTableConfiguration = new JournalTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
   val tagsConfig = new TagsConfig(config)
   val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
-  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$useSharedDb)"
+  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partition,$useSharedDb)"
 }
 
 class SnapshotConfig(config: Config) {
