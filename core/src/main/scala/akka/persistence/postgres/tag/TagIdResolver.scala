@@ -31,6 +31,7 @@ class CachedTagIdResolver(dao: TagDao)(implicit ctx: ExecutionContext) extends T
     cache.getAll(tags)
 
   override def lookupIdFor(tagName: String): Future[Option[Int]] =
-    // TODO hit the cache but beware of cycles!
-    dao.find(tagName)
+    cache.getFuture(tagName, dao.find(_).map(_.get)).map(Some(_)).recover {
+      case _: NoSuchElementException => None
+    }
 }

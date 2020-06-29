@@ -55,8 +55,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   val readJournalDao: ReadJournalDao = {
     val slickDb = SlickExtension(system).database(config)
     val db = slickDb.database
-    // TODO cache should be shared
-    val tagConverter = new CachedTagIdResolver(new SimpleTagDao(db))
+    val tagIdResolver = new CachedTagIdResolver(new SimpleTagDao(db))
     if (readJournalConfig.addShutdownHook && slickDb.allowShutdown) {
       system.registerOnTermination {
         db.close()
@@ -67,7 +66,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
       (classOf[Database], db),
       (classOf[ReadJournalConfig], readJournalConfig),
       (classOf[Serialization], SerializationExtension(system)),
-      (classOf[TagIdResolver], tagConverter),
+      (classOf[TagIdResolver], tagIdResolver),
       (classOf[ExecutionContext], ec),
       (classOf[Materializer], mat))
     system.dynamicAccess.createInstanceFor[ReadJournalDao](fqcn, args) match {
@@ -114,7 +113,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
           knownIds += id
           xs
         }
-        (id) => next(id)
+        id => next(id)
       }
 
   private def adaptEvents(repr: PersistentRepr): Seq[PersistentRepr] = {
