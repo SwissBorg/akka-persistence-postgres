@@ -58,10 +58,8 @@ class SnapshotTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
-  // TODO get rid of tagSeparator (incl docs)
-  val tagSeparator: String = config.as[String]("tagSeparator", ",")
   val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
-  override def toString: String = s"JournalPluginConfig($tagSeparator,$dao)"
+  override def toString: String = s"JournalPluginConfig($dao)"
 }
 
 class BaseByteArrayJournalDaoConfig(config: Config) {
@@ -75,9 +73,8 @@ class BaseByteArrayJournalDaoConfig(config: Config) {
 }
 
 class ReadJournalPluginConfig(config: Config) {
-  val tagSeparator: String = config.as[String]("tagSeparator", ",")
   val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao")
-  override def toString: String = s"ReadJournalPluginConfig($tagSeparator,$dao)"
+  override def toString: String = s"ReadJournalPluginConfig($dao)"
 }
 
 class SnapshotPluginConfig(config: Config) {
