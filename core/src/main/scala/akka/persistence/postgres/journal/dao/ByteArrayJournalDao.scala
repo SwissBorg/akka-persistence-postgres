@@ -77,7 +77,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
         Future.failed(new Exception("Failed to write journal row batch", t))
       case QueueOfferResult.Dropped =>
         Future.failed(new Exception(
-          s"Failed to enqueue journal row batch write, the queue buffer was full ($bufferSize elements) please check the jdbc-journal.bufferSize setting"))
+          s"Failed to enqueue journal row batch write, the queue buffer was full ($bufferSize elements) please check the postgres-journal.bufferSize setting"))
       case QueueOfferResult.QueueClosed =>
         Future.failed(new Exception("Failed to enqueue journal row batch write, the queue was closed"))
     }

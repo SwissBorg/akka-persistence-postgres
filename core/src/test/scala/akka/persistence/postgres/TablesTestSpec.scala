@@ -15,7 +15,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
 
   val config = ConfigFactory.parseString(
     """
-      |jdbc-journal {
+      |postgres-journal {
       |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
       |
       |  tables {
@@ -85,7 +85,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |}
       |
       |# the akka-persistence-snapshot-store in use
-      |jdbc-snapshot-store {
+      |postgres-snapshot-store {
       |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
       |
       |  tables {
@@ -145,7 +145,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |}
       |
       |# the akka-persistence-query provider in use
-      |jdbc-read-journal {
+      |postgres-read-journal {
       |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
@@ -213,7 +213,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |}
     """.stripMargin)
 
-  val journalConfig = new JournalConfig(config.getConfig("jdbc-journal"))
-  val snapshotConfig = new SnapshotConfig(config.getConfig("jdbc-snapshot-store"))
-  val readJournalConfig = new ReadJournalConfig(config.getConfig("jdbc-read-journal"))
+  val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
+  val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+  val readJournalConfig = new ReadJournalConfig(config.getConfig("postgres-read-journal"))
 }

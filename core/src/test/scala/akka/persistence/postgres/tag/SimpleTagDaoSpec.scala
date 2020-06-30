@@ -73,7 +73,7 @@ class SimpleTagDaoSpec
 
   lazy val journalConfig: Config = {
     val globalConfig = ConfigFactory.load("plain-application.conf")
-    globalConfig.getConfig("jdbc-journal")
+    globalConfig.getConfig("postgres-journal")
   }
   lazy val slickConfig: SlickConfiguration = new SlickConfiguration(journalConfig.getConfig("slick"))
 

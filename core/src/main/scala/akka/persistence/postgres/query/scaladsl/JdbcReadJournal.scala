@@ -31,7 +31,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
 object JdbcReadJournal {
-  final val Identifier = "jdbc-read-journal"
+  final val Identifier = "postgres-read-journal"
 }
 
 class JdbcReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
@@ -78,7 +78,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   // Started lazily to prevent the actor for querying the db if no eventsByTag queries are used
   private[query] lazy val journalSequenceActor = system.systemActorOf(
     JournalSequenceActor.props(readJournalDao, readJournalConfig.journalSequenceRetrievalConfiguration),
-    s"$configPath.akka-persistence-jdbc-journal-sequence-actor")
+    s"$configPath.akka-persistence-postgres-journal-sequence-actor")
   private val delaySource =
     Source.tick(readJournalConfig.refreshInterval, 0.seconds, 0).take(1)
 

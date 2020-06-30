@@ -39,7 +39,7 @@ abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
 
   override def measurementIterations: Int = 1
 
-  lazy val cfg = system.settings.config.getConfig("jdbc-journal")
+  lazy val cfg = system.settings.config.getConfig("postgres-journal")
 
   lazy val journalConfig = new JournalConfig(cfg)
 

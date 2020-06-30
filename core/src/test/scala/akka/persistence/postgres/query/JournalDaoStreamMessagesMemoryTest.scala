@@ -27,7 +27,7 @@ import scala.util.{ Failure, Success }
 
 object JournalDaoStreamMessagesMemoryTest {
 
-  val configOverrides: Map[String, ConfigValue] = Map("jdbc-journal.fetch-size" -> ConfigValueFactory.fromAnyRef("100"))
+  val configOverrides: Map[String, ConfigValue] = Map("postgres-journal.fetch-size" -> ConfigValueFactory.fromAnyRef("100"))
 
   val MB = 1024 * 1024
 }

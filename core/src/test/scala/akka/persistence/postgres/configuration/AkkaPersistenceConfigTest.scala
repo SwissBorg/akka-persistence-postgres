@@ -15,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
 class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
   val config: Config = ConfigFactory.parseString(
     """
-      |jdbc-journal {
+      |postgres-journal {
       |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
       |
       |  tables {
@@ -77,7 +77,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |}
       |
       |# the akka-persistence-snapshot-store in use
-      |jdbc-snapshot-store {
+      |postgres-snapshot-store {
       |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
       |
       |  tables {
@@ -135,7 +135,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |}
       |
       |# the akka-persistence-query provider in use
-      |jdbc-read-journal {
+      |postgres-read-journal {
       |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
@@ -262,8 +262,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
   }
 
   "full config" should "parse JournalConfig" in {
-    val cfg = new JournalConfig(config.getConfig("jdbc-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-journal.slick"))
+    val cfg = new JournalConfig(config.getConfig("postgres-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
@@ -281,8 +281,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
   }
 
   it should "parse SnapshotConfig" in {
-    val cfg = new SnapshotConfig(config.getConfig("jdbc-snapshot-store"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-snapshot-store.slick"))
+    val cfg = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-snapshot-store.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
@@ -298,8 +298,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
   }
 
   it should "parse ReadJournalConfig" in {
-    val cfg = new ReadJournalConfig(config.getConfig("jdbc-read-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-read-journal.slick"))
+    val cfg = new ReadJournalConfig(config.getConfig("postgres-read-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-read-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
