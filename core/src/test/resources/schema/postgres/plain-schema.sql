@@ -3,11 +3,11 @@ DROP TABLE IF EXISTS public.journal;
 CREATE TABLE IF NOT EXISTS public.journal
 (
     ordering        BIGSERIAL,
-    persistence_id  TEXT                       NOT NULL,
-    sequence_number BIGINT                     NOT NULL,
-    deleted         BOOLEAN      DEFAULT FALSE NOT NULL,
+    sequence_number BIGINT                NOT NULL,
+    deleted         BOOLEAN DEFAULT FALSE NOT NULL,
+    persistence_id  TEXT                  NOT NULL,
+    message         BYTEA                 NOT NULL,
     tags            int[],
-    message         BYTEA                      NOT NULL,
     PRIMARY KEY (persistence_id, sequence_number)
 );
 
