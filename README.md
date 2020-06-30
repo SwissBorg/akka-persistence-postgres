@@ -2,9 +2,23 @@
 
 [![License](https://img.shields.io/:license-Apache%202-red.svg)](https://www.apache.org/licenses/LICENSE-2.0.txt)
 
-This is a fork of the official Akka's JDBC plugin, aimed to support PostgreSQL 11 features such as partitions, arrays, BRIN indexes and others. 
+This is a fork of the official Akka's JDBC plugin, aimed to support PostgreSQL 11 features such as partitions, arrays, BRIN indexes and others.
 
-## Documentation
+* idea - to reduce size of indexes
 
-* [Akka Persistence JDBC 3.5.x documentation](https://doc.akka.io/docs/akka-persistence-jdbc/3.5/)
-* [Snapshot documentation](https://doc.akka.io/docs/akka-persistence-jdbc/snapshot/)
+## Versions of plugin 
+* flat
+* partitioned by persistenceId and sequence_number
+* where to use which
+
+## Difference in a compare to Akka JDBC plugin
+
+* BRIN index on ordering - smaller index
+* array as tag - smaller size of table, perfectly matched tags
+
+## Partitioned version
+* how to enable
+* configuration
+* archivisation
+* migration
+
