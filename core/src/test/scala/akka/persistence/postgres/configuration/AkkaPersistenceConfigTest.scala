@@ -230,6 +230,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
 
     cfg.daoConfig.logicalDelete shouldBe true
+
+    cfg.tagsConfig.cacheTtl should equal(1.hour)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
   }
 
   it should "parse SnapshotConfig" in {
@@ -268,12 +271,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
-  }
 
-  it should "parse TagsConfig" in {
-    val cfg = new TagsConfig(ConfigFactory.empty)
-    cfg.cacheTtl should equal(1.hour)
-    cfg.insertionRetryAttempts shouldBe 1
+    cfg.tagsConfig.cacheTtl should equal(1.hour)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
   }
 
   "full config" should "parse JournalConfig" in {
@@ -293,6 +293,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(30.minutes)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 3
   }
 
   it should "parse SnapshotConfig" in {
@@ -331,15 +334,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(12.hours)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
   }
 
-  it should "parse TagsConfig" in {
-    val journalCfg = new TagsConfig(config.getConfig("jdbc-journal"))
-    journalCfg.cacheTtl should equal(30.minutes)
-    journalCfg.insertionRetryAttempts shouldBe 3
-
-    val readJournalCfg = new TagsConfig(config.getConfig("jdbc-read-journal"))
-    readJournalCfg.cacheTtl should equal(12.hours)
-    readJournalCfg.insertionRetryAttempts shouldBe 1
-  }
 }
