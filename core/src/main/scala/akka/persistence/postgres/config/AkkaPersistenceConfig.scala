@@ -69,7 +69,8 @@ class BaseByteArrayJournalDaoConfig(config: Config) {
   val parallelism: Int = config.asInt("parallelism", 8)
   val logicalDelete: Boolean = config.asBoolean("logicalDelete", default = true)
   val partitioned: Boolean = config.asBoolean("partitioned", default = false)
-  override def toString: String = s"BaseByteArrayJournalDaoConfig($bufferSize,$batchSize,$replayBatchSize,$parallelism,$logicalDelete,$partitioned)"
+  override def toString: String =
+    s"BaseByteArrayJournalDaoConfig($bufferSize,$batchSize,$replayBatchSize,$parallelism,$logicalDelete,$partitioned)"
 }
 
 class ReadJournalPluginConfig(config: Config) {
@@ -82,14 +83,24 @@ class SnapshotPluginConfig(config: Config) {
   override def toString: String = s"SnapshotPluginConfig($dao)"
 }
 
+class TagsConfig(config: Config) {
+  private val cfg = config.asConfig("tags")
+  val cacheTtl: FiniteDuration = cfg.asFiniteDuration("cacheTtl", 1.hour)
+  val insertionRetryAttempts: Int =
+    if (cfg.hasPath("insertionRetryAttempts")) cfg.getInt("insertionRetryAttempts")
+    else 1
+  override def toString: String = s"TagResolverConfig($cacheTtl, $insertionRetryAttempts)"
+}
+
 // aggregations
 
 class JournalConfig(config: Config) {
   val journalTableConfiguration = new JournalTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
+  val tagsConfig = new TagsConfig(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
-  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$useSharedDb)"
+  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$useSharedDb)"
 }
 
 class SnapshotConfig(config: Config) {
@@ -119,6 +130,7 @@ class ReadJournalConfig(config: Config) {
   val journalTableConfiguration = new JournalTableConfiguration(config)
   val journalSequenceRetrievalConfiguration = JournalSequenceRetrievalConfig(config)
   val pluginConfig = new ReadJournalPluginConfig(config)
+  val tagsConfig = new TagsConfig(config)
   val refreshInterval: FiniteDuration = config.asFiniteDuration("refresh-interval", 1.second)
   val maxBufferSize: Int = config.as[String]("max-buffer-size", "500").toInt
   val addShutdownHook: Boolean = config.asBoolean("add-shutdown-hook", true)

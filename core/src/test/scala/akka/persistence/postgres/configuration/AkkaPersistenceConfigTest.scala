@@ -37,6 +37,11 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |
       |  logicalDelete = true
       |
+      |  tags {
+      |    cacheTtl = 30 minutes
+      |    insertionRetryAttempts = 3
+      |  }
+      |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile$"
       |    db {
@@ -146,6 +151,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |  max-buffer-size = "10"
       |
       |  dao = "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+      |
+      |  tags {
+      |    cacheTtl = 12 hours
+      |  }
       |
       |  tables {
       |    journal {
@@ -261,6 +270,12 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
   }
 
+  it should "parse TagsConfig" in {
+    val cfg = new TagsConfig(ConfigFactory.empty)
+    cfg.cacheTtl should equal(1.hour)
+    cfg.insertionRetryAttempts shouldBe 1
+  }
+
   "full config" should "parse JournalConfig" in {
     val cfg = new JournalConfig(config.getConfig("jdbc-journal"))
     val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-journal.slick"))
@@ -316,5 +331,15 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+  }
+
+  it should "parse TagsConfig" in {
+    val journalCfg = new TagsConfig(config.getConfig("jdbc-journal"))
+    journalCfg.cacheTtl should equal(30.minutes)
+    journalCfg.insertionRetryAttempts shouldBe 3
+
+    val readJournalCfg = new TagsConfig(config.getConfig("jdbc-read-journal"))
+    readJournalCfg.cacheTtl should equal(12.hours)
+    readJournalCfg.insertionRetryAttempts shouldBe 1
   }
 }
