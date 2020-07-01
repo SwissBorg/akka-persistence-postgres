@@ -77,5 +77,9 @@ class ByteArrayReadJournalDao(
     val tagIdResolver: TagIdResolver)(implicit val ec: ExecutionContext, val mat: Materializer)
     extends BaseByteArrayReadJournalDao {
   val queries = new ReadJournalQueries(readJournalConfig)
-  val serializer = new ByteArrayJournalSerializer(serialization, new CachedTagIdResolver(new SimpleTagDao(db), readJournalConfig.tagsConfig))
+  val serializer = new ByteArrayJournalSerializer(
+    serialization,
+    new CachedTagIdResolver(
+      new SimpleTagDao(db, readJournalConfig.tagsTableConfiguration),
+      readJournalConfig.tagsConfig))
 }

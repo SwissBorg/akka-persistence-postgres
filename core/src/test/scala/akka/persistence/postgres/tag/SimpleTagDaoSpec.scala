@@ -34,7 +34,7 @@ class SimpleTagDaoSpec
 
   it should "return id of existing tag" in withDB { db =>
     // given
-    val dao = new SimpleTagDao(db)
+    val dao = new SimpleTagDao(db, tagTableConfig)
     val tagName = "predefined"
     db.run(sqlu"""INSERT INTO tags (name) VALUES ('#$tagName')""".transactionally).futureValue
 
@@ -67,7 +67,7 @@ class SimpleTagDaoSpec
 
   private def withDao(f: TagDao => Unit): Unit =
     withDB { db =>
-      val dao = new SimpleTagDao(db)
+      val dao = new SimpleTagDao(db, tagTableConfig)
       f(dao)
     }
 
@@ -76,6 +76,7 @@ class SimpleTagDaoSpec
     globalConfig.getConfig("jdbc-journal")
   }
   lazy val slickConfig: SlickConfiguration = new SlickConfiguration(journalConfig.getConfig("slick"))
+  lazy val tagTableConfig: TagsTableConfiguration = new TagsTableConfiguration(ConfigFactory.empty)
 
   private def withDB(f: jdbc.JdbcBackend.Database => Unit): Unit = {
     lazy val db = SlickDatabase.database(journalConfig, slickConfig, "slick.db")
