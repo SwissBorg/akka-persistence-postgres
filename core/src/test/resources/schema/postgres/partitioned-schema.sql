@@ -38,16 +38,16 @@ CREATE TABLE IF NOT EXISTS public.journal
 CREATE INDEX journal_ordering_idx ON public.journal USING BRIN (ordering);
 CREATE INDEX journal_tags_idx ON public.journal USING GIN(tags);
 
-DROP TABLE IF EXISTS public.event_tag;
+DROP TABLE IF EXISTS public.tags;
 
-CREATE TABLE IF NOT EXISTS public.event_tag
+CREATE TABLE IF NOT EXISTS public.tags
 (
     id              BIGSERIAL,
     name            TEXT                        NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS event_tag_name_idx on public.event_tag (name);
+CREATE UNIQUE INDEX IF NOT EXISTS tags_name_idx on public.tags (name);
 
 DROP TABLE IF EXISTS public.snapshot;
 

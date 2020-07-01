@@ -12,11 +12,11 @@ CREATE TABLE public.journal_partitioned
 CREATE INDEX journal_partitioned_ordering_idx ON public.journal_partitioned USING BRIN (ordering);
 CREATE INDEX journal_partitioned_tags_idx ON public.journal USING GIN(tags);
 
-CREATE TABLE public.event_tag
+CREATE TABLE public.tags
 (
     id   BIGSERIAL,
     name TEXT NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX event_tag_name_idx on public.event_tag (name);
+CREATE UNIQUE INDEX tags_name_idx on public.tags (name);

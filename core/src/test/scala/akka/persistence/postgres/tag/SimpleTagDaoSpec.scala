@@ -2,7 +2,7 @@ package akka.persistence.postgres.tag
 
 import java.util.concurrent.ThreadLocalRandom
 
-import akka.persistence.postgres.config.SlickConfiguration
+import akka.persistence.postgres.config.{ SlickConfiguration, TagsTableConfiguration }
 import akka.persistence.postgres.db.SlickDatabase
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.{ IntegrationPatience, ScalaFutures }
@@ -28,7 +28,7 @@ class SimpleTagDaoSpec
 
   before {
     withDB { db =>
-      db.run(sqlu"""TRUNCATE event_tag""".transactionally).futureValue
+      db.run(sqlu"""TRUNCATE tags""".transactionally).futureValue
     }
   }
 
@@ -36,7 +36,7 @@ class SimpleTagDaoSpec
     // given
     val dao = new SimpleTagDao(db)
     val tagName = "predefined"
-    db.run(sqlu"""INSERT INTO event_tag (name) VALUES ('#$tagName')""".transactionally).futureValue
+    db.run(sqlu"""INSERT INTO tags (name) VALUES ('#$tagName')""".transactionally).futureValue
 
     // when
     val returnedTagId = dao.find(tagName).futureValue
