@@ -23,13 +23,13 @@ It isn't perfect as it can return events which has similar names as searched eve
 which will be filtered out later. In future releases developers of Akka Persistence JDBC has plan to migrate tags to separate table, but it is extra cost in terms of RAM usage.
 
 In this, Akka Persistence Postgres, we decided to store tags name in separate dictionary table. 
-Thanks that in journal we are keeping only array of ids of tags. To bootstrap searching we are using 
-[GIN index](https://www.postgresql.org/docs/11/gin.html).
+Thanks that in journal we are keeping only array of ids of tags. To speed up searching events by tag we are using 
+[GIN index](https://www.postgresql.org/docs/11/gin.html) on tags column.
 
 ## Versions of plugin
 
 Akka Persistence Postgres is available in 2 versions:
-* flat - it is very similar to akka-persistence-jdbc plugin.
+* flat - it is very similar to akka-persistence-jdbc plugin. You can find schema for this version @@snip[here](/../../../../jdbc/src/main/resources/reference.conf)
 * partitioned by persistenceId and sequence_number - That version allow you to store thousands millions of events 
 per single persistenceId without huge impact on recovery time and persistence query by persistenceId and sequenceNumber.
 It is ideally suited when you have only few persistenceId. More about that version you can read at 'Partitioned version'.   
