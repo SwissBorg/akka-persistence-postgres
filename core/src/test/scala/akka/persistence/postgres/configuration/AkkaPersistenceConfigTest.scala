@@ -7,12 +7,13 @@ package akka.persistence.postgres.configuration
 
 import akka.persistence.postgres.config._
 import com.typesafe.config.{ Config, ConfigFactory }
-
-import scala.concurrent.duration._
+import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
+import scala.concurrent.duration._
+
+class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionValues {
   val config: Config = ConfigFactory.parseString(
     """
       |jdbc-journal {
@@ -29,6 +30,14 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |        deleted = "deleted"
       |        tags = "tags"
       |        message = "message"
+      |      }
+      |    }
+      |
+      |    tags {
+      |      tableName = "tag_id_mappings"
+      |      schemaName = "staging"
+      |      columnNames {
+      |        name = "label"
       |      }
       |    }
       |  }
@@ -169,6 +178,13 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |        message = "message"
       |      }
       |    }
+      |    tags {
+      |      tableName = "tag_id_mappings"
+      |      schemaName = "staging"
+      |      columnNames {
+      |        name = "label"
+      |      }
+      |    }
       |  }
       |
       |  slick {
@@ -233,6 +249,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
 
     cfg.tagsConfig.cacheTtl should equal(1.hour)
     cfg.tagsConfig.insertionRetryAttempts shouldBe 1
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tags"
+    cfg.tagsTableConfiguration.schemaName should not be defined
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "name"
   }
 
   it should "parse SnapshotConfig" in {
@@ -274,6 +294,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
 
     cfg.tagsConfig.cacheTtl should equal(1.hour)
     cfg.tagsConfig.insertionRetryAttempts shouldBe 1
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tags"
+    cfg.tagsTableConfiguration.schemaName should not be defined
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "name"
   }
 
   "full config" should "parse JournalConfig" in {
@@ -296,6 +320,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
 
     cfg.tagsConfig.cacheTtl should equal(30.minutes)
     cfg.tagsConfig.insertionRetryAttempts shouldBe 3
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tag_id_mappings"
+    cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
   }
 
   it should "parse SnapshotConfig" in {
@@ -337,6 +365,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
 
     cfg.tagsConfig.cacheTtl should equal(12.hours)
     cfg.tagsConfig.insertionRetryAttempts shouldBe 1
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tag_id_mappings"
+    cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
   }
 
 }
