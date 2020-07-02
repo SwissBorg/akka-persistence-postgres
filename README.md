@@ -6,6 +6,20 @@
 This is a fork of the official Akka's JDBC plugin, aimed to support PostgreSQL 11 features such as partitions, arrays, BRIN indexes and others.
 All of this to reduce database RAM usage and index size.  
 
+## How to enable Akka Persistence Postgres in your project
+
+To use this plugin prior default one, add the following to application.conf:
+```hocon
+akka.persistence {
+  journal.plugin = "postgres-journal"
+  snapshot-store.plugin = "postgres-snapshot-store"
+}
+```
+and for persistence query
+```scala
+PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier)
+```
+
 ## Difference in a compare to Akka Persistence JDBC plugin
 
 ### BRIN index on ordering
@@ -18,9 +32,10 @@ More information about [BRIN index](https://www.postgresql.org/docs/11/brin-intr
 You can also apply BRIN index on ordering for akka-persistence-jdbc. It does not need any changes in code.
 
 ### Tags as array of int
-Akka Persistence JDBC store all tags in single column as String separated by separators. It cause that searching events by tag should use `tags like '%tag_name%'` statement. 
+Akka Persistence JDBC store all tags in single column as String separated by separators. It causes that searching events by tag should use `tags like '%tag_name%'` statement. 
 It isn't perfect as it can return events which has similar names as searched event, eg: looking for events with tag 'car' query return also events with tag 'blue-car', 
-which will be filtered out later. In future releases developers of Akka Persistence JDBC has plan to migrate tags to separate table, but it is extra cost in terms of RAM usage.
+which will be filtered out later. In future releases developers of Akka Persistence JDBC is planning to migrate tags to separate table, 
+but it is extra cost in terms of index size and RAM usage, which is against our goals.
 
 In this, Akka Persistence Postgres, we decided to store tags name in separate dictionary table. 
 Thanks that in journal we are keeping only array of ids of tags. To speed up searching events by tag we are using 
@@ -29,16 +44,46 @@ Thanks that in journal we are keeping only array of ids of tags. To speed up sea
 ## Versions of plugin
 
 Akka Persistence Postgres is available in 2 versions:
-* flat - it is very similar to akka-persistence-jdbc plugin. You can find schema for this version @@snip[here](/../../../../jdbc/src/main/resources/reference.conf)
-* partitioned by persistenceId and sequence_number - That version allow you to store thousands millions of events 
+* flat - it is very similar to akka-persistence-jdbc plugin. You can find schema [here](core/src/test/resources/schema/postgres/plain-schema.sql).
+* partitioned by persistenceId and sequence_number - This version allows you to store thousands millions of events 
 per single persistenceId without huge impact on recovery time and persistence query by persistenceId and sequenceNumber.
-It is ideally suited when you have only few persistenceId. More about that version you can read at 'Partitioned version'.   
+It is ideally suited when you have only few persistenceId. More about that version you can read at 'Partitioned version'.
+You can find schema [here](core/src/test/resources/schema/postgres/partitioned-schema.sql).   
 
 If you want to use partitioned version of plugin, you should change value of `postgres-journal.partitioned` to `true`.
 
-## Partitioned version
+### Partitioned version
+Shortly speaking partitioning in Postgres is the feature, where single table has subtables, which keeps values for specific data range, list, hash.
+You are deciding which column should be partitioning column. In Akka Persistence Postgres there are 2 levels of partitioning.
+Firstly we partition journal by persistence_id, next the table for particular partition_id we partition by range of sequence_number.
+The size of the partitions by sequnce_number range you can adjust by setting: `postgres-journal.tables.journal.partitions.size`.
+So for example, when you have persistence_id CAR with 1000 events, persistence_id AIRPLANE with 300 events and `partitions.size=500` 
+you will end up with following table structure in the database:
+```
+journal
+├── j_car 
+|     ├── j_car_1 -- partition from 0 until 500
+|     ├── j_car_2 -- partition from 500 until 1000
+|     └── j_car_3 -- partition from 1000 until 1500
+└── j_airplane
+      └── j_airplane_1  -- partition from 0 until 500
+```
+Tables journal, j_car and j_airplane does not contain data, their only redirect each query to particular table with data.
+Thanks that structure querying by partition keys, we are do not touch tables and indexes of particular table. 
+For example when you recoverying your CAR Actor, and your Snapshot was taken for sequence_number 550. The query will only 
+touch j_car_2 and j_car_3 tables. Thanks that Postgres can potentially unload not used indexes. You can read more about that 
+[here](https://www.2ndquadrant.com/en/blog/partition-elimination-postgresql-11/).
 
-* configuration
-* archivisation
-* migration
+> :warning: Settings once  `postgres-journal.tables.journal.partitions.size` should newer be changed, 
+> otherwise you get PostgresException with table name or range conflict
 
+> :warning: In plugin you - uniqness of IDS
+
+#### Archiving tables
+
+
+### Migration
+We currently prepared migration from Akka Persistence JDBC to Partitioned version of plugin. 
+There aren't step by step guide instead of it we prapared [demo](scripts/partitioned/migration/demo.sh) script, 
+which also contain some consistency checks and other utils.
+ 
