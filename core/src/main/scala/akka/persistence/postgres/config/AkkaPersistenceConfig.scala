@@ -86,9 +86,7 @@ class SnapshotPluginConfig(config: Config) {
 class TagsConfig(config: Config) {
   private val cfg = config.asConfig("tags")
   val cacheTtl: FiniteDuration = cfg.asFiniteDuration("cacheTtl", 1.hour)
-  val insertionRetryAttempts: Int =
-    if (cfg.hasPath("insertionRetryAttempts")) cfg.getInt("insertionRetryAttempts")
-    else 1
+  val insertionRetryAttempts: Int = cfg.asInt("insertionRetryAttempts", 1)
   override def toString: String = s"TagResolverConfig($cacheTtl, $insertionRetryAttempts)"
 }
 
