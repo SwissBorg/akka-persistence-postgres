@@ -318,7 +318,7 @@ trait BaseDbCleaner extends QueryTestSpec {
   def schemaType: SchemaType
 
   val clearActions =
-    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE event_tag""").transactionally
+    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE tags""").transactionally
 
   def clearPostgres(): Unit =
     withDatabase(_.run(clearActions).futureValue)

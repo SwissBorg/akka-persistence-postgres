@@ -50,9 +50,9 @@ showStructure
 echo ""
 echo "fill event-tag"
 psql -q ${CONNECTION_OPTIONS} --file="3-fill-event-tag.sql"
-psql -q ${CONNECTION_OPTIONS} --command="CALL fill_event_tag(',');"
+psql -q ${CONNECTION_OPTIONS} --command="CALL fill_tags(',');"
 #echo "$PARENT partitions:"
-VALUES=$(psql -q ${CONNECTION_OPTIONS} --command="SELECT * from public.event_tag")
+VALUES=$(psql -q ${CONNECTION_OPTIONS} --command="SELECT * from public.tags")
 echo "$VALUES"
 
 #

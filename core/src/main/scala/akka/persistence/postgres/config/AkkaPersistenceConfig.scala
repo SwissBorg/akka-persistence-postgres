@@ -57,6 +57,23 @@ class SnapshotTableConfiguration(config: Config) {
   override def toString: String = s"SnapshotTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
+class TagsTableColumnNames(config: Config) {
+  private val cfg = config.asConfig("tables.tags.columnNames")
+  val id: String = cfg.asString("id", "id")
+  val name: String = cfg.asString("name", "name")
+
+  override def toString: String = s"TagsTableColumnNames($name)"
+}
+
+class TagsTableConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.tags")
+  val tableName: String = cfg.asString("tableName", "tags")
+  val schemaName: Option[String] = cfg.asOptionalNonEmptyString("schemaName")
+  val columnNames: TagsTableColumnNames = new TagsTableColumnNames(config)
+
+  override def toString: String = s"TagsTableConfiguration($tableName,$schemaName,$columnNames)"
+}
+
 class JournalPluginConfig(config: Config) {
   val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
@@ -97,6 +114,7 @@ class JournalConfig(config: Config) {
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
   val tagsConfig = new TagsConfig(config)
+  val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
   override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$useSharedDb)"
 }
@@ -129,6 +147,7 @@ class ReadJournalConfig(config: Config) {
   val journalSequenceRetrievalConfiguration = JournalSequenceRetrievalConfig(config)
   val pluginConfig = new ReadJournalPluginConfig(config)
   val tagsConfig = new TagsConfig(config)
+  val tagsTableConfiguration = new TagsTableConfiguration(config)
   val refreshInterval: FiniteDuration = config.asFiniteDuration("refresh-interval", 1.second)
   val maxBufferSize: Int = config.as[String]("max-buffer-size", "500").toInt
   val addShutdownHook: Boolean = config.asBoolean("add-shutdown-hook", true)

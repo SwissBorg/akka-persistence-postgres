@@ -2,7 +2,7 @@ package akka.persistence.postgres.tag
 
 import java.util.concurrent.ThreadLocalRandom
 
-import akka.persistence.postgres.config.SlickConfiguration
+import akka.persistence.postgres.config.{ SlickConfiguration, TagsTableConfiguration }
 import akka.persistence.postgres.db.SlickDatabase
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.{ IntegrationPatience, ScalaFutures }
@@ -28,15 +28,15 @@ class SimpleTagDaoSpec
 
   before {
     withDB { db =>
-      db.run(sqlu"""TRUNCATE event_tag""".transactionally).futureValue
+      db.run(sqlu"""TRUNCATE tags""".transactionally).futureValue
     }
   }
 
   it should "return id of existing tag" in withDB { db =>
     // given
-    val dao = new SimpleTagDao(db)
+    val dao = new SimpleTagDao(db, tagTableConfig)
     val tagName = "predefined"
-    db.run(sqlu"""INSERT INTO event_tag (name) VALUES ('#$tagName')""".transactionally).futureValue
+    db.run(sqlu"""INSERT INTO tags (name) VALUES ('#$tagName')""".transactionally).futureValue
 
     // when
     val returnedTagId = dao.find(tagName).futureValue
@@ -67,7 +67,7 @@ class SimpleTagDaoSpec
 
   private def withDao(f: TagDao => Unit): Unit =
     withDB { db =>
-      val dao = new SimpleTagDao(db)
+      val dao = new SimpleTagDao(db, tagTableConfig)
       f(dao)
     }
 
@@ -76,6 +76,7 @@ class SimpleTagDaoSpec
     globalConfig.getConfig("jdbc-journal")
   }
   lazy val slickConfig: SlickConfiguration = new SlickConfiguration(journalConfig.getConfig("slick"))
+  lazy val tagTableConfig: TagsTableConfiguration = new TagsTableConfiguration(ConfigFactory.empty)
 
   private def withDB(f: jdbc.JdbcBackend.Database => Unit): Unit = {
     lazy val db = SlickDatabase.database(journalConfig, slickConfig, "slick.db")

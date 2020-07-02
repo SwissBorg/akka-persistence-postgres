@@ -1,6 +1,8 @@
 package akka.persistence.postgres.tag
 
-class EventTagQueries extends TagTables {
+import akka.persistence.postgres.config.TagsTableConfiguration
+
+class EventTagQueries(val tagsTableCfg: TagsTableConfiguration) extends TagTables {
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 

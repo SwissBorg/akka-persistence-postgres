@@ -284,7 +284,7 @@ class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, se
     val mat: Materializer)
     extends PartitionedJournalDao {
   val queries = new JournalQueries(journalConfig.journalTableConfiguration)
-  val tagDao = new SimpleTagDao(db)
+  val tagDao = new SimpleTagDao(db, journalConfig.tagsTableConfiguration)
   val eventTagConverter = new CachedTagIdResolver(tagDao, journalConfig.tagsConfig)
   val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)
 }
