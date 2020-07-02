@@ -31,7 +31,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
 object JdbcReadJournal {
-  final val Identifier = "jdbc-read-journal"
+  final val Identifier = "pg-read-journal"
 }
 
 class JdbcReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
