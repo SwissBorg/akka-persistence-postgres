@@ -32,6 +32,13 @@ class JournalTableColumnNames(config: Config) {
   override def toString: String = s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message)"
 }
 
+class JournalPartitionsConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.journal.partitions")
+  val size: Int = cfg.asInt("size", 10000000)
+  val prefix: String = cfg.asString("prefix", "j")
+  override def toString: String = s"JournalPartitionsConfiguration($size, $prefix)"
+}
+
 class JournalTableConfiguration(config: Config) {
   private val cfg = config.asConfig("tables.journal")
   val tableName: String = cfg.as[String]("tableName", "journal")
@@ -55,13 +62,6 @@ class SnapshotTableConfiguration(config: Config) {
   val schemaName: Option[String] = cfg.as[String]("schemaName").trim
   val columnNames: SnapshotTableColumnNames = new SnapshotTableColumnNames(config)
   override def toString: String = s"SnapshotTableConfiguration($tableName,$schemaName,$columnNames)"
-}
-
-class PartitionedJournal(config: Config) {
-  private val cfg = config.asConfig("tables.journal.partitioned")
-  val size: Int = cfg.asInt("size", 10000000)
-  val prefix: String = cfg.asString("prefix", "j")
-  override def toString: String = s"PartitionedJournal($size, $prefix)"
 }
 
 class TagsTableColumnNames(config: Config) {
@@ -117,14 +117,14 @@ class TagsConfig(config: Config) {
 // aggregations
 
 class JournalConfig(config: Config) {
-  val partition = new PartitionedJournal(config)
+  val partitionsConfig = new JournalPartitionsConfiguration(config)
   val journalTableConfiguration = new JournalTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
   val tagsConfig = new TagsConfig(config)
   val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
-  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partition,$useSharedDb)"
+  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
 }
 
 class SnapshotConfig(config: Config) {

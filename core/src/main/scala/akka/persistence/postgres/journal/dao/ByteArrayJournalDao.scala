@@ -163,8 +163,8 @@ trait PartitionedJournalDao extends BaseByteArrayJournalDao {
   def logger: Logger
   val journalConfig: JournalConfig
   private val journalTableCfg = journalConfig.journalTableConfiguration
-  private val partitionSize = journalConfig.partition.size
-  private val partitionPrefix = journalConfig.partition.prefix
+  private val partitionSize = journalConfig.partitionsConfig.size
+  private val partitionPrefix = journalConfig.partitionsConfig.prefix
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] =
     if (journalConfig.daoConfig.partitioned) {
