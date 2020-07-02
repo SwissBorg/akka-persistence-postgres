@@ -83,15 +83,6 @@ lazy val docs = project
     publishRsyncHost := "akkarepo@gustav.akka.io",
     apidocRootPackage := "akka")
 
-Global / onLoad := (Global / onLoad).value.andThen { s =>
-  val v = version.value
-//  TODO commented because it does not compile
-//  if (dynverGitDescribeOutput.value.hasNoTags)
-//    throw new MessageOnlyException(
-//      s"Failed to derive version from git tags. Maybe run `git fetch --unshallow`? Derived version: $v")
-  s
-}
-
 TaskKey[Unit]("verifyCodeFmt") := {
   scalafmtCheckAll.all(ScopeFilter(inAnyProject)).result.value.toEither.left.foreach { _ =>
     throw new MessageOnlyException(
