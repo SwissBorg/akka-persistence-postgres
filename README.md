@@ -68,22 +68,35 @@ journal
 └── j_airplane
       └── j_airplane_1  -- partition from 0 until 500
 ```
-Tables journal, j_car and j_airplane does not contain data, their only redirect each query to particular table with data.
-Thanks that structure querying by partition keys, we are do not touch tables and indexes of particular table. 
-For example when you recoverying your CAR Actor, and your Snapshot was taken for sequence_number 550. The query will only 
-touch j_car_2 and j_car_3 tables. Thanks that Postgres can potentially unload not used indexes. You can read more about that 
-[here](https://www.2ndquadrant.com/en/blog/partition-elimination-postgresql-11/).
+Tables journal, j_car and j_airplane does not contain data, their only redirect each query to particular table with data. 
+All tables except journal will be automatically created by plugin, when it found that partition does not exist for event.
 
 > :warning: Settings once  `postgres-journal.tables.journal.partitions.size` should newer be changed, 
 > otherwise you get PostgresException with table name or range conflict
 
-> :warning: In plugin you - uniqness of IDS
+#### Table pruning
+Thanks that structure querying by partition keys, we are do not touch tables and indexes of particular table. 
+For example when you recovering your CAR Actor, and your Snapshot was taken for sequence_number 550. The query will only 
+touch j_car_2 and j_car_3 tables. Thanks that Postgres can potentially unload not used indexes. You can read more about that 
+[here](https://www.2ndquadrant.com/en/blog/partition-elimination-postgresql-11/).
 
-#### Archiving tables
+#### Persistence_id rules
+We use persistence_id value as part of table name. It has benefit that it is much easier to get know what data table contains.
+However, it has few limits related to table name policy in PostgreSQL:
+* length of table name is up to 63 characters, each table has some prefix (at least 2 character) and postfix (at least 2 chcaracters), based on that we suggest to use persistence_id with up to 50 characters
+* small and big characters are not distinguished, so keep in mind that: "CAR" and "car" will end up with the same table name and in RuntimeException
+* table name can contain only letters (A-Z), digits and _ (underscore), to support other characters, we are replacing them to _ (underscore). It causes that "m#o" and "m$o" will be converted to "m_o".
 
+#### Archiving data
+There are 2 reasons why you can want to archive data:
+* you are using query eventByTag - it doesn't benefit from Table pruning and your queries become slower and slower in time 
+* you have limited space on disk.
+
+By archiving data, we mean dumping data from tables and deleting unused tables. If you are interested in scripts let's look at 
+our [demo](scripts/partitioned/archivisation/demo.sh).    
 
 ### Migration
 We currently prepared migration from Akka Persistence JDBC to Partitioned version of plugin. 
-There aren't step by step guide instead of it we prapared [demo](scripts/partitioned/migration/demo.sh) script, 
+There aren't step by step guide instead of it we prepared [demo](scripts/partitioned/migration/demo.sh) script, 
 which also contain some consistency checks and other utils.
  
