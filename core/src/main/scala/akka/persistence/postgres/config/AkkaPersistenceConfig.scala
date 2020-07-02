@@ -59,6 +59,7 @@ class SnapshotTableConfiguration(config: Config) {
 
 class TagsTableColumnNames(config: Config) {
   private val cfg = config.asConfig("tables.tags.columnNames")
+  val id: String = cfg.asString("id", "id")
   val name: String = cfg.asString("name", "name")
 
   override def toString: String = s"TagsTableColumnNames($name)"
@@ -67,7 +68,7 @@ class TagsTableColumnNames(config: Config) {
 class TagsTableConfiguration(config: Config) {
   private val cfg = config.asConfig("tables.tags")
   val tableName: String = cfg.asString("tableName", "tags")
-  val schemaName: Option[String] = cfg.as[String]("schemaName").trim
+  val schemaName: Option[String] = cfg.asOptionalNonEmptyString("schemaName")
   val columnNames: TagsTableColumnNames = new TagsTableColumnNames(config)
 
   override def toString: String = s"TagsTableConfiguration($tableName,$schemaName,$columnNames)"

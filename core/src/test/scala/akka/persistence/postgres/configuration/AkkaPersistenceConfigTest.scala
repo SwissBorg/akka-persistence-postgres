@@ -37,6 +37,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |      tableName = "tag_id_mappings"
       |      schemaName = "staging"
       |      columnNames {
+      |        id = "tagId"
       |        name = "label"
       |      }
       |    }
@@ -182,6 +183,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |      tableName = "tag_id_mappings"
       |      schemaName = "staging"
       |      columnNames {
+      |        id = "tagId"
       |        name = "label"
       |      }
       |    }
@@ -252,6 +254,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
 
     cfg.tagsTableConfiguration.tableName shouldBe "tags"
     cfg.tagsTableConfiguration.schemaName should not be defined
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "id"
     cfg.tagsTableConfiguration.columnNames.name shouldBe "name"
   }
 
@@ -297,6 +300,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
 
     cfg.tagsTableConfiguration.tableName shouldBe "tags"
     cfg.tagsTableConfiguration.schemaName should not be defined
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "id"
     cfg.tagsTableConfiguration.columnNames.name shouldBe "name"
   }
 
@@ -323,6 +327,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
 
     cfg.tagsTableConfiguration.tableName shouldBe "tag_id_mappings"
     cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "tagId"
     cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
   }
 
@@ -368,6 +373,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
 
     cfg.tagsTableConfiguration.tableName shouldBe "tag_id_mappings"
     cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "tagId"
     cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
   }
 
