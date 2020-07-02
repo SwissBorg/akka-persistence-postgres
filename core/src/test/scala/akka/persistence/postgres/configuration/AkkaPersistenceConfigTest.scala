@@ -37,6 +37,11 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |
       |  logicalDelete = true
       |
+      |  tags {
+      |    cacheTtl = 30 minutes
+      |    insertionRetryAttempts = 3
+      |  }
+      |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile$"
       |    db {
@@ -147,6 +152,10 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |
       |  dao = "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
       |
+      |  tags {
+      |    cacheTtl = 12 hours
+      |  }
+      |
       |  tables {
       |    journal {
       |      tableName = "journal"
@@ -221,6 +230,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
 
     cfg.daoConfig.logicalDelete shouldBe true
+
+    cfg.tagsConfig.cacheTtl should equal(1.hour)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
   }
 
   it should "parse SnapshotConfig" in {
@@ -259,6 +271,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(1.hour)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
   }
 
   "full config" should "parse JournalConfig" in {
@@ -278,6 +293,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(30.minutes)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 3
   }
 
   it should "parse SnapshotConfig" in {
@@ -316,5 +334,9 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(12.hours)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
   }
+
 }

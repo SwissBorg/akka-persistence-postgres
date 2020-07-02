@@ -1,5 +1,6 @@
 package akka.persistence.postgres.tag
 
+import akka.persistence.postgres.config.TagsConfig
 import com.github.blemale.scaffeine.{ AsyncLoadingCache, Scaffeine }
 
 import scala.concurrent.duration._
@@ -10,13 +11,12 @@ trait TagIdResolver {
   def lookupIdFor(name: String): Future[Option[Int]]
 }
 
-class CachedTagIdResolver(dao: TagDao)(implicit ctx: ExecutionContext) extends TagIdResolver {
+class CachedTagIdResolver(dao: TagDao, config: TagsConfig)(implicit ctx: ExecutionContext) extends TagIdResolver {
 
-  // TODO configure TTL & retry attempts
   // TODO add support for loading many tags at once
   // Package private - for testing purposes
   private[tag] val cache: AsyncLoadingCache[String, Int] =
-    Scaffeine().expireAfterAccess(1.hour).buildAsyncFuture(findOrInsert(_, 1))
+    Scaffeine().expireAfterAccess(config.cacheTtl).buildAsyncFuture(findOrInsert(_, config.insertionRetryAttempts))
 
   private def findOrInsert(tagName: String, retryAttempts: Int): Future[Int] =
     dao.find(tagName).flatMap {

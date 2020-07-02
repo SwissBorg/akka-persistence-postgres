@@ -7,28 +7,28 @@ package akka.persistence.postgres.query
 package scaladsl
 
 import akka.NotUsed
-import akka.actor.{ ExtendedActorSystem, Scheduler }
+import akka.actor.{ExtendedActorSystem, Scheduler}
 import akka.persistence.postgres.config.ReadJournalConfig
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.journal.dao.FlowControl
-import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
+import akka.persistence.postgres.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
 import akka.persistence.postgres.query.dao.ReadJournalDao
-import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
+import akka.persistence.postgres.tag.{CachedTagIdResolver, SimpleTagDao, TagIdResolver}
 import akka.persistence.postgres.util.PluginVersionChecker
 import akka.persistence.query.scaladsl._
-import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
-import akka.persistence.{ Persistence, PersistentRepr }
-import akka.serialization.{ Serialization, SerializationExtension }
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.{ Materializer, SystemMaterializer }
+import akka.persistence.query.{EventEnvelope, Offset, Sequence}
+import akka.persistence.{Persistence, PersistentRepr}
+import akka.serialization.{Serialization, SerializationExtension}
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{Materializer, SystemMaterializer}
 import akka.util.Timeout
 import com.typesafe.config.Config
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object JdbcReadJournal {
   final val Identifier = "jdbc-read-journal"
@@ -55,7 +55,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   val readJournalDao: ReadJournalDao = {
     val slickDb = SlickExtension(system).database(config)
     val db = slickDb.database
-    val tagIdResolver = new CachedTagIdResolver(new SimpleTagDao(db))
+    val tagIdResolver = new CachedTagIdResolver(new SimpleTagDao(db), readJournalConfig.tagsConfig)
     if (readJournalConfig.addShutdownHook && slickDb.allowShutdown) {
       system.registerOnTermination {
         db.close()
