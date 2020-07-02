@@ -25,7 +25,7 @@ trait JournalTables {
       column[String](journalTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
     val sequenceNumber: Rep[Long] = column[Long](journalTableCfg.columnNames.sequenceNumber)
     val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
-    val tags: Rep[List[Int]] = column[List[Int]]("tags")
+    val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
     val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
     val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
     val orderingIdx = index(s"${tableName}_ordering_idx", ordering, unique = true)
