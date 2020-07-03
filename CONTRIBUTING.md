@@ -1,18 +1,15 @@
-# Contributing to Akka Persistence JDBC
+# Contributing to Akka Persistence Postgres
 
 ## General Workflow
 
 This is the process for committing code into master.
 
-1. Make sure you have signed the Lightbend CLA, if not, [sign it online](https://www.lightbend.com/contribute/cla).
-2. Before starting to work on a feature or a fix, make sure that there is a ticket for your work in the [issue tracker](https://github.com/akka/akka-persistence-jdbc/issues). If not, create it first.
-3. Perform your work according to the [pull request requirements](#pull-request-requirements).
-4. When the feature or fix is completed you should open a [Pull Request](https://help.github.com/articles/using-pull-requests) on [GitHub](https://github.com/akka/akka-persistence-jdbc/pulls).
-5. The Pull Request should be reviewed by other maintainers (as many as feasible/practical). Note that the maintainers can consist of outside contributors, both within and outside Lightbend. Outside contributors are encouraged to participate in the review process, it is not a closed process.
-6. After the review you should fix the issues (review comments, CI failures) by pushing a new commit for new review, iterating until the reviewers give their thumbs up and CI tests pass.
-7. If the branch merge conflicts with its target, rebase your branch onto the target branch.
-
-In case of questions about the contribution process or for discussion of specific issues please visit the [akka/dev gitter chat](https://gitter.im/akka/dev).
+1. Before starting to work on a feature or a fix, make sure that there is a ticket for your work in the [issue tracker](https://github.com/SwissBorg/akka-persistence-postgres/issues). If not, create it first.
+2. Perform your work according to the [pull request requirements](#pull-request-requirements).
+3. When the feature or fix is completed you should open a [Pull Request](https://help.github.com/articles/using-pull-requests) on [GitHub](https://github.com/SwissBorg/akka-persistence-postgres/pulls).
+4. The Pull Request should be reviewed by other maintainers (as many as feasible/practical). Outside contributors are encouraged to participate in the review process, it is not a closed process.
+5. After the review you should fix the issues (review comments, CI failures) by pushing a new commit for new review, iterating until the reviewers give their thumbs up and CI tests pass.
+6. If the branch merge conflicts with its target, rebase your branch onto the target branch.
 
 ## Pull Request Requirements
 
@@ -46,8 +43,6 @@ This must be ensured by manually verifying the license for all the dependencies 
 2. Whenever a committer to the project adds a new dependency.
 3. Whenever a new release is cut (public or private for a customer).
 
-Every external dependency listed in the build file must have a trailing comment with the license name of the dependency.
-
 Which licenses are compatible with Apache 2 are defined in [this doc](https://www.apache.org/legal/3party.html#category-a), where you can see that the licenses that are listed under ``Category A`` automatically compatible with Apache 2, while the ones listed under ``Category B`` needs additional action:
 
 > Each license in this category requires some degree of [reciprocity](https://www.apache.org/legal/3party.html#define-reciprocal); therefore, additional action must be taken in order to minimize the chance that a user of an Apache product will create a derivative work of a reciprocally-licensed portion of an Apache product without being aware of the applicable requirements.
@@ -78,6 +73,6 @@ Example:
 
 ## How To Enforce These Guidelines?
 
-1. [Travis CI](https://travis-ci.org/akka/akka-persistence-jdbc) automatically merges the code, builds it, runs the tests and sets Pull Request status accordingly of results in GitHub.
+1. [GitHub Actions](https://github.com/SwissBorg/akka-persistence-postgres/actions) automatically builds the code, runs the tests and sets Pull Request status accordingly of results in GitHub.
 2. [Scalafmt](https://scalameta.org/scalafmt/) enforces some of the code style rules.
 3. [sbt-header plugin](https://github.com/sbt/sbt-header) manages consistent copyright headers in every source file.
