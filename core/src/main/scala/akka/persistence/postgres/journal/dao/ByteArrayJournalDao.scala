@@ -6,12 +6,8 @@
 package akka.persistence.postgres
 package journal.dao
 
-import java.sql.SQLException
-import java.util.concurrent.ConcurrentHashMap
-
 import akka.actor.Scheduler
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.db.DbErrorCodes
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
 import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.persistence.{ AtomicWrite, PersistentRepr }
@@ -19,7 +15,7 @@ import akka.serialization.Serialization
 import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
 import akka.{ Done, NotUsed }
-import org.slf4j.{ Logger, LoggerFactory }
+import org.slf4j.LoggerFactory
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
@@ -159,68 +155,6 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
       .via(serializer.deserializeFlow)
 }
 
-trait PartitionedJournalDao extends BaseByteArrayJournalDao {
-  def logger: Logger
-  val journalConfig: JournalConfig
-  private val journalTableCfg = journalConfig.journalTableConfiguration
-  private val partitionSize = journalConfig.partitionsConfig.size
-  private val partitionPrefix = journalConfig.partitionsConfig.prefix
-
-  override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] =
-    if (journalConfig.daoConfig.partitioned) {
-      // Write atomically without auto-commit
-      attachJournalPartition(xs).flatMap(_ => super.writeJournalRows(xs))
-    } else {
-      super.writeJournalRows(xs)
-    }
-
-  private val createdPartitions = new ConcurrentHashMap[String, List[Long]]()
-
-  def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
-    import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
-    val persistenceIdToMaxSequenceNumber =
-      xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
-    val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
-      case (persistenceId, (minSeqNr, maxSeqNr)) =>
-        val requiredPartitions = minSeqNr / partitionSize to maxSeqNr / partitionSize
-        val existingPartitions = createdPartitions.getOrDefault(persistenceId, Nil)
-        val partitionsToCreate = requiredPartitions.toList.filter(!existingPartitions.contains(_))
-
-        if (partitionsToCreate.nonEmpty) {
-          logger.info(s"Adding missing journal partition...")
-          // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
-          val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
-          val tableName = s"${partitionPrefix}_$sanitizedPersistenceId"
-          val schema = journalTableCfg.schemaName.map(_ + ".").getOrElse("")
-          val actions = for {
-            _ <- sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
-            _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
-              for (partitionNumber <- partitionsToCreate) yield {
-                val name = s"${tableName}_$partitionNumber"
-                val minRange = partitionNumber * partitionSize
-                val maxRange = minRange + partitionSize
-                sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
-              }
-            }
-          } yield ()
-          db.run(actions)
-            .recoverWith {
-              case ex: SQLException if ex.getSQLState == DbErrorCodes.PgDuplicateTable =>
-                // Partition already created from another session, all good, recovery succeeded
-                Future.successful(())
-            }
-            .map(_ => {
-              createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
-            })
-        } else {
-          Future.successful(())
-        }
-    }
-
-    Future.sequence(databaseOperations).map(_ => ())
-  }
-}
-
 trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
   import FlowControl._
 
@@ -279,7 +213,7 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
 class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, serialization: Serialization)(
     implicit val ec: ExecutionContext,
     val mat: Materializer)
-    extends PartitionedJournalDao {
+    extends BaseByteArrayJournalDao {
   val queries = new JournalQueries(journalConfig.journalTableConfiguration)
   val tagDao = new SimpleTagDao(db, journalConfig.tagsTableConfiguration)
   val eventTagConverter = new CachedTagIdResolver(tagDao, journalConfig.tagsConfig)
