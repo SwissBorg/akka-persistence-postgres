@@ -41,7 +41,7 @@ In akka-persistence-postgres we decided to store tag name in separate dictionary
 whereas in the journal table we are keeping the array of ids of tags. We introduce 2 optimizations:
 * [GIN index](https://www.postgresql.org/docs/11/gin.html) on tags column, which makes searching events by tag faster;
 * cache of mapping tag id to tag name to reduce the number of connections to the database.
-The cache is tunable under `TODO` properties.
+The cache is tunable under `pg-journal.tags` properties.
 
 ## Versions of the plugin
 
