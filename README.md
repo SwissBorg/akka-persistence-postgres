@@ -3,20 +3,15 @@
 [![License](https://img.shields.io/:license-Apache%202-red.svg)](https://www.apache.org/licenses/LICENSE-2.0.txt)
 [![Actions Status](https://github.com/SwissBorg/akka-persistence-postgres/workflows/Scala%20CI/badge.svg)](https://github.com/SwissBorg/akka-persistence-postgres/actions)
 
-This is a fork of the official Akka's JDBC plugin, aimed to support PostgreSQL 11 features such as partitions, arrays, BRIN indexes and others. 
 It is a fork of the official Akka's JDBC plugin, aimed to support PostgreSQL 11 features such as partitions, arrays, BRIN indexes and others.
 All of this to reduce RAM usage and index size by the database.  
 
-## Documentation
 ## How to enable Akka Persistence Postgres in your project
-
-* [Akka Persistence JDBC 3.5.x documentation](https://doc.akka.io/docs/akka-persistence-jdbc/3.5/)
-* [Snapshot documentation](https://doc.akka.io/docs/akka-persistence-jdbc/snapshot/)
 To use this plugin prior default one, add the following to application.conf:
 ```hocon
 akka.persistence {
-  journal.plugin = "postgres-journal"
-  snapshot-store.plugin = "postgres-snapshot-store"
+  journal.plugin = "pg-journal"
+  snapshot-store.plugin = "pg-snapshot-store"
 }
 ```
 and for persistence query
@@ -50,12 +45,12 @@ The cache is tunable under `TODO` properties.
 
 ## Versions of the plugin
 
-Akka Persistence Postgres is available in 2 versions:
+Akka Persistence Postgres supports two variants of the journal schema:
 * flat - it is very similar to akka-persistence-jdbc plugin. You can find the schema [here](core/src/test/resources/schema/postgres/plain-schema.sql).
 * partitioned by persistence_id and sequence_number - This version allows you to store thousands of millions of events 
 per single persistence_id without a huge impact on recovery time and persistence query by persistence_id and sequence_number.
 It is ideally suited when you have only a few aggregates. More about that version you can read at 'Partitioned version'.
-You can find a scheme [here](core/src/test/resources/schema/postgres/partitioned-schema.sql).   
+You can find the schema [here](core/src/test/resources/schema/postgres/partitioned-schema.sql).   
 
 If you want to use a partitioned version of the plugin, you should change the value of `pg-journal.partitioned` to `true`.
 
