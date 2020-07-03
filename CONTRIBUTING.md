@@ -1,4 +1,4 @@
-# Contributing to Akka Persistence JDBC
+# Contributing to Akka Persistence Postgres
 
 ## General Workflow
 
@@ -10,8 +10,6 @@ This is the process for committing code into master.
 4. The Pull Request should be reviewed by other maintainers (as many as feasible/practical). Outside contributors are encouraged to participate in the review process, it is not a closed process.
 5. After the review you should fix the issues (review comments, CI failures) by pushing a new commit for new review, iterating until the reviewers give their thumbs up and CI tests pass.
 6. If the branch merge conflicts with its target, rebase your branch onto the target branch.
-
-In case of questions about the contribution process or for discussion of specific issues please visit the [akka/dev gitter chat](https://gitter.im/akka/dev).
 
 ## Pull Request Requirements
 
