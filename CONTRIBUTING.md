@@ -45,8 +45,6 @@ This must be ensured by manually verifying the license for all the dependencies 
 2. Whenever a committer to the project adds a new dependency.
 3. Whenever a new release is cut (public or private for a customer).
 
-Every external dependency listed in the build file must have a trailing comment with the license name of the dependency.
-
 Which licenses are compatible with Apache 2 are defined in [this doc](https://www.apache.org/legal/3party.html#category-a), where you can see that the licenses that are listed under ``Category A`` automatically compatible with Apache 2, while the ones listed under ``Category B`` needs additional action:
 
 > Each license in this category requires some degree of [reciprocity](https://www.apache.org/legal/3party.html#define-reciprocal); therefore, additional action must be taken in order to minimize the chance that a user of an Apache product will create a derivative work of a reciprocally-licensed portion of an Apache product without being aware of the applicable requirements.
