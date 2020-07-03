@@ -13,7 +13,7 @@ import com.typesafe.config.ConfigFactory
 class JNDIConfigTest extends SimpleSpec {
   "JNDI config" should "read the config and throw NoInitialContextException in case the JNDI resource is not available" in {
     withActorSystem("jndi-application.conf") { system =>
-      val jdbcJournalConfig = system.settings.config.getConfig("jdbc-journal")
+      val jdbcJournalConfig = system.settings.config.getConfig("pg-journal")
       val slickExtension = SlickExtension(system)
       intercept[javax.naming.NoInitialContextException] {
         // Since the JNDI resource is not actually available we expect a NoInitialContextException
@@ -25,7 +25,7 @@ class JNDIConfigTest extends SimpleSpec {
 
   "JNDI config for shared databases" should "read the config and throw NoInitialContextException in case the JNDI resource is not available" in {
     withActorSystem("jndi-shared-db-application.conf") { system =>
-      val jdbcJournalConfig = system.settings.config.getConfig("jdbc-journal")
+      val jdbcJournalConfig = system.settings.config.getConfig("pg-journal")
       val slickExtension = SlickExtension(system)
       intercept[javax.naming.NoInitialContextException] {
         // Since the JNDI resource is not actually available we expect a NoInitialContextException
