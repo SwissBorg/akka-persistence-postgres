@@ -16,7 +16,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
     mat: Materializer)
-    extends ByteArrayJournalDao(db, journalConfig, serialization) {
+    extends FlatJournalDao(db, journalConfig, serialization) {
   private val journalTableCfg = journalConfig.journalTableConfiguration
   private val partitionSize = journalConfig.partitionsConfig.size
   private val partitionPrefix = journalConfig.partitionsConfig.prefix

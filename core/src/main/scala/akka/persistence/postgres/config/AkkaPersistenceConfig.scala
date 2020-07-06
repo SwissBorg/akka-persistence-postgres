@@ -82,7 +82,7 @@ class TagsTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
-  val dao: String = config.asString("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
+  val dao: String = config.asString("dao", "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
 }
 

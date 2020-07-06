@@ -70,7 +70,7 @@ class JdbcAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
       case upgraded: JournalDaoWithUpdates => upgraded
       case _ =>
         throw new IllegalStateException(s"The ${journalDao.getClass} does NOT implement [JournalDaoWithUpdates], " +
-        s"which is required to perform updates of events! Please configure a valid update capable DAO (e.g. the default [ByteArrayJournalDao].")
+        s"which is required to perform updates of events! Please configure a valid update capable DAO (e.g. the default [FlatJournalDao].")
     }
 
   // readHighestSequence must be performed after pending write for a persistenceId

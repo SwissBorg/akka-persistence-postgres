@@ -9,19 +9,18 @@ package journal.dao
 import akka.actor.Scheduler
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
-import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
-import akka.persistence.{ AtomicWrite, PersistentRepr }
-import akka.serialization.Serialization
-import akka.stream.scaladsl.{ Keep, Sink, Source }
-import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
-import akka.{ Done, NotUsed }
-import org.slf4j.LoggerFactory
+import akka.persistence.postgres.tag.TagIdResolver
+import akka.persistence.{AtomicWrite, PersistentRepr}
+import akka.stream.scaladsl.{Keep, Sink, Source}
+import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
+import akka.{Done, NotUsed}
+import org.slf4j.{Logger, LoggerFactory}
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
@@ -38,13 +37,13 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
   import journalConfig.daoConfig.{ batchSize, bufferSize, logicalDelete, parallelism }
 
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   // This logging may block since we don't control how the user will configure logback
   // We can't use a Akka logging neither because we don't have an ActorSystem in scope and
   // we should not introduce another dependency here.
   // Therefore, we make sure we only log a warning for logical deletes once
-  lazy val logWarnAboutLogicalDeletionDeprecation = {
+  lazy val logWarnAboutLogicalDeletionDeprecation: Unit = {
     logger.warn(
       "Logical deletion of events is deprecated and will be removed in akka-persistende-jdbc version 4.0.0. " +
       "To disable it in this current version you must set the property 'akka-persistence-jdbc.logicalDeletion.enable' to false.")
@@ -208,14 +207,4 @@ trait BaseJournalDaoWithReadMessages extends JournalDaoWithReadMessages {
       }
       .mapConcat(identity)
   }
-}
-
-class ByteArrayJournalDao(val db: Database, val journalConfig: JournalConfig, serialization: Serialization)(
-    implicit val ec: ExecutionContext,
-    val mat: Materializer)
-    extends BaseByteArrayJournalDao {
-  val queries = new JournalQueries(journalConfig.journalTableConfiguration)
-  val tagDao = new SimpleTagDao(db, journalConfig.tagsTableConfiguration)
-  val eventTagConverter = new CachedTagIdResolver(tagDao, journalConfig.tagsConfig)
-  val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)
 }

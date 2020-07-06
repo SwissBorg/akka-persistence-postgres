@@ -289,7 +289,7 @@ By means of configuration in `application.conf` a DAO can be configured, below t
 
 ```hocon
 pg-journal {
-  dao = "akka.persistence.jdbc.journal.dao.ByteArrayJournalDao"
+  dao = "akka.persistence.jdbc.journal.dao.FlatJournalDao"
 }
 
 pg-snapshot-store {
@@ -321,7 +321,7 @@ class MyCustomSnapshotDao(db: JdbcBackend#Database, val profile: JdbcProfile, sn
 As you can see, the custom DAOs get a _Slick database_, a _Slick profile_, the journal or snapshot _configuration_, an _akka.serialization.Serialization_, an _ExecutionContext_ and _Materializer_ injected after constructed.
 You should register the Fully Qualified Class Name in `application.conf` so that the custom DAOs will be used.
 
-For more information please review the two default implementations `akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao` and `akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/dnvriend/demo-akka-persistence-jdbc) site.
+For more information please review the two default implementations `akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao` and `akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/dnvriend/demo-akka-persistence-jdbc) site.
 
 @@@warning { title="Binary compatibility" }
 
