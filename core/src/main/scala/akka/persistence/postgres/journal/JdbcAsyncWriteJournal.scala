@@ -14,7 +14,6 @@ import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.{SlickDatabase, SlickExtension}
 import akka.persistence.postgres.journal.JdbcAsyncWriteJournal.{InPlaceUpdateEvent, WriteFinished}
 import akka.persistence.postgres.journal.dao.{JournalDao, JournalDaoWithUpdates}
-import akka.persistence.postgres.util.PluginVersionChecker
 import akka.persistence.journal.AsyncWriteJournal
 import akka.persistence.{AtomicWrite, PersistentRepr}
 import akka.serialization.{Serialization, SerializationExtension}
@@ -45,8 +44,6 @@ class JdbcAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
   implicit val system: ActorSystem = context.system
   implicit val mat: Materializer = SystemMaterializer(system).materializer
   val journalConfig = new JournalConfig(config)
-
-  PluginVersionChecker.check()
 
   val slickDb: SlickDatabase = SlickExtension(system).database(config)
   def db: Database = slickDb.database

@@ -28,7 +28,7 @@ Key links:
 
 ### Preparing release notes in the documentation / announcement
 
-- [ ] For non-patch releases: rename the 'akka-persistence-jdbc-x.x-stable' reporting projects in [WhiteSource](https://saas.whitesourcesoftware.com/Wss/WSS.html#!project;id=1706072) accordingly
+- [ ] For non-patch releases: rename the 'akka-persistence-postgres-x.x-stable' reporting projects in [WhiteSource](https://saas.whitesourcesoftware.com/Wss/WSS.html#!project;id=1706072) accordingly
 - [ ] Review the [draft release notes](https://github.com/SwissBorg/akka-persistence-postgres/releases)
 - [ ] For non-patch releases: Create a news item draft PR on [akka.github.com](https://github.com/akka/akka.github.com), using the milestone
 

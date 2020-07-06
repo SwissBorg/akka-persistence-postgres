@@ -42,8 +42,8 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
       } else
         SlickDatabase.database(
           config,
-          new SlickConfiguration(config.getConfig("akka-persistence-jdbc.shared-databases.slick")),
-          "akka-persistence-jdbc.shared-databases.slick.db")
+          new SlickConfiguration(config.getConfig("akka-persistence-postgres.shared-databases.slick")),
+          "akka-persistence-postgres.shared-databases.slick.db")
 
       dbOpt = Some(newDb)
       newDb

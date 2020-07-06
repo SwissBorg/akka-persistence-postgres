@@ -35,10 +35,10 @@ lazy val docs = project
     publish / skip := true,
     makeSite := makeSite.dependsOn(LocalRootProject / ScalaUnidoc / doc).value,
     previewPath := (Paradox / siteSubdirName).value,
-    Preprocess / siteSubdirName := s"api/akka-persistence-jdbc/${if (isSnapshot.value) "snapshot"
+    Preprocess / siteSubdirName := s"api/akka-persistence-postgres/${if (isSnapshot.value) "snapshot"
       else version.value}",
     Preprocess / sourceDirectory := (LocalRootProject / ScalaUnidoc / unidoc / target).value,
-    Paradox / siteSubdirName := s"docs/akka-persistence-jdbc/${if (isSnapshot.value) "snapshot" else version.value}",
+    Paradox / siteSubdirName := s"docs/akka-persistence-postgres/${if (isSnapshot.value) "snapshot" else version.value}",
     Compile / paradoxProperties ++= Map(
         "project.url" -> "https://doc.akka.io/docs/akka-persistence-jdbc/current/",
         "canonical.base_url" -> "https://doc.akka.io/docs/akka-persistence-jdbc/current",
