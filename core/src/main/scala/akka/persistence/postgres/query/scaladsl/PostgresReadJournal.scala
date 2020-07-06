@@ -29,11 +29,11 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-object JdbcReadJournal {
+object PostgresReadJournal {
   final val Identifier = "postgres-read-journal"
 }
 
-class JdbcReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
+class PostgresReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
     extends ReadJournal
     with CurrentPersistenceIdsQuery
     with PersistenceIdsQuery

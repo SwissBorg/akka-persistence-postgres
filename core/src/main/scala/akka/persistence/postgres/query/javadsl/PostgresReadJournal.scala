@@ -6,16 +6,16 @@
 package akka.persistence.postgres.query.javadsl
 
 import akka.NotUsed
-import akka.persistence.postgres.query.scaladsl.{ JdbcReadJournal => ScalaJdbcReadJournal }
+import akka.persistence.postgres.query.scaladsl.{ PostgresReadJournal => ScalaPostgresReadJournal }
 import akka.persistence.query.{ EventEnvelope, Offset }
 import akka.persistence.query.javadsl._
 import akka.stream.javadsl.Source
 
-object JdbcReadJournal {
-  final val Identifier = ScalaJdbcReadJournal.Identifier
+object PostgresReadJournal {
+  final val Identifier = ScalaPostgresReadJournal.Identifier
 }
 
-class JdbcReadJournal(journal: ScalaJdbcReadJournal)
+class PostgresReadJournal(journal: ScalaPostgresReadJournal)
     extends ReadJournal
     with CurrentPersistenceIdsQuery
     with PersistenceIdsQuery

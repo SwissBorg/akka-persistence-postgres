@@ -9,9 +9,9 @@ import akka.actor.ExtendedActorSystem
 import akka.persistence.query.ReadJournalProvider
 import com.typesafe.config.Config
 
-class JdbcReadJournalProvider(system: ExtendedActorSystem, config: Config, configPath: String)
+class PostgresReadJournalProvider(system: ExtendedActorSystem, config: Config, configPath: String)
     extends ReadJournalProvider {
-  override val scaladslReadJournal = new scaladsl.JdbcReadJournal(config, configPath)(system)
+  override val scaladslReadJournal = new scaladsl.PostgresReadJournal(config, configPath)(system)
 
-  override val javadslReadJournal = new javadsl.JdbcReadJournal(scaladslReadJournal)
+  override val javadslReadJournal = new javadsl.PostgresReadJournal(scaladslReadJournal)
 }

@@ -26,7 +26,7 @@ object CurrentEventsByTagTest {
 
 abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(config, configOverrides) {
   it should "not find an event by tag for unknown tag" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "one")).futureValue
       (actor2 ? withTags(2, "two")).futureValue
@@ -44,7 +44,7 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
   }
 
   it should "find all events by tag" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor2 ? withTags(2, "number")).futureValue
@@ -91,7 +91,7 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
   }
 
   it should "persist and find a tagged event with multiple tags" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       withClue("Persisting multiple tagged events") {
         (actor1 ? withTags(1, "one", "1", "prime")).futureValue
@@ -164,7 +164,7 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
 
   it should "complete without any gaps in case events are being persisted when the query is executed" in withActorSystem {
     implicit system =>
-      val journalOps = new JavaDslJdbcReadJournalOperations(system)
+      val journalOps = new JavaDslPostgresReadJournalOperations(system)
       import system.dispatcher
       withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
         def sendMessagesWithTag(tag: String, numberOfMessagesPerActor: Int): Future[Done] = {

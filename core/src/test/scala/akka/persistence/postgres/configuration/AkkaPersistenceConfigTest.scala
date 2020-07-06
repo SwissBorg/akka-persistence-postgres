@@ -17,7 +17,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   val config: Config = ConfigFactory.parseString(
     """
       |postgres-journal {
-      |  class = "akka.persistence.postgres.journal.JdbcAsyncWriteJournal"
+      |  class = "akka.persistence.postgres.journal.PostgresAsyncWriteJournal"
       |
       |  tables {
       |    journal {
@@ -97,7 +97,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |
       |# the akka-persistence-snapshot-store in use
       |postgres-snapshot-store {
-      |  class = "akka.persistence.postgres.snapshot.JdbcSnapshotStore"
+      |  class = "akka.persistence.postgres.snapshot.PostgresSnapshotStore"
       |
       |  tables {
       |    snapshot {
@@ -155,7 +155,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |
       |# the akka-persistence-query provider in use
       |postgres-read-journal {
-      |  class = "akka.persistence.postgres.query.JdbcReadJournalProvider"
+      |  class = "akka.persistence.postgres.query.PostgresReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
       |  refresh-interval = "300ms"

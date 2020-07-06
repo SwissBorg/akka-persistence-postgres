@@ -20,14 +20,14 @@ import scala.collection.immutable._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-object JdbcSnapshotStore {
+object PostgresSnapshotStore {
   def toSelectedSnapshot(tupled: (SnapshotMetadata, Any)): SelectedSnapshot = tupled match {
     case (meta: SnapshotMetadata, snapshot: Any) => SelectedSnapshot(meta, snapshot)
   }
 }
 
-class JdbcSnapshotStore(config: Config) extends SnapshotStore {
-  import JdbcSnapshotStore._
+class PostgresSnapshotStore(config: Config) extends SnapshotStore {
+  import PostgresSnapshotStore._
 
   implicit val ec: ExecutionContext = context.dispatcher
   implicit val system: ActorSystem = context.system

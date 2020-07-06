@@ -20,7 +20,7 @@ import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
 
-abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
+abstract class PostgresJournalPerfSpec(config: Config, schemaType: SchemaType)
     extends JournalPerfSpec(config)
     with BeforeAndAfterAll
     with BeforeAndAfterEach
@@ -104,18 +104,18 @@ abstract class JdbcJournalPerfSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PartitionedJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("partitioned-application.conf"), Partitioned())
+class PartitionedJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-application.conf"), Partitioned())
 
 class PartitionedJournalPerfSpecSharedDb
-    extends JdbcJournalPerfSpec(ConfigFactory.load("partitioned-shared-db-application.conf"), Partitioned())
+    extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-shared-db-application.conf"), Partitioned())
 
 class PartitionedJournalPerfSpecPhysicalDelete
-  extends JdbcJournalPerfSpec(ConfigFactory.load("partitioned-application-with-hard-delete.conf"), Partitioned())
+  extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-application-with-hard-delete.conf"), Partitioned())
 
-class PlainJournalPerfSpec extends JdbcJournalPerfSpec(ConfigFactory.load("plain-application.conf"), Plain())
+class PlainJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("plain-application.conf"), Plain())
 
 class PlainJournalPerfSpecSharedDb
-  extends JdbcJournalPerfSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
+  extends PostgresJournalPerfSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
 
 class PlainJournalPerfSpecPhysicalDelete
-  extends JdbcJournalPerfSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())
+  extends PostgresJournalPerfSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())

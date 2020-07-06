@@ -12,7 +12,7 @@ import akka.actor.{ActorSystem, ExtendedActorSystem}
 import akka.pattern.pipe
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.{SlickDatabase, SlickExtension}
-import akka.persistence.postgres.journal.JdbcAsyncWriteJournal.{InPlaceUpdateEvent, WriteFinished}
+import akka.persistence.postgres.journal.PostgresAsyncWriteJournal.{InPlaceUpdateEvent, WriteFinished}
 import akka.persistence.postgres.journal.dao.{JournalDao, JournalDaoWithUpdates}
 import akka.persistence.journal.AsyncWriteJournal
 import akka.persistence.{AtomicWrite, PersistentRepr}
@@ -25,7 +25,7 @@ import scala.collection.immutable._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-object JdbcAsyncWriteJournal {
+object PostgresAsyncWriteJournal {
   private case class WriteFinished(pid: String, f: Future[_])
 
   /**
@@ -38,7 +38,7 @@ object JdbcAsyncWriteJournal {
   final case class InPlaceUpdateEvent(persistenceId: String, seqNr: Long, write: AnyRef)
 }
 
-class JdbcAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
+class PostgresAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
 
   implicit val ec: ExecutionContext = context.dispatcher
   implicit val system: ActorSystem = context.system
