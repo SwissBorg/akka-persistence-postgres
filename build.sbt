@@ -1,8 +1,7 @@
 import com.lightbend.paradox.apidoc.ApidocPlugin.autoImport.apidocRootPackage
-import com.typesafe.tools.mima.core._
 import com.typesafe.tools.mima.plugin.MimaKeys.mimaBinaryIssueFilters
 
-lazy val `akka-persistence-jdbc` = project
+lazy val `akka-persistence-postgres` = project
   .in(file("."))
   .enablePlugins(ScalaUnidocPlugin)
   .disablePlugins(MimaPlugin, SitePlugin)
@@ -14,35 +13,17 @@ lazy val core = project
   .enablePlugins(MimaPlugin, Publish)
   .disablePlugins(SitePlugin)
   .settings(
-    name := "akka-persistence-jdbc",
+    name := "akka-persistence-postgres",
     libraryDependencies ++= Dependencies.Libraries,
-    mimaBinaryIssueFilters ++= Seq(
-        // in 3.6.0 we intentionally renamed package akka.persistence.jdbc.util to akka.persistence.jdbc.db
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickDatabaseProvider"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickDatabase$"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickDatabase"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.EagerSlickDatabase"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickDriver$"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickExtension"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.LazySlickDatabase"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickExtensionImpl"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickDriver"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.EagerSlickDatabase$"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.SlickExtension$"),
-        ProblemFilters.exclude[MissingClassProblem]("akka.persistence.jdbc.util.DefaultSlickDatabaseProvider"),
-        ProblemFilters.exclude[IncompatibleResultTypeProblem](
-          "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal.slickDb"),
-        ProblemFilters.exclude[IncompatibleResultTypeProblem](
-          "akka.persistence.jdbc.snapshot.JdbcSnapshotStore.slickDb")),
-    // special handling as we change organization id
-    mimaPreviousArtifacts := ProjectAutoPlugin.determineMimaPreviousArtifacts(scalaBinaryVersion.value))
+    mimaBinaryIssueFilters ++= Seq()
+  )
 
 lazy val migration = project
   .in(file("migration"))
   .enablePlugins(Publish)
   .disablePlugins(SitePlugin, MimaPlugin)
   .settings(
-    name := "akka-persistence-jdbc-migration",
+    name := "akka-persistence-postgres-migration",
     libraryDependencies ++= Dependencies.Migration,
     publish / skip := true)
 
@@ -50,7 +31,7 @@ lazy val docs = project
   .enablePlugins(ProjectAutoPlugin, AkkaParadoxPlugin, ParadoxSitePlugin, PreprocessPlugin, PublishRsyncPlugin)
   .disablePlugins(MimaPlugin)
   .settings(
-    name := "Akka Persistence JDBC",
+    name := "Akka Persistence Postgres",
     publish / skip := true,
     makeSite := makeSite.dependsOn(LocalRootProject / ScalaUnidoc / doc).value,
     previewPath := (Paradox / siteSubdirName).value,
