@@ -2,6 +2,16 @@ import com.lightbend.paradox.apidoc.ApidocPlugin.autoImport.apidocRootPackage
 import com.typesafe.tools.mima.core._
 import com.typesafe.tools.mima.plugin.MimaKeys.mimaBinaryIssueFilters
 
+lazy val publishSettings = inThisBuild(
+  List(
+    organization := "com.swissborg",
+    homepage := Some(url("https://github.com/SwissBorg/akka-persistence-postgres")),
+    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    scmInfo := Some(
+        ScmInfo(
+          url("https://github.com/SwissBorg/akka-persistence-postgres"),
+          "scm:git@github.com:SwissBorg/akka-persistence-postgres.git"))))
+
 lazy val `akka-persistence-jdbc` = project
   .in(file("."))
   .enablePlugins(ScalaUnidocPlugin)
@@ -11,7 +21,7 @@ lazy val `akka-persistence-jdbc` = project
 
 lazy val core = project
   .in(file("core"))
-  .enablePlugins(MimaPlugin, Publish)
+  .enablePlugins(MimaPlugin)
   .disablePlugins(SitePlugin)
   .settings(
     name := "akka-persistence-jdbc",
@@ -36,10 +46,10 @@ lazy val core = project
           "akka.persistence.jdbc.snapshot.JdbcSnapshotStore.slickDb")),
     // special handling as we change organization id
     mimaPreviousArtifacts := ProjectAutoPlugin.determineMimaPreviousArtifacts(scalaBinaryVersion.value))
+  .settings(publishSettings)
 
 lazy val migration = project
   .in(file("migration"))
-  .enablePlugins(Publish)
   .disablePlugins(SitePlugin, MimaPlugin)
   .settings(
     name := "akka-persistence-jdbc-migration",
