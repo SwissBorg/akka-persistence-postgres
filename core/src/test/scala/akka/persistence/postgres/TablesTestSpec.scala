@@ -16,7 +16,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
   val config = ConfigFactory.parseString(
     """
       |postgres-journal {
-      |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
+      |  class = "akka.persistence.postgres.journal.JdbcAsyncWriteJournal"
       |
       |  tables {
       |    journal {
@@ -43,7 +43,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |  serialization = on // alter only when using a custom dao
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.FlatJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.FlatJournalDao"
       |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile"
@@ -86,7 +86,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |# the akka-persistence-snapshot-store in use
       |postgres-snapshot-store {
-      |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
+      |  class = "akka.persistence.postgres.snapshot.JdbcSnapshotStore"
       |
       |  tables {
       |    snapshot {
@@ -103,7 +103,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |  serialization = on // alter only when using a custom dao
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.ByteArraySnapshotDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.ByteArraySnapshotDao"
       |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile"
@@ -146,7 +146,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |# the akka-persistence-query provider in use
       |postgres-read-journal {
-      |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
+      |  class = "akka.persistence.postgres.query.JdbcReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
       |  refresh-interval = "1s"
@@ -157,7 +157,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |  serialization = on // alter only when using a custom dao
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.FlatJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.FlatJournalDao"
       |
       |  tables {
       |    journal {

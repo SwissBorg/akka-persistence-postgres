@@ -25,7 +25,7 @@ object Main extends App {
       case "postgres" =>
         flywayConfig.locations(new Location("classpath:db/migration/postgres"))
       case other =>
-        sys.error(s"Akka Persistence JDBC migrations do not support `$other` (supported are `postgres`)")
+        sys.error(s"Akka Persistence Postgres migrations do not support `$other` (supported is only `postgres`)")
     }
 
     val flyway = flywayConfig.load

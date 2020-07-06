@@ -1,6 +1,6 @@
-# Akka Persistence JDBC
+# Akka Persistence Postgres
 
-The Akka Persistence JDBC plugin allows for using JDBC-compliant databases as backend for @extref:[Akka Persistence](akka:persistence.html) and @extref:[Akka Persistence Query](akka:persistence-query.html).
+The Akka Persistence Postgres plugin allows for using Postgres database as backend for @extref:[Akka Persistence](akka:persistence.html) and @extref:[Akka Persistence Query](akka:persistence-query.html).
 
 akka-persistence-postgres writes journal and snapshot entries to a configured PostgreSQL store. It implements the full akka-persistence-query API and is therefore very useful for implementing DDD-style application models using Akka and Scala for creating reactive applications.
 
@@ -133,7 +133,7 @@ The `ReadJournal` is retrieved via the `akka.persistence.query.PersistenceQuery`
 
 ```scala
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.JdbcReadJournal
 
 val readJournal: JdbcReadJournal = PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier)
 ```
@@ -162,7 +162,7 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, ActorMaterializer}
 import akka.stream.scaladsl.Source
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.JdbcReadJournal
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val mat: Materializer = ActorMaterializer()(system)
@@ -193,7 +193,7 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, ActorMaterializer}
 import akka.stream.scaladsl.Source
 import akka.persistence.query.{ PersistenceQuery, EventEnvelope }
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.JdbcReadJournal
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val mat: Materializer = ActorMaterializer()(system)
@@ -220,7 +220,7 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, ActorMaterializer}
 import akka.stream.scaladsl.Source
 import akka.persistence.query.{ PersistenceQuery, EventEnvelope }
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.JdbcReadJournal
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val mat: Materializer = ActorMaterializer()(system)
@@ -289,22 +289,22 @@ By means of configuration in `application.conf` a DAO can be configured, below t
 
 ```hocon
 postgres-journal {
-  dao = "akka.persistence.jdbc.journal.dao.FlatJournalDao"
+  dao = "akka.persistence.postgres.journal.dao.FlatJournalDao"
 }
 
 postgres-snapshot-store {
-  dao = "akka.persistence.jdbc.snapshot.dao.ByteArraySnapshotDao"
+  dao = "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao"
 }
 
 postgres-read-journal {
-  dao = "akka.persistence.jdbc.query.dao.ByteArrayReadJournalDao"
+  dao = "akka.persistence.postgres.query.dao.ByteArrayReadJournalDao"
 }
 ```
 
 Storing messages as byte arrays in blobs is not the only way to store information in a database. For example, you could store messages with full type information as a normal database rows, each event type having its own table.
 For example, implementing a Journal Log table that stores all persistenceId, sequenceNumber and event type discriminator field, and storing the event data in another table with full typing
 
-You only have to implement two interfaces `akka.persistence.jdbc.journal.dao.JournalDao` and/or `akka.persistence.jdbc.snapshot.dao.SnapshotDao`. 
+You only have to implement two interfaces `akka.persistence.postgres.journal.dao.JournalDao` and/or `akka.persistence.postgres.snapshot.dao.SnapshotDao`. 
 
 For example, take a look at the following two custom DAOs:
 
@@ -321,7 +321,7 @@ class MyCustomSnapshotDao(db: JdbcBackend#Database, val profile: JdbcProfile, sn
 As you can see, the custom DAOs get a _Slick database_, a _Slick profile_, the journal or snapshot _configuration_, an _akka.serialization.Serialization_, an _ExecutionContext_ and _Materializer_ injected after constructed.
 You should register the Fully Qualified Class Name in `application.conf` so that the custom DAOs will be used.
 
-For more information please review the two default implementations `akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao` and `akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/SwissBorg/demo-akka-persistence-postgres) site.
+For more information please review the two default implementations `akka.persistence.postgres.dao.bytea.journal.FlatJournalDao` and `akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/SwissBorg/demo-akka-persistence-postgres) site.
 
 @@@warning { title="Binary compatibility" }
 

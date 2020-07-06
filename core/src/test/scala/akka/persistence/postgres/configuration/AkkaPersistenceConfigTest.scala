@@ -17,7 +17,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   val config: Config = ConfigFactory.parseString(
     """
       |postgres-journal {
-      |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
+      |  class = "akka.persistence.postgres.journal.JdbcAsyncWriteJournal"
       |
       |  tables {
       |    journal {
@@ -47,7 +47,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
       |
       |  logicalDelete = true
       |
@@ -97,7 +97,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |
       |# the akka-persistence-snapshot-store in use
       |postgres-snapshot-store {
-      |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
+      |  class = "akka.persistence.postgres.snapshot.JdbcSnapshotStore"
       |
       |  tables {
       |    snapshot {
@@ -112,7 +112,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
       |
       |  slick {
       |    profile = "slick.jdbc.MySQLProfile$"
@@ -155,7 +155,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |
       |# the akka-persistence-query provider in use
       |postgres-read-journal {
-      |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
+      |  class = "akka.persistence.postgres.query.JdbcReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
       |  refresh-interval = "300ms"
@@ -164,7 +164,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |  # are delivered downstreams.
       |  max-buffer-size = "10"
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
       |
       |  tags {
       |    cacheTtl = 12 hours
@@ -239,7 +239,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -268,7 +268,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -285,7 +285,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
     cfg.refreshInterval shouldBe 1.second
     cfg.maxBufferSize shouldBe 500
 
@@ -314,7 +314,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -344,7 +344,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -361,7 +361,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
     cfg.refreshInterval shouldBe 300.millis
     cfg.maxBufferSize shouldBe 10
 

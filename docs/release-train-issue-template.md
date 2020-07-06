@@ -55,7 +55,7 @@ Key links:
          git status
          git add docs/akka-persistence-jdbc/current docs/akka-persistence-jdbc/$VERSION$
          git add api/akka-persistence-jdbc/current api/akka-persistence-jdbc/$VERSION$
-         git commit -m "Akka Persistence JDBC $VERSION$"
+         git commit -m "Akka Persistence Postgres $VERSION$"
          ```
 
 ### Announcements

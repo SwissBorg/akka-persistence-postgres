@@ -13,5 +13,5 @@ object Publish extends AutoPlugin {
     bintrayPackage := "akka-persistence-postgres",
     bintrayRepository := (if (isSnapshot.value) "snapshots" else "maven"),
     publishMavenStyle := true,
-    bintrayPackageLabels := Seq("akka", "persistence", "jdbc"))
+    bintrayPackageLabels := Seq("akka", "persistence", "postgres"))
 }
