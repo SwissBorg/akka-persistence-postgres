@@ -44,7 +44,7 @@ lazy val docs = project
         "canonical.base_url" -> "https://doc.akka.io/docs/akka-persistence-jdbc/current",
         "akka.version" -> Dependencies.AkkaVersion,
         "slick.version" -> Dependencies.SlickVersion,
-        "extref.github.base_url" -> s"https://github.com/akka/akka-persistence-jdbc/blob/${if (isSnapshot.value) "master"
+        "extref.github.base_url" -> s"https://github.com/SwissBorg/akka-persistence-postgres/blob/${if (isSnapshot.value) "master"
         else "v" + version.value}/%s",
         // Slick
         "extref.slick.base_url" -> s"https://scala-slick.org/doc/${Dependencies.SlickVersion}/%s",

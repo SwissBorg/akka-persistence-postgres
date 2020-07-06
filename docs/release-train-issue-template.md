@@ -12,14 +12,14 @@ Variables to be expanded in this template:
 - $VERSION$=???
 
 Key links:
-  - akka/akka-persistence-jdbc milestone: https://github.com/akka/akka-peristence-jdbc/milestone/?
+  - SwissBorg/akka-persistence-postgres milestone: https://github.com/SwissBorg/akka-peristence-postgres/milestone/?
 -->
 ### ~ 1 week before the release
 
 - [ ] Check that open PRs and issues assigned to the milestone are reasonable
-- [ ] Create a new milestone for the [next version](https://github.com/akka/akka-persistence-jdbc/milestones)
-- [ ] Check [closed issues without a milestone](https://github.com/akka/akka-persistence-jdbc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20no%3Amilestone) and either assign them the 'upcoming' release milestone or `invalid/not release-bound`
-- [ ] Close the [$VERSION$ milestone](https://github.com/akka/akka-persistence-jdbc/milestones?direction=asc&sort=due_date)
+- [ ] Create a new milestone for the [next version](https://github.com/SwissBorg/akka-persistence-postgres/milestones)
+- [ ] Check [closed issues without a milestone](https://github.com/SwissBorg/akka-persistence-postgres/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20no%3Amilestone) and either assign them the 'upcoming' release milestone or `invalid/not release-bound`
+- [ ] Close the [$VERSION$ milestone](https://github.com/SwissBorg/akka-persistence-postgres/milestones?direction=asc&sort=due_date)
 
 ### 1 day before the release
 
@@ -29,14 +29,14 @@ Key links:
 ### Preparing release notes in the documentation / announcement
 
 - [ ] For non-patch releases: rename the 'akka-persistence-jdbc-x.x-stable' reporting projects in [WhiteSource](https://saas.whitesourcesoftware.com/Wss/WSS.html#!project;id=1706072) accordingly
-- [ ] Review the [draft release notes](https://github.com/akka/akka-persistence-jdbc/releases)
+- [ ] Review the [draft release notes](https://github.com/SwissBorg/akka-persistence-postgres/releases)
 - [ ] For non-patch releases: Create a news item draft PR on [akka.github.com](https://github.com/akka/akka.github.com), using the milestone
 
 ### Cutting the release
 
-- [ ] Wait until [master build finished](https://travis-ci.com/akka/akka-persistence-jdbc/builds/) after merging the latest PR
-- [ ] Update the [draft release](https://github.com/akka/akka-persistence-jdbc/releases) with the next tag version `v$VERSION$`, title and release description linking to announcement and milestone
-- [ ] Check that Travis CI release build has executed successfully (Travis will start a [CI build](https://travis-ci.com/akka/akka-persistence-jdbc/builds) for the new tag and publish artifacts to Bintray and documentation to Gustav)
+- [ ] Wait until [master build finished](https://travis-ci.com/SwissBorg/akka-persistence-postgres/builds/) after merging the latest PR
+- [ ] Update the [draft release](https://github.com/SwissBorg/akka-persistence-postgres/releases) with the next tag version `v$VERSION$`, title and release description linking to announcement and milestone
+- [ ] Check that Travis CI release build has executed successfully (Travis will start a [CI build](https://travis-ci.com/SwissBorg/akka-persistence-postgres/builds) for the new tag and publish artifacts to Bintray and documentation to Gustav)
 - [ ] Go to [Bintray](https://bintray.com/akka/maven/akka-persistence-jdbc) and select the just released version
 - [ ] Go to the Maven Central tab, check the *Close and release repository when done* checkbox and sync with Sonatype (using your Sonatype TOKEN key and password)
 
@@ -44,7 +44,7 @@ Key links:
 
 - [ ] Check [API](https://doc.akka.io/api/akka-persistence-jdbc/$VERSION$/) documentation
 - [ ] Check [reference](https://doc.akka.io/docs/akka-persistence-jdbc/$VERSION$/) documentation. Check that the reference docs were deployed and show a version warning (see section below on how to fix the version warnning).
-- [ ] Check the release on [Maven central](https://repo1.maven.org/maven2/com/lightbend/akka/akka-persistence-jdbc_2.12/$VERSION$/)
+- [ ] Check the release on [Maven central](https://repo1.maven.org/maven2/com/lightbend/SwissBorg/akka-persistence-postgres_2.12/$VERSION$/)
 
 ### When everything is on maven central
   - [ ] Log into `gustav.akka.io` as `akkarepo` 

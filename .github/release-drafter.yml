@@ -10,7 +10,7 @@ categories:
   - title: 'Dependency changes'
     label: 'dependency-change'
 
-change-template: '- $TITLE [#$NUMBER](https://github.com/akka/akka-persistence-jdbc/issues/$NUMBER) by [@$AUTHOR](https://github.com/$AUTHOR)'
+change-template: '- $TITLE [#$NUMBER](https://github.com/SwissBorg/akka-persistence-postgres/issues/$NUMBER) by [@$AUTHOR](https://github.com/$AUTHOR)'
 
 template: |
   ## Changes

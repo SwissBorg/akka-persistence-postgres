@@ -74,11 +74,11 @@ stages:
 
   # runs on main repo master commits and version-tagged commits
   - name: whitesource
-    if: repo = akka/akka-persistence-jdbc AND ( ( branch = master AND type = push ) OR tag =~ ^v )
+    if: repo = SwissBorg/akka-persistence-postgres AND ( ( branch = master AND type = push ) OR tag =~ ^v )
 
   # runs on main repo master commits and version-tagged commits
   - name: publish
-    if: repo = akka/akka-persistence-jdbc AND ( ( branch = master AND type = push ) OR tag =~ ^v )
+    if: repo = SwissBorg/akka-persistence-postgres AND ( ( branch = master AND type = push ) OR tag =~ ^v )
 
 before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
