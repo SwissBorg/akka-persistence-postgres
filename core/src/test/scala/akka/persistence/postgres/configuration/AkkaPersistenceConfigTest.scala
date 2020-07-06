@@ -47,7 +47,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
+      |  dao = "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
       |
       |  logicalDelete = true
       |
@@ -239,7 +239,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -314,7 +314,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None

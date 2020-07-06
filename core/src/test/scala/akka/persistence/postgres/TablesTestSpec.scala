@@ -43,7 +43,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |  serialization = on // alter only when using a custom dao
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.ByteArrayJournalDao"
+      |  dao = "akka.persistence.jdbc.dao.bytea.FlatJournalDao"
       |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile"
@@ -157,7 +157,7 @@ abstract class TablesTestSpec extends AnyFlatSpec with Matchers {
       |
       |  serialization = on // alter only when using a custom dao
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.ByteArrayJournalDao"
+      |  dao = "akka.persistence.jdbc.dao.bytea.FlatJournalDao"
       |
       |  tables {
       |    journal {

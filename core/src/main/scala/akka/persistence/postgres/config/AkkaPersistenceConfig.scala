@@ -82,7 +82,7 @@ class TagsTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
-  val dao: String = config.asString("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
+  val dao: String = config.asString("dao", "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
 }
 
@@ -92,9 +92,8 @@ class BaseByteArrayJournalDaoConfig(config: Config) {
   val replayBatchSize: Int = config.asInt("replayBatchSize", 400)
   val parallelism: Int = config.asInt("parallelism", 8)
   val logicalDelete: Boolean = config.asBoolean("logicalDelete", default = true)
-  val partitioned: Boolean = config.asBoolean("partitioned", default = false)
   override def toString: String =
-    s"BaseByteArrayJournalDaoConfig($bufferSize,$batchSize,$replayBatchSize,$parallelism,$logicalDelete,$partitioned)"
+    s"BaseByteArrayJournalDaoConfig($bufferSize,$batchSize,$replayBatchSize,$parallelism,$logicalDelete)"
 }
 
 class ReadJournalPluginConfig(config: Config) {
