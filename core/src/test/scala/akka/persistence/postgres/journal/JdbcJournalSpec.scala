@@ -33,7 +33,7 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
 
   implicit lazy val ec = system.dispatcher
 
-  lazy val cfg = system.settings.config.getConfig("pg-journal")
+  lazy val cfg = system.settings.config.getConfig("postgres-journal")
 
   lazy val journalConfig = new JournalConfig(cfg)
 

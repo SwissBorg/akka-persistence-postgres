@@ -45,8 +45,8 @@ The plugin relies on @extref[Slick](slick:) to do create the SQL dialect for the
 
 Configure `akka-persistence`:
 
-- instruct akka persistence to use the `pg-journal` plugin,
-- instruct akka persistence to use the `pg-snapshot-store` plugin,
+- instruct akka persistence to use the `postgres-journal` plugin,
+- instruct akka persistence to use the `postgres-snapshot-store` plugin,
 
 Configure `slick`:
 
@@ -91,10 +91,10 @@ the database to be closed automatically:
 akka-persistence-jdbc {
   database-provider-fqcn = "com.mypackage.CustomSlickDatabaseProvider"
 }
-pg-journal {
+postgres-journal {
   use-shared-db = "enabled" // setting this to any non-empty string prevents the journal from closing the database on shutdown
 }
-pg-snapshot-store {
+postgres-snapshot-store {
   use-shared-db = "enabled" // setting this to any non-empty string prevents the snapshot-journal from closing the database on shutdown
 }
 ```
@@ -106,7 +106,7 @@ The plugin uses `Slick` as the database access library. Slick @extref[supports j
 To enable the JNDI lookup, you must add the following to your application.conf:
 
 ```hocon
-pg-journal {
+postgres-journal {
   slick {
     profile = "slick.jdbc.PostgresProfile$"
     jndiName = "java:jboss/datasources/PostgresDS"
@@ -261,7 +261,7 @@ class TaggingEventAdapter extends WriteEventAdapter {
 The `EventAdapter` must be registered by adding the following to the root of `application.conf` Please see the  [demo-akka-persistence-jdbc](https://github.com/dnvriend/demo-akka-persistence-jdbc) project for more information.
 
 ```bash
-pg-journal {
+postgres-journal {
   event-adapters {
     tagging = "com.github.dnvriend.TaggingEventAdapter"
   }
@@ -288,15 +288,15 @@ supports serializes journal and snapshot messages using a serializer of your cho
 By means of configuration in `application.conf` a DAO can be configured, below the default DAOs are shown:
 
 ```hocon
-pg-journal {
+postgres-journal {
   dao = "akka.persistence.jdbc.journal.dao.FlatJournalDao"
 }
 
-pg-snapshot-store {
+postgres-snapshot-store {
   dao = "akka.persistence.jdbc.snapshot.dao.ByteArraySnapshotDao"
 }
 
-pg-read-journal {
+postgres-read-journal {
   dao = "akka.persistence.jdbc.query.dao.ByteArrayReadJournalDao"
 }
 ```

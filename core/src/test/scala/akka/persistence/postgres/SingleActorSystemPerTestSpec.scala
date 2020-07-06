@@ -29,7 +29,7 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
   implicit val pc: PatienceConfig = PatienceConfig(timeout = 1.minute)
   implicit val timeout: Timeout = Timeout(1.minute)
 
-  val cfg = config.getConfig("pg-journal")
+  val cfg = config.getConfig("postgres-journal")
   val journalConfig = new JournalConfig(cfg)
   val readJournalConfig = new ReadJournalConfig(config.getConfig(JdbcReadJournal.Identifier))
 

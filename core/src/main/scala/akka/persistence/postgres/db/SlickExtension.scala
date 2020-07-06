@@ -39,7 +39,7 @@ class SlickExtensionImpl(system: ExtendedActorSystem) extends Extension {
  *
  * A SlickDatabaseProvider is loaded using reflection,
  * The instance is created using the following:
- * - The fully qualified class name as configured in `pg-journal.database-provider-fqcn`.
+ * - The fully qualified class name as configured in `postgres-journal.database-provider-fqcn`.
  * - The constructor with one argument of type [[akka.actor.ActorSystem]] is used to create the instance.
  *   Therefore the class must have such a constructor.
  */

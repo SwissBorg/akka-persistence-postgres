@@ -20,8 +20,8 @@ object CurrentEventsByTagTest {
   val refreshInterval = 500.milliseconds
 
   val configOverrides: Map[String, ConfigValue] = Map(
-    "pg-read-journal.max-buffer-size" -> ConfigValueFactory.fromAnyRef(maxBufferSize.toString),
-    "pg-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
+    "postgres-read-journal.max-buffer-size" -> ConfigValueFactory.fromAnyRef(maxBufferSize.toString),
+    "postgres-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
 }
 
 abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(config, configOverrides) {

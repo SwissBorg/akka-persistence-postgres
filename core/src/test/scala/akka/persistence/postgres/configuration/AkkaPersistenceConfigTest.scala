@@ -16,7 +16,7 @@ import scala.concurrent.duration._
 class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionValues {
   val config: Config = ConfigFactory.parseString(
     """
-      |pg-journal {
+      |postgres-journal {
       |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
       |
       |  tables {
@@ -96,7 +96,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |}
       |
       |# the akka-persistence-snapshot-store in use
-      |pg-snapshot-store {
+      |postgres-snapshot-store {
       |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
       |
       |  tables {
@@ -154,7 +154,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |}
       |
       |# the akka-persistence-query provider in use
-      |pg-read-journal {
+      |postgres-read-journal {
       |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
@@ -309,8 +309,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   }
 
   "full config" should "parse JournalConfig" in {
-    val cfg = new JournalConfig(config.getConfig("pg-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("pg-journal.slick"))
+    val cfg = new JournalConfig(config.getConfig("postgres-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
@@ -339,8 +339,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   }
 
   it should "parse SnapshotConfig" in {
-    val cfg = new SnapshotConfig(config.getConfig("pg-snapshot-store"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("pg-snapshot-store.slick"))
+    val cfg = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-snapshot-store.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
@@ -356,8 +356,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   }
 
   it should "parse ReadJournalConfig" in {
-    val cfg = new ReadJournalConfig(config.getConfig("pg-read-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("pg-read-journal.slick"))
+    val cfg = new ReadJournalConfig(config.getConfig("postgres-read-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-read-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
