@@ -63,6 +63,7 @@ object ProjectAutoPlugin extends AutoPlugin {
     Test / testOptions += Tests.Argument("-oDF"),
     headerLicense := Some(HeaderLicense.Custom("""|Copyright (C) 2014 - 2019 Dennis Vriend <https://github.com/dnvriend>
            |Copyright (C) 2019 - 2020 Lightbend Inc. <https://www.lightbend.com>
+           |Copyright (C) 2020 SwissBorg <https://swissborg.com>
            |""".stripMargin)))
 
 }
