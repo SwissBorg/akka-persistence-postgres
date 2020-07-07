@@ -14,7 +14,6 @@ import akka.persistence.postgres.journal.dao.FlowControl
 import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
 import akka.persistence.postgres.query.dao.ReadJournalDao
 import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
-import akka.persistence.postgres.util.PluginVersionChecker
 import akka.persistence.query.scaladsl._
 import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
 import akka.persistence.{ Persistence, PersistentRepr }
@@ -30,11 +29,11 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-object JdbcReadJournal {
-  final val Identifier = "pg-read-journal"
+object PostgresReadJournal {
+  final val Identifier = "postgres-read-journal"
 }
 
-class JdbcReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
+class PostgresReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
     extends ReadJournal
     with CurrentPersistenceIdsQuery
     with PersistenceIdsQuery
@@ -42,8 +41,6 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
     with EventsByPersistenceIdQuery
     with CurrentEventsByTagQuery
     with EventsByTagQuery {
-
-  PluginVersionChecker.check()
 
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mat: Materializer = SystemMaterializer(system).materializer
@@ -80,7 +77,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
   // Started lazily to prevent the actor for querying the db if no eventsByTag queries are used
   private[query] lazy val journalSequenceActor = system.systemActorOf(
     JournalSequenceActor.props(readJournalDao, readJournalConfig.journalSequenceRetrievalConfiguration),
-    s"$configPath.akka-persistence-jdbc-journal-sequence-actor")
+    s"$configPath.akka-persistence-postgres-journal-sequence-actor")
   private val delaySource =
     Source.tick(readJournalConfig.refreshInterval, 0.seconds, 0).take(1)
 
@@ -286,7 +283,7 @@ class JdbcReadJournal(config: Config, configPath: String)(implicit val system: E
    * The offset is exclusive, i.e. the event corresponding to the given `offset` parameter is not
    * included in the stream.
    *
-   * For akka-persistence-jdbc the `offset` corresponds to the `ordering` column in the Journal table.
+   * For akka-persistence-postgres the `offset` corresponds to the `ordering` column in the Journal table.
    * The `ordering` is a sequential id number that uniquely identifies the position of each event within
    * the event stream. The `Offset` type is `akka.persistence.query.Sequence` with the `ordering` as the
    * offset value.

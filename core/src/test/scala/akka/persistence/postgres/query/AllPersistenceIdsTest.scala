@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 
 abstract class AllPersistenceIdsTest(config: String) extends QueryTestSpec(config) {
   it should "not terminate the stream when there are not pids" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     journalOps.withPersistenceIds() { tp =>
       tp.request(1)
       tp.expectNoMessage(100.millis)
@@ -19,7 +19,7 @@ abstract class AllPersistenceIdsTest(config: String) extends QueryTestSpec(confi
   }
 
   it should "find persistenceIds for actors" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       journalOps.withPersistenceIds() { tp =>
         tp.request(10)

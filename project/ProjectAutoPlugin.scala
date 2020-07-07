@@ -11,22 +11,17 @@ object ProjectAutoPlugin extends AutoPlugin {
 
   override def globalSettings =
     Seq(
-      organization := "com.lightbend.akka",
-      organizationName := "Lightbend Inc.",
-      organizationHomepage := Some(url("https://www.lightbend.com/")),
-      homepage := Some(url("https://github.com/akka/akka-persistence-jdbc")),
+      organization := "com.swissborg",
+      organizationName := "SwissBorg",
+      organizationHomepage := None,
+      homepage := Some(url("https://github.com/SwissBorg/akka-persistence-postgres")),
       scmInfo := Some(
           ScmInfo(
-            url("https://github.com/akka/akka-persistence-jdbc"),
-            "git@github.com:akka/akka-persistence-jdbc.git")),
-      developers += Developer(
-          "contributors",
-          "Contributors",
-          "https://gitter.im/akka/dev",
-          url("https://github.com/akka/akka-persistence-jdbc/graphs/contributors")),
+            url("https://github.com/SwissBorg/akka-persistence-postgres"),
+            "git@github.com:SwissBorg/akka-persistence-postgres.git")),
       licenses := Seq("Apache-2.0" -> url("https://opensource.org/licenses/Apache-2.0")),
-      description := "A plugin for storing events in an event journal akka-persistence-jdbc",
-      startYear := Some(2014))
+      description := "A plugin for storing events in a PostgreSQL journal",
+      startYear := Some(2020))
 
   override val trigger: PluginTrigger = allRequirements
 
@@ -54,7 +49,7 @@ object ProjectAutoPlugin extends AutoPlugin {
     scalacOptions += "-Ydelambdafy:method",
     Compile / doc / scalacOptions := scalacOptions.value ++ Seq(
         "-doc-title",
-        "Akka Persistence JDBC",
+        "Akka Persistence Postgres",
         "-doc-version",
         version.value,
         "-sourcepath",
@@ -63,26 +58,12 @@ object ProjectAutoPlugin extends AutoPlugin {
         "akka.pattern", // for some reason Scaladoc creates this
         "-doc-source-url", {
           val branch = if (isSnapshot.value) "master" else s"v${version.value}"
-          s"https://github.com/akka/akka-persistence-jdbc/tree/${branch}€{FILE_PATH_EXT}#L€{FILE_LINE}"
-        },
-        "-doc-canonical-base-url",
-        "https://doc.akka.io/api/akka-persistence-jdbc/current/"),
+          s"https://github.com/SwissBorg/akka-persistence-postgres/tree/${branch}€{FILE_PATH_EXT}#L€{FILE_LINE}"
+        }),
     // show full stack traces and test case durations
     Test / testOptions += Tests.Argument("-oDF"),
     headerLicense := Some(HeaderLicense.Custom("""|Copyright (C) 2014 - 2019 Dennis Vriend <https://github.com/dnvriend>
            |Copyright (C) 2019 - 2020 Lightbend Inc. <https://www.lightbend.com>
-           |""".stripMargin)),
-    resolvers += Resolver.typesafeRepo("releases"),
-    resolvers += Resolver.jcenterRepo)
+           |""".stripMargin)))
 
-  def determineMimaPreviousArtifacts(scalaBinVersion: String): Set[ModuleID] = {
-    val compatVersions: Set[String] =
-      if (scalaBinVersion.startsWith("2.13")) Set("3.5.2")
-      else {
-        Set("3.5.0", "3.5.1", "3.5.2")
-      }
-    compatVersions.map { v =>
-      "com.github.dnvriend" % ("akka-persistence-jdbc_" + scalaBinVersion) % v
-    }
-  }
 }

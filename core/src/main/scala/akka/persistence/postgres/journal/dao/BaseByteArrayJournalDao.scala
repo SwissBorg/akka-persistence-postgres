@@ -45,8 +45,8 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   // Therefore, we make sure we only log a warning for logical deletes once
   lazy val logWarnAboutLogicalDeletionDeprecation: Unit = {
     logger.warn(
-      "Logical deletion of events is deprecated and will be removed in akka-persistende-jdbc version 4.0.0. " +
-      "To disable it in this current version you must set the property 'akka-persistence-jdbc.logicalDeletion.enable' to false.")
+      "Logical deletion of events is deprecated and will be removed. " +
+      "To disable it in this current version you must set the property 'akka-persistence-postgres.logicalDeletion.enable' to false.")
   }
 
   private val writeQueue = Source
@@ -72,7 +72,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
         Future.failed(new Exception("Failed to write journal row batch", t))
       case QueueOfferResult.Dropped =>
         Future.failed(new Exception(
-          s"Failed to enqueue journal row batch write, the queue buffer was full ($bufferSize elements) please check the pg-journal.bufferSize setting"))
+          s"Failed to enqueue journal row batch write, the queue buffer was full ($bufferSize elements) please check the postgres-journal.bufferSize setting"))
       case QueueOfferResult.QueueClosed =>
         Future.failed(new Exception("Failed to enqueue journal row batch write, the queue was closed"))
     }

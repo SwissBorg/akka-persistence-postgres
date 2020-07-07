@@ -16,8 +16,8 @@ import scala.concurrent.duration._
 class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionValues {
   val config: Config = ConfigFactory.parseString(
     """
-      |pg-journal {
-      |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
+      |postgres-journal {
+      |  class = "akka.persistence.postgres.journal.PostgresAsyncWriteJournal"
       |
       |  tables {
       |    journal {
@@ -47,7 +47,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
       |
       |  logicalDelete = true
       |
@@ -65,7 +65,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |      port = ${?POSTGRES_PORT}
       |      name = "docker"
       |
-      |      url = "jdbc:postgresql://"${akka-persistence-jdbc.slick.db.host}":"${akka-persistence-jdbc.slick.db.port}"/"${akka-persistence-jdbc.slick.db.name}
+      |      url = "jdbc:postgresql://"${akka-persistence-postgres.slick.db.host}":"${akka-persistence-postgres.slick.db.port}"/"${akka-persistence-postgres.slick.db.name}
       |      user = "docker"
       |      password = "docker"
       |      driver = "org.postgresql.Driver$"
@@ -96,8 +96,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |}
       |
       |# the akka-persistence-snapshot-store in use
-      |pg-snapshot-store {
-      |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
+      |postgres-snapshot-store {
+      |  class = "akka.persistence.postgres.snapshot.PostgresSnapshotStore"
       |
       |  tables {
       |    snapshot {
@@ -112,7 +112,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
       |
       |  slick {
       |    profile = "slick.jdbc.MySQLProfile$"
@@ -123,7 +123,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |      port = ${?POSTGRES_PORT}
       |      name = "docker"
       |
-      |      url = "jdbc:postgresql://"${akka-persistence-jdbc.slick.db.host}":"${akka-persistence-jdbc.slick.db.port}"/"${akka-persistence-jdbc.slick.db.name}
+      |      url = "jdbc:postgresql://"${akka-persistence-postgres.slick.db.host}":"${akka-persistence-postgres.slick.db.port}"/"${akka-persistence-postgres.slick.db.name}
       |      user = "docker"
       |      password = "docker"
       |      driver = "org.postgresql.Driver"
@@ -154,8 +154,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |}
       |
       |# the akka-persistence-query provider in use
-      |pg-read-journal {
-      |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
+      |postgres-read-journal {
+      |  class = "akka.persistence.postgres.query.PostgresReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
       |  refresh-interval = "300ms"
@@ -164,7 +164,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |  # are delivered downstreams.
       |  max-buffer-size = "10"
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
       |
       |  tags {
       |    cacheTtl = 12 hours
@@ -202,7 +202,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |      port = ${?POSTGRES_PORT}
       |      name = "docker"
       |
-      |      url = "jdbc:postgresql://"${akka-persistence-jdbc.slick.db.host}":"${akka-persistence-jdbc.slick.db.port}"/"${akka-persistence-jdbc.slick.db.name}
+      |      url = "jdbc:postgresql://"${akka-persistence-postgres.slick.db.host}":"${akka-persistence-postgres.slick.db.port}"/"${akka-persistence-postgres.slick.db.name}
       |      user = "docker"
       |      password = "docker"
       |      driver = "org.postgresql.Driver"
@@ -239,7 +239,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -268,7 +268,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -285,7 +285,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
     cfg.refreshInterval shouldBe 1.second
     cfg.maxBufferSize shouldBe 500
 
@@ -309,12 +309,12 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   }
 
   "full config" should "parse JournalConfig" in {
-    val cfg = new JournalConfig(config.getConfig("pg-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("pg-journal.slick"))
+    val cfg = new JournalConfig(config.getConfig("postgres-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.FlatJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -339,12 +339,12 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   }
 
   it should "parse SnapshotConfig" in {
-    val cfg = new SnapshotConfig(config.getConfig("pg-snapshot-store"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("pg-snapshot-store.slick"))
+    val cfg = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-snapshot-store.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -356,12 +356,12 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
   }
 
   it should "parse ReadJournalConfig" in {
-    val cfg = new ReadJournalConfig(config.getConfig("pg-read-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("pg-read-journal.slick"))
+    val cfg = new ReadJournalConfig(config.getConfig("postgres-read-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-read-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
     cfg.refreshInterval shouldBe 300.millis
     cfg.maxBufferSize shouldBe 10
 
