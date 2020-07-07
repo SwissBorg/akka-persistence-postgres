@@ -8,6 +8,7 @@ object ProjectAutoPlugin extends AutoPlugin {
   object autoImport {}
 
   override val requires = JvmPlugin && HeaderPlugin
+  override val trigger: PluginTrigger = allRequirements
 
   override def globalSettings =
     Seq(
@@ -22,8 +23,6 @@ object ProjectAutoPlugin extends AutoPlugin {
       licenses := Seq("Apache-2.0" -> url("https://opensource.org/licenses/Apache-2.0")),
       description := "A plugin for storing events in a PostgreSQL journal",
       startYear := Some(2020))
-
-  override val trigger: PluginTrigger = allRequirements
 
   override val projectSettings: Seq[Setting[_]] = Seq(
     crossVersion := CrossVersion.binary,
