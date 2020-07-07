@@ -1,5 +1,4 @@
 import sbt._
-import Keys._
 
 object Dependencies {
   val Scala212 = "2.12.11"
@@ -15,8 +14,7 @@ object Dependencies {
 
   val ScaffeineVersion = "4.0.1"
 
-  val JdbcDrivers = Seq(
-    "org.postgresql" % "postgresql" % "42.2.12")
+  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.12")
 
   val Libraries: Seq[ModuleID] = Seq(
       "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
@@ -30,11 +28,4 @@ object Dependencies {
       "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)
-
-  val Migration: Seq[ModuleID] = Seq(
-      "org.flywaydb" % "flyway-core" % "6.4.2",
-      "com.typesafe" % "config" % "1.4.0",
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "org.testcontainers" % "postgresql" % "1.14.2" % Test,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Provided)
 }

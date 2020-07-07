@@ -5,7 +5,7 @@ lazy val `akka-persistence-postgres` = project
   .in(file("."))
   .enablePlugins(ScalaUnidocPlugin)
   .disablePlugins(MimaPlugin, SitePlugin)
-  .aggregate(core, migration, docs)
+  .aggregate(core, docs)
   .settings(publish / skip := true)
 
 lazy val core = project
@@ -17,15 +17,6 @@ lazy val core = project
     libraryDependencies ++= Dependencies.Libraries,
     mimaBinaryIssueFilters ++= Seq()
   )
-
-lazy val migration = project
-  .in(file("migration"))
-  .enablePlugins(Publish)
-  .disablePlugins(SitePlugin, MimaPlugin)
-  .settings(
-    name := "akka-persistence-postgres-migration",
-    libraryDependencies ++= Dependencies.Migration,
-    publish / skip := true)
 
 lazy val docs = project
   .enablePlugins(ProjectAutoPlugin, AkkaParadoxPlugin, ParadoxSitePlugin, PreprocessPlugin, PublishRsyncPlugin)
