@@ -1,5 +1,3 @@
-import de.heikoseeberger.sbtheader.HeaderPlugin
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.{ headerLicense, HeaderLicense }
 import sbt.Keys._
 import sbt._
 import sbt.plugins.JvmPlugin
@@ -7,7 +5,8 @@ import sbt.plugins.JvmPlugin
 object ProjectAutoPlugin extends AutoPlugin {
   object autoImport {}
 
-  override val requires = JvmPlugin && HeaderPlugin
+  override val requires = JvmPlugin
+  override val trigger: PluginTrigger = allRequirements
 
   override def globalSettings =
     Seq(
@@ -22,8 +21,6 @@ object ProjectAutoPlugin extends AutoPlugin {
       licenses := Seq("Apache-2.0" -> url("https://opensource.org/licenses/Apache-2.0")),
       description := "A plugin for storing events in a PostgreSQL journal",
       startYear := Some(2020))
-
-  override val trigger: PluginTrigger = allRequirements
 
   override val projectSettings: Seq[Setting[_]] = Seq(
     crossVersion := CrossVersion.binary,
@@ -61,9 +58,6 @@ object ProjectAutoPlugin extends AutoPlugin {
           s"https://github.com/SwissBorg/akka-persistence-postgres/tree/${branch}€{FILE_PATH_EXT}#L€{FILE_LINE}"
         }),
     // show full stack traces and test case durations
-    Test / testOptions += Tests.Argument("-oDF"),
-    headerLicense := Some(HeaderLicense.Custom("""|Copyright (C) 2014 - 2019 Dennis Vriend <https://github.com/dnvriend>
-           |Copyright (C) 2019 - 2020 Lightbend Inc. <https://www.lightbend.com>
-           |""".stripMargin)))
+    Test / testOptions += Tests.Argument("-oDF"))
 
 }
