@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS public.journal_partitioned;
-DROP TABLE IF EXISTS public.event_tag;
+DROP TABLE IF EXISTS public.tags;
 DROP TABLE IF EXISTS public.journal;
 DROP TABLE IF EXISTS public.tag_definition;
 
