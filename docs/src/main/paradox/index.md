@@ -1,14 +1,14 @@
-# Akka Persistence JDBC
+# Akka Persistence Postgres
 
-The Akka Persistence JDBC plugin allows for using JDBC-compliant databases as backend for @extref:[Akka Persistence](akka:persistence.html) and @extref:[Akka Persistence Query](akka:persistence-query.html).
+The Akka Persistence Postgres plugin allows for using Postgres database as backend for @extref:[Akka Persistence](akka:persistence.html) and @extref:[Akka Persistence Query](akka:persistence-query.html).
 
-akka-persistence-jdbc writes journal and snapshot entries to a configured JDBC store. It implements the full akka-persistence-query API and is therefore very useful for implementing DDD-style application models using Akka and Scala for creating reactive applications.
+akka-persistence-postgres writes journal and snapshot entries to a configured PostgreSQL store. It implements the full akka-persistence-query API and is therefore very useful for implementing DDD-style application models using Akka and Scala for creating reactive applications.
 
 ## Module info
 
 @@dependency [sbt,Maven,Gradle] {
   group=com.lightbend.akka
-  artifact=akka-persistence-jdbc_$scala.binary.version$
+  artifact=akka-persistence-postgres_$scala.binary.version$
   version=$project.version$
   symbol2=AkkaVersion
   value2=$akka.version$
@@ -45,8 +45,8 @@ The plugin relies on @extref[Slick](slick:) to do create the SQL dialect for the
 
 Configure `akka-persistence`:
 
-- instruct akka persistence to use the `pg-journal` plugin,
-- instruct akka persistence to use the `pg-snapshot-store` plugin,
+- instruct akka persistence to use the `postgres-journal` plugin,
+- instruct akka persistence to use the `postgres-snapshot-store` plugin,
 
 Configure `slick`:
 
@@ -59,7 +59,7 @@ Configure `slick`:
 
 ## Reference Configuration
 
-akka-persistence-jdbc provides the defaults as part of the @extref:[reference.conf](github:/src/main/resources/reference.conf). This file documents all the values which can be configured.
+akka-persistence-postgres provides the defaults as part of the @extref:[reference.conf](github:/src/main/resources/reference.conf). This file documents all the values which can be configured.
 
 There are several possible ways to configure loading your database connections. Options will be explained below.
 
@@ -88,13 +88,13 @@ needs to be configured in the application.conf. In addition, you might want to c
 the database to be closed automatically:
 
 ```hocon
-akka-persistence-jdbc {
+akka-persistence-postgres {
   database-provider-fqcn = "com.mypackage.CustomSlickDatabaseProvider"
 }
-pg-journal {
+postgres-journal {
   use-shared-db = "enabled" // setting this to any non-empty string prevents the journal from closing the database on shutdown
 }
-pg-snapshot-store {
+postgres-snapshot-store {
   use-shared-db = "enabled" // setting this to any non-empty string prevents the snapshot-journal from closing the database on shutdown
 }
 ```
@@ -106,7 +106,7 @@ The plugin uses `Slick` as the database access library. Slick @extref[supports j
 To enable the JNDI lookup, you must add the following to your application.conf:
 
 ```hocon
-pg-journal {
+postgres-journal {
   slick {
     profile = "slick.jdbc.PostgresProfile$"
     jndiName = "java:jboss/datasources/PostgresDS"
@@ -117,7 +117,7 @@ pg-journal {
 When using the `use-shared-db = slick` setting, the follow configuration can serve as an example:
 
 ```hocon
-akka-persistence-jdbc {
+akka-persistence-postgres {
   shared-databases {
     slick {
       profile = "slick.jdbc.PostgresProfile$"
@@ -133,9 +133,9 @@ The `ReadJournal` is retrieved via the `akka.persistence.query.PersistenceQuery`
 
 ```scala
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
 
-val readJournal: JdbcReadJournal = PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier)
+val readJournal: PostgresReadJournal = PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
 ```
 
 ## How to get the ReadJournal using Java
@@ -144,9 +144,9 @@ The `ReadJournal` is retrieved via the `akka.persistence.query.PersistenceQuery`
 
 ```java
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.postgres.query.javadsl.JdbcReadJournal
+import akka.persistence.postgres.query.javadsl.PostgresReadJournal
 
-final JdbcReadJournal readJournal = PersistenceQuery.get(system).getReadJournalFor(JdbcReadJournal.class, JdbcReadJournal.Identifier());
+final PostgresReadJournal readJournal = PersistenceQuery.get(system).getReadJournalFor(PostgresReadJournal.class, PostgresReadJournal.Identifier());
 ```
 
 ## Persistence Query
@@ -162,11 +162,11 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, ActorMaterializer}
 import akka.stream.scaladsl.Source
 import akka.persistence.query.PersistenceQuery
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val mat: Materializer = ActorMaterializer()(system)
-val readJournal: JdbcReadJournal = PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier)
+val readJournal: PostgresReadJournal = PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
 
 val willNotCompleteTheStream: Source[String, NotUsed] = readJournal.allPersistenceIds()
 
@@ -193,11 +193,11 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, ActorMaterializer}
 import akka.stream.scaladsl.Source
 import akka.persistence.query.{ PersistenceQuery, EventEnvelope }
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val mat: Materializer = ActorMaterializer()(system)
-val readJournal: JdbcReadJournal = PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier)
+val readJournal: PostgresReadJournal = PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
 
 val willNotCompleteTheStream: Source[EventEnvelope, NotUsed] = readJournal.eventsByPersistenceId("some-persistence-id", 0L, Long.MaxValue)
 
@@ -220,11 +220,11 @@ import akka.actor.ActorSystem
 import akka.stream.{Materializer, ActorMaterializer}
 import akka.stream.scaladsl.Source
 import akka.persistence.query.{ PersistenceQuery, EventEnvelope }
-import akka.persistence.jdbc.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val mat: Materializer = ActorMaterializer()(system)
-val readJournal: JdbcReadJournal = PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier)
+val readJournal: PostgresReadJournal = PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
 
 val willNotCompleteTheStream: Source[EventEnvelope, NotUsed] = readJournal.eventsByTag("apple", 0L)
 
@@ -233,7 +233,7 @@ val willCompleteTheStream: Source[EventEnvelope, NotUsed] = readJournal.currentE
 
 ## Tagging events
 
-To tag events you'll need to create an @extref:[Event Adapter](akka:persistence.html#event-adapters-scala) that will wrap the event in a @apidoc[akka.persistence.journal.Tagged] class with the given tags. The `Tagged` class will instruct `akka-persistence-jdbc` to tag the event with the given set of tags.
+To tag events you'll need to create an @extref:[Event Adapter](akka:persistence.html#event-adapters-scala) that will wrap the event in a @apidoc[akka.persistence.journal.Tagged] class with the given tags. The `Tagged` class will instruct `akka-persistence-postgres` to tag the event with the given set of tags.
 
 The persistence plugin will __not__ store the `Tagged` class in the journal. It will strip the `tags` and `payload` from the `Tagged` class, and use the class only as an instruction to tag the event with the given tags and store the `payload` in the  `message` field of the journal table.
 
@@ -258,10 +258,10 @@ class TaggingEventAdapter extends WriteEventAdapter {
 }
 ```
 
-The `EventAdapter` must be registered by adding the following to the root of `application.conf` Please see the  [demo-akka-persistence-jdbc](https://github.com/dnvriend/demo-akka-persistence-jdbc) project for more information.
+The `EventAdapter` must be registered by adding the following to the root of `application.conf` Please see the  [demo-akka-persistence-postgres](https://github.com/SwissBorg/demo-akka-persistence-postgres) project for more information.
 
 ```bash
-pg-journal {
+postgres-journal {
   event-adapters {
     tagging = "com.github.dnvriend.TaggingEventAdapter"
   }
@@ -288,23 +288,23 @@ supports serializes journal and snapshot messages using a serializer of your cho
 By means of configuration in `application.conf` a DAO can be configured, below the default DAOs are shown:
 
 ```hocon
-pg-journal {
-  dao = "akka.persistence.jdbc.journal.dao.ByteArrayJournalDao"
+postgres-journal {
+  dao = "akka.persistence.postgres.journal.dao.FlatJournalDao"
 }
 
-pg-snapshot-store {
-  dao = "akka.persistence.jdbc.snapshot.dao.ByteArraySnapshotDao"
+postgres-snapshot-store {
+  dao = "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao"
 }
 
-pg-read-journal {
-  dao = "akka.persistence.jdbc.query.dao.ByteArrayReadJournalDao"
+postgres-read-journal {
+  dao = "akka.persistence.postgres.query.dao.ByteArrayReadJournalDao"
 }
 ```
 
 Storing messages as byte arrays in blobs is not the only way to store information in a database. For example, you could store messages with full type information as a normal database rows, each event type having its own table.
 For example, implementing a Journal Log table that stores all persistenceId, sequenceNumber and event type discriminator field, and storing the event data in another table with full typing
 
-You only have to implement two interfaces `akka.persistence.jdbc.journal.dao.JournalDao` and/or `akka.persistence.jdbc.snapshot.dao.SnapshotDao`. 
+You only have to implement two interfaces `akka.persistence.postgres.journal.dao.JournalDao` and/or `akka.persistence.postgres.snapshot.dao.SnapshotDao`. 
 
 For example, take a look at the following two custom DAOs:
 
@@ -321,7 +321,7 @@ class MyCustomSnapshotDao(db: JdbcBackend#Database, val profile: JdbcProfile, sn
 As you can see, the custom DAOs get a _Slick database_, a _Slick profile_, the journal or snapshot _configuration_, an _akka.serialization.Serialization_, an _ExecutionContext_ and _Materializer_ injected after constructed.
 You should register the Fully Qualified Class Name in `application.conf` so that the custom DAOs will be used.
 
-For more information please review the two default implementations `akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao` and `akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/dnvriend/demo-akka-persistence-jdbc) site.
+For more information please review the two default implementations `akka.persistence.postgres.dao.bytea.journal.FlatJournalDao` and `akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/SwissBorg/demo-akka-persistence-postgres) site.
 
 @@@warning { title="Binary compatibility" }
 

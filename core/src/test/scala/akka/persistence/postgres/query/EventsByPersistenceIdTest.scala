@@ -17,7 +17,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   import QueryTestSpec.EventEnvelopeProbeOps
 
   it should "not find any events for unknown pid" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     journalOps.withEventsByPersistenceId()("unkown-pid", 0L, Long.MaxValue) { tp =>
       tp.request(1)
       tp.expectNoMessage(100.millis)
@@ -27,7 +27,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 
   it should "find events from sequenceNr" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! withTags(1, "number")
       actor1 ! withTags(2, "number")
@@ -123,7 +123,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 
   it should "include ordering Offset in EventEnvelope" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! withTags(1, "ordering")
       actor1 ! withTags(2, "ordering")
@@ -169,7 +169,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 
   it should "deliver EventEnvelopes non-zero timestamps" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       val testStartTime = System.currentTimeMillis()
 
@@ -214,7 +214,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 
   it should "find events for actor with pid 'my-1'" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       journalOps.withEventsByPersistenceId()("my-1", 0) { tp =>
         tp.request(10)
@@ -234,7 +234,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
 
   it should "find events for actor with pid 'my-1' and persisting messages to other actor" in withActorSystem {
     implicit system =>
-      val journalOps = new JavaDslJdbcReadJournalOperations(system)
+      val journalOps = new JavaDslPostgresReadJournalOperations(system)
       withTestActors() { (actor1, actor2, actor3) =>
         journalOps.withEventsByPersistenceId()("my-1", 0, Long.MaxValue) { tp =>
           tp.request(10)
@@ -264,7 +264,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 
   it should "find events for actor with pid 'my-2'" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor2 ! 1
       actor2 ! 2
@@ -306,7 +306,7 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   it should "find a large number of events quickly" in withActorSystem { implicit system =>
     import akka.pattern.ask
     import system.dispatcher
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
       def sendMessagesWithTag(tag: String, numberOfMessages: Int): Future[Done] = {
         val futures = for (i <- 1 to numberOfMessages) yield {

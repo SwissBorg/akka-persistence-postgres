@@ -53,7 +53,7 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   final val NoMsgTime: FiniteDuration = 100.millis
 
   it should "apply event adapter when querying events for actor with pid 'my-1'" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       journalOps.withEventsByPersistenceId()("my-1", 0) { tp =>
         tp.request(10)
@@ -72,7 +72,7 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 
   it should "apply event adapters when querying events by tag from an offset" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? TaggedEvent(Event("1"), "event")).futureValue
       (actor2 ? TaggedEvent(Event("2"), "event")).futureValue
@@ -97,7 +97,7 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 
   it should "apply event adapters when querying current events for actors" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! Event("1")
       actor1 ! Event("2")
@@ -129,7 +129,7 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 
   it should "apply event adapters when querying all current events by tag" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? TaggedEvent(Event("1"), "event")).futureValue
       (actor2 ? TaggedEvent(Event("2"), "event")).futureValue

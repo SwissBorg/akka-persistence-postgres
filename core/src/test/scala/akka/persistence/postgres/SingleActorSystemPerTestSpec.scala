@@ -7,7 +7,7 @@ package akka.persistence.postgres
 
 import akka.actor.ActorSystem
 import akka.persistence.postgres.config.{ JournalConfig, ReadJournalConfig, SlickConfiguration }
-import akka.persistence.postgres.query.javadsl.JdbcReadJournal
+import akka.persistence.postgres.query.javadsl.PostgresReadJournal
 import akka.persistence.postgres.util.DropCreate
 import akka.persistence.postgres.db.SlickDatabase
 import akka.util.Timeout
@@ -29,9 +29,9 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
   implicit val pc: PatienceConfig = PatienceConfig(timeout = 1.minute)
   implicit val timeout: Timeout = Timeout(1.minute)
 
-  val cfg = config.getConfig("pg-journal")
+  val cfg = config.getConfig("postgres-journal")
   val journalConfig = new JournalConfig(cfg)
-  val readJournalConfig = new ReadJournalConfig(config.getConfig(JdbcReadJournal.Identifier))
+  val readJournalConfig = new ReadJournalConfig(config.getConfig(PostgresReadJournal.Identifier))
 
   // The db is initialized in the before and after each bocks
   var dbOpt: Option[Database] = None
@@ -42,8 +42,8 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
       } else
         SlickDatabase.database(
           config,
-          new SlickConfiguration(config.getConfig("akka-persistence-jdbc.shared-databases.slick")),
-          "akka-persistence-jdbc.shared-databases.slick.db")
+          new SlickConfiguration(config.getConfig("akka-persistence-postgres.shared-databases.slick")),
+          "akka-persistence-postgres.shared-databases.slick.db")
 
       dbOpt = Some(newDb)
       newDb

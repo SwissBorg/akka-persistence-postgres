@@ -15,7 +15,7 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   implicit val askTimeout = 500.millis
 
   it should "not return deleted events when using CurrentEventsByTag" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor1 ? withTags(2, "number")).futureValue
@@ -35,7 +35,7 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   }
 
   it should "not return deleted events when using EventsByTag" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor1 ? withTags(2, "number")).futureValue
@@ -55,7 +55,7 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   }
 
   it should "not return deleted events when using CurrentEventsByPersistenceId" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor1 ? withTags(2, "number")).futureValue
@@ -75,7 +75,7 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   }
 
   it should "not return deleted events when using EventsByPersistenceId" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor1 ? withTags(2, "number")).futureValue

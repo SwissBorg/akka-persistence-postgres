@@ -16,7 +16,7 @@ import org.scalatest.concurrent.ScalaFutures
 
 import scala.concurrent.duration._
 
-abstract class JdbcSnapshotStoreSpec(config: Config, schemaType: SchemaType)
+abstract class PostgresSnapshotStoreSpec(config: Config, schemaType: SchemaType)
     extends SnapshotStoreSpec(config)
     with BeforeAndAfterAll
     with ScalaFutures
@@ -26,7 +26,7 @@ abstract class JdbcSnapshotStoreSpec(config: Config, schemaType: SchemaType)
 
   implicit lazy val ec = system.dispatcher
 
-  lazy val cfg = system.settings.config.getConfig("pg-journal")
+  lazy val cfg = system.settings.config.getConfig("postgres-journal")
 
   lazy val journalConfig = new JournalConfig(cfg)
 
@@ -43,4 +43,4 @@ abstract class JdbcSnapshotStoreSpec(config: Config, schemaType: SchemaType)
 }
 
 class PlainSnapshotStoreSpec
-  extends JdbcSnapshotStoreSpec(ConfigFactory.load("plain-application.conf"), Plain())
+  extends PostgresSnapshotStoreSpec(ConfigFactory.load("plain-application.conf"), Plain())

@@ -6,17 +6,16 @@
 package akka.persistence.postgres.query.javadsl
 
 import akka.NotUsed
-import akka.persistence.postgres.query.scaladsl.{ JdbcReadJournal => ScalaJdbcReadJournal }
+import akka.persistence.postgres.query.scaladsl.{ PostgresReadJournal => ScalaPostgresReadJournal }
 import akka.persistence.query.{ EventEnvelope, Offset }
 import akka.persistence.query.javadsl._
 import akka.stream.javadsl.Source
-import akka.persistence.postgres.util.PluginVersionChecker
 
-object JdbcReadJournal {
-  final val Identifier = ScalaJdbcReadJournal.Identifier
+object PostgresReadJournal {
+  final val Identifier = ScalaPostgresReadJournal.Identifier
 }
 
-class JdbcReadJournal(journal: ScalaJdbcReadJournal)
+class PostgresReadJournal(journal: ScalaPostgresReadJournal)
     extends ReadJournal
     with CurrentPersistenceIdsQuery
     with PersistenceIdsQuery
@@ -109,7 +108,7 @@ class JdbcReadJournal(journal: ScalaJdbcReadJournal)
    * The offset is exclusive, i.e. the event corresponding to the given `offset` parameter is not
    * included in the stream.
    *
-   * For akka-persistence-jdbc the `offset` corresponds to the `ordering` column in the Journal table.
+   * For akka-persistence-postgres the `offset` corresponds to the `ordering` column in the Journal table.
    * The `ordering` is a sequential id number that uniquely identifies the position of each event within
    * the event stream. The `Offset` type is `akka.persistence.query.Sequence` with the `ordering` as the
    * offset value.
