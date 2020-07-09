@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE find_and_mark_journal_nested_partitions_to_detach(IN schema TEXT, IN journal_table TEXT,
+CREATE OR REPLACE PROCEDURE find_and_mark_journal_nested_partitions_as_detached(IN schema TEXT, IN journal_table TEXT,
                                                                               IN snapshot_table TEXT,
                                                                               IN archivisation_table TEXT) AS
 $$

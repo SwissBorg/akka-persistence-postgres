@@ -50,19 +50,19 @@ showStructure
 # create functions for selecting partitions
 echo "create selecting function"
 psql -q ${CONNECTION_OPTIONS} --file="2-select-partitions-to-detach.sql"
-psql -q ${CONNECTION_OPTIONS} --command="CALL find_and_mark_journal_nested_partitions_to_detach('${SCHEMA}','${JOURNAL_TABLE}','${SNAPSHOT_TABLE}','${ARCHIVISATION_TABLE}');"
+psql -q ${CONNECTION_OPTIONS} --command="CALL find_and_mark_journal_nested_partitions_as_detached('${SCHEMA}','${JOURNAL_TABLE}','${SNAPSHOT_TABLE}','${ARCHIVISATION_TABLE}');"
 showStructure
 
 # show which tables are selected to remove
 echo "checking how function select when snapshot is inserted"
 psql -q ${CONNECTION_OPTIONS} --command="INSERT INTO ${SCHEMA}.${SNAPSHOT_TABLE}(persistence_id, sequence_number, created, snapshot) VALUES ('p-1', 50, 0, '0x22');"
-psql -q ${CONNECTION_OPTIONS} --command="CALL find_and_mark_journal_nested_partitions_to_detach('${SCHEMA}','${JOURNAL_TABLE}','${SNAPSHOT_TABLE}','${ARCHIVISATION_TABLE}');"
+psql -q ${CONNECTION_OPTIONS} --command="CALL find_and_mark_journal_nested_partitions_as_detached('${SCHEMA}','${JOURNAL_TABLE}','${SNAPSHOT_TABLE}','${ARCHIVISATION_TABLE}');"
 showStructure
 
 # show that table with sequenceNumber 89 is not added to remove, we are removing all tables up to the last snapshot
 echo "checking how function select when snapshot is inserted for sequenceNumber 89"
 psql -q ${CONNECTION_OPTIONS} --command="INSERT INTO ${SCHEMA}.${SNAPSHOT_TABLE}(persistence_id, sequence_number, created, snapshot) VALUES ('p-1', 89, 0, '0x22');"
-psql -q ${CONNECTION_OPTIONS} --command="CALL find_and_mark_journal_nested_partitions_to_detach('${SCHEMA}','${JOURNAL_TABLE}','${SNAPSHOT_TABLE}','${ARCHIVISATION_TABLE}');"
+psql -q ${CONNECTION_OPTIONS} --command="CALL find_and_mark_journal_nested_partitions_as_detached('${SCHEMA}','${JOURNAL_TABLE}','${SNAPSHOT_TABLE}','${ARCHIVISATION_TABLE}');"
 showStructure
 
 # create function for detaching and detaching itself
