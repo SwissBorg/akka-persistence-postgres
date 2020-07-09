@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE mark_sub_sub_journal_partitions_to_detach(IN _basetableschema TEXT, IN _basetablename TEXT,
+CREATE OR REPLACE PROCEDURE mark_journal_nested_partitions_to_detach(IN _basetableschema TEXT, IN _basetablename TEXT,
                                                                       IN archivisation_schema TEXT,
                                                                       IN archivisation_table TEXT,
                                                                       IN min_sequence_number_in_parent BIGINT) AS
@@ -39,7 +39,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE PROCEDURE mark_sub_journal_partitions_to_detach(IN schema TEXT, IN journal_table TEXT,
+CREATE OR REPLACE PROCEDURE find_and_mark_journal_nested_partitions_to_detach(IN schema TEXT, IN journal_table TEXT,
                                                                   IN snapshot_table TEXT,
                                                                   IN archivisation_table TEXT) AS
 $$
@@ -64,7 +64,7 @@ BEGIN
                     'ON snp.persistence_id = jrn.persistence_id ' ||
                     'AND snp.sequence_number = jrn.sequence_number'
                 INTO min_sequence_number;
-            CALL mark_sub_sub_journal_partitions_to_detach(row.child_schema, row.child, schema, archivisation_table,
+            CALL mark_journal_nested_partitions_to_detach(row.child_schema, row.child, schema, archivisation_table,
                                                            min_sequence_number);
         END LOOP;
 END;
