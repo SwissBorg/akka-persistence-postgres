@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE create_schema(IN destination_schema TEXT, IN destination_journal_table TEXT) AS
+CREATE OR REPLACE PROCEDURE create_indexes(IN destination_schema TEXT, IN destination_journal_table TEXT) AS
 $$
 DECLARE
     destination_journal TEXT;

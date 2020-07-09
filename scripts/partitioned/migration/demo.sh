@@ -19,7 +19,7 @@ export DESTINATION_SCHEMA='public'
 export DESTINATION_JOURNAL_TABLE_NAME='journal_partitioned'
 export DESTINATION_TAGS_TABLE_NAME='tags'
 export DESTINATION_JOURNAL_PARTITION_PREFIX='j'
-export PARTITION_SIZE=10000 # should be much much bigger on production, we suggest at least 1000000
+export PARTITION_SIZE=100000 # should be much much bigger on production, we suggest at least 1000000
 export BATCH_SIZE=10000 # size of single commit during migration
 #############################
 
@@ -69,7 +69,7 @@ psql -q ${CONNECTION_OPTIONS} --command="SELECT count(*) as events, persistence_
 
 sleep 3
 echo ""
-echo "set sequence to prepare value"
+echo "set sequence to last ordering value"
 psql -q ${CONNECTION_OPTIONS} --file="5-move-sequence.sql"
 psql -q ${CONNECTION_OPTIONS} --command="CALL move_sequence('${DESTINATION_SCHEMA}', '${DESTINATION_JOURNAL_TABLE_NAME}');"
 
@@ -77,7 +77,7 @@ sleep 3
 echo ""
 echo "create indexes on partitioned table"
 psql -q ${CONNECTION_OPTIONS} --file="6-create-indexes.sql"
-psql -q ${CONNECTION_OPTIONS} --command="CALL move_sequence('${DESTINATION_SCHEMA}', '${DESTINATION_JOURNAL_TABLE_NAME}');"
+psql -q ${CONNECTION_OPTIONS} --command="CALL create_indexes('${DESTINATION_SCHEMA}', '${DESTINATION_JOURNAL_TABLE_NAME}');"
 
 echo ""
 echo "Remember to change journal table name in plugin configuration"
