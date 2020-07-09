@@ -15,7 +15,7 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
 
   it should "return logically deleted events when using CurrentEventsByTag (backward compatibility)" in withActorSystem {
     implicit system =>
-      val journalOps = new ScalaJdbcReadJournalOperations(system)
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
       withTestActors(replyToMessages = true) { (actor1, _, _) =>
         (actor1 ? withTags(1, "number")).futureValue
         (actor1 ? withTags(2, "number")).futureValue
@@ -36,7 +36,7 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
 
   it should "return logically deleted events when using EventsByTag (backward compatibility)" in withActorSystem {
     implicit system =>
-      val journalOps = new ScalaJdbcReadJournalOperations(system)
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
       withTestActors(replyToMessages = true) { (actor1, _, _) =>
         (actor1 ? withTags(1, "number")).futureValue
         (actor1 ? withTags(2, "number")).futureValue
@@ -57,7 +57,7 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
 
   it should "return logically deleted events when using CurrentEventsByPersistenceId (backward compatibility)" in withActorSystem {
     implicit system =>
-      val journalOps = new ScalaJdbcReadJournalOperations(system)
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
       withTestActors(replyToMessages = true) { (actor1, _, _) =>
         (actor1 ? withTags(1, "number")).futureValue
         (actor1 ? withTags(2, "number")).futureValue
@@ -78,7 +78,7 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
 
   it should "return logically deleted events when using EventsByPersistenceId (backward compatibility)" in withActorSystem {
     implicit system =>
-      val journalOps = new ScalaJdbcReadJournalOperations(system)
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
       withTestActors(replyToMessages = true) { (actor1, _, _) =>
         (actor1 ? withTags(1, "number")).futureValue
         (actor1 ? withTags(2, "number")).futureValue

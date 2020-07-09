@@ -7,7 +7,7 @@ package akka.persistence.postgres.query
 
 abstract class CurrentPersistenceIdsTest(config: String) extends QueryTestSpec(config) {
   it should "not find any persistenceIds for empty journal" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     journalOps.withCurrentPersistenceIds() { tp =>
       tp.request(1)
       tp.expectComplete()
@@ -15,7 +15,7 @@ abstract class CurrentPersistenceIdsTest(config: String) extends QueryTestSpec(c
   }
 
   it should "find persistenceIds for actors" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! 1
       actor2 ! 1

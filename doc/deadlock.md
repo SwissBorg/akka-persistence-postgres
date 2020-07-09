@@ -40,7 +40,7 @@ val db = Database.forURL("jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1", driver="org.h2.D
 ```
 
 ## Configuration
-The object `akka.persistence.jdbc.util.SlickDatabase` reads the HikariJdbcDataSource configuration from typesafe
+The object `akka.persistence.postgres.util.SlickDatabase` reads the HikariJdbcDataSource configuration from typesafe
 configuration from the object `slick.db`. It expects a `connectionPool` field that has been set to `HikariCP`
 The class `slick.jdbc.hikaricp.HikariCPJdbcDataSource` reads the configured Hikari Connection Pool configuration.
 

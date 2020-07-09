@@ -10,8 +10,8 @@
         </encoder>
     </appender>
 
-    <!--<logger name="akka.persistence.jdbc" level="debug"/>-->
-    <!--<logger name="akka.persistence.jdbc.journal" level="info"/>-->
+    <!--<logger name="akka.persistence.postgres" level="debug"/>-->
+    <!--<logger name="akka.persistence.postgres.journal" level="info"/>-->
 
     <logger name="com.zaxxer.hikari" level="warn"/>
 
