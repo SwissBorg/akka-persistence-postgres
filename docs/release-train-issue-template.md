@@ -40,11 +40,6 @@ Key links:
 ### Check availability
 
 - [ ] Check the release on [Maven central](https://repo1.maven.org/maven2/com/lightbend/akka/akka-persistence-jdbc_2.12/$VERSION$/)
-todo run on merge to master GH actions
-
-### When everything is on maven central
-
-- [ ] Tweet using the [@akkateam](https://twitter.com/akkateam/) account (or ask someone to) about the new release //TODO should we
 
 ### Afterwards
 
