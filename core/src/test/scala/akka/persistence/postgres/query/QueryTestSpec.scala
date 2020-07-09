@@ -9,8 +9,8 @@ import akka.actor.{ActorRef, ActorSystem, Props, Stash, Status}
 import akka.event.LoggingReceive
 import akka.persistence.postgres.SingleActorSystemPerTestSpec
 import akka.persistence.postgres.query.EventAdapterTest.{Event, TaggedAsyncEvent, TaggedEvent}
-import akka.persistence.postgres.query.javadsl.{JdbcReadJournal => JavaJdbcReadJournal}
-import akka.persistence.postgres.query.scaladsl.JdbcReadJournal
+import akka.persistence.postgres.query.javadsl.{PostgresReadJournal => JavaPostgresReadJournal}
+import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
 import akka.persistence.postgres.util.Schema.{Plain, Partitioned, SchemaType}
 import akka.persistence.journal.Tagged
 import akka.persistence.query.{EventEnvelope, Offset, PersistenceQuery}
@@ -44,10 +44,10 @@ trait ReadJournalOperations {
   def countJournal: Future[Long]
 }
 
-class ScalaJdbcReadJournalOperations(readJournal: JdbcReadJournal)(implicit system: ActorSystem, mat: Materializer)
+class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(implicit system: ActorSystem, mat: Materializer)
     extends ReadJournalOperations {
   def this(system: ActorSystem) =
-    this(PersistenceQuery(system).readJournalFor[JdbcReadJournal](JdbcReadJournal.Identifier))(
+    this(PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier))(
       system,
       SystemMaterializer(system).materializer)
 
@@ -106,13 +106,13 @@ class ScalaJdbcReadJournalOperations(readJournal: JdbcReadJournal)(implicit syst
       .map(_.sum)
 }
 
-class JavaDslJdbcReadJournalOperations(readJournal: javadsl.JdbcReadJournal)(
+class JavaDslPostgresReadJournalOperations(readJournal: javadsl.PostgresReadJournal)(
     implicit system: ActorSystem,
     mat: Materializer)
     extends ReadJournalOperations {
   def this(system: ActorSystem) =
     this(
-      PersistenceQuery.get(system).getReadJournalFor(classOf[javadsl.JdbcReadJournal], JavaJdbcReadJournal.Identifier))(
+      PersistenceQuery.get(system).getReadJournalFor(classOf[javadsl.PostgresReadJournal], JavaPostgresReadJournal.Identifier))(
       system,
       SystemMaterializer(system).materializer)
 
@@ -318,7 +318,7 @@ trait BaseDbCleaner extends QueryTestSpec {
   def schemaType: SchemaType
 
   val clearActions =
-    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE event_tag""").transactionally
+    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE tags""").transactionally
 
   def clearPostgres(): Unit =
     withDatabase(_.run(clearActions).futureValue)

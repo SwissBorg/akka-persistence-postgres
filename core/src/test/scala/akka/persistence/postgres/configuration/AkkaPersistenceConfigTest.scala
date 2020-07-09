@@ -7,19 +7,24 @@ package akka.persistence.postgres.configuration
 
 import akka.persistence.postgres.config._
 import com.typesafe.config.{ Config, ConfigFactory }
-
-import scala.concurrent.duration._
+import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
+import scala.concurrent.duration._
+
+class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionValues {
   val config: Config = ConfigFactory.parseString(
     """
-      |jdbc-journal {
-      |  class = "akka.persistence.jdbc.journal.JdbcAsyncWriteJournal"
+      |postgres-journal {
+      |  class = "akka.persistence.postgres.journal.PostgresAsyncWriteJournal"
       |
       |  tables {
       |    journal {
+      |      partitions {
+      |        size = 12345
+      |        prefix = "c"
+      |      }
       |      tableName = "journal"
       |      schemaName = ""
       |      columnNames {
@@ -31,11 +36,25 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |        message = "message"
       |      }
       |    }
+      |
+      |    tags {
+      |      tableName = "tag_id_mappings"
+      |      schemaName = "staging"
+      |      columnNames {
+      |        id = "tagId"
+      |        name = "label"
+      |      }
+      |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
       |
       |  logicalDelete = true
+      |
+      |  tags {
+      |    cacheTtl = 30 minutes
+      |    insertionRetryAttempts = 3
+      |  }
       |
       |  slick {
       |    profile = "slick.jdbc.PostgresProfile$"
@@ -46,7 +65,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |      port = ${?POSTGRES_PORT}
       |      name = "docker"
       |
-      |      url = "jdbc:postgresql://"${akka-persistence-jdbc.slick.db.host}":"${akka-persistence-jdbc.slick.db.port}"/"${akka-persistence-jdbc.slick.db.name}
+      |      url = "jdbc:postgresql://"${akka-persistence-postgres.slick.db.host}":"${akka-persistence-postgres.slick.db.port}"/"${akka-persistence-postgres.slick.db.name}
       |      user = "docker"
       |      password = "docker"
       |      driver = "org.postgresql.Driver$"
@@ -77,8 +96,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |}
       |
       |# the akka-persistence-snapshot-store in use
-      |jdbc-snapshot-store {
-      |  class = "akka.persistence.jdbc.snapshot.JdbcSnapshotStore"
+      |postgres-snapshot-store {
+      |  class = "akka.persistence.postgres.snapshot.PostgresSnapshotStore"
       |
       |  tables {
       |    snapshot {
@@ -93,7 +112,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |    }
       |  }
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
       |
       |  slick {
       |    profile = "slick.jdbc.MySQLProfile$"
@@ -104,7 +123,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |      port = ${?POSTGRES_PORT}
       |      name = "docker"
       |
-      |      url = "jdbc:postgresql://"${akka-persistence-jdbc.slick.db.host}":"${akka-persistence-jdbc.slick.db.port}"/"${akka-persistence-jdbc.slick.db.name}
+      |      url = "jdbc:postgresql://"${akka-persistence-postgres.slick.db.host}":"${akka-persistence-postgres.slick.db.port}"/"${akka-persistence-postgres.slick.db.name}
       |      user = "docker"
       |      password = "docker"
       |      driver = "org.postgresql.Driver"
@@ -135,8 +154,8 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |}
       |
       |# the akka-persistence-query provider in use
-      |jdbc-read-journal {
-      |  class = "akka.persistence.jdbc.query.JdbcReadJournalProvider"
+      |postgres-read-journal {
+      |  class = "akka.persistence.postgres.query.PostgresReadJournalProvider"
       |
       |  # New events are retrieved (polled) with this interval.
       |  refresh-interval = "300ms"
@@ -145,7 +164,11 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |  # are delivered downstreams.
       |  max-buffer-size = "10"
       |
-      |  dao = "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+      |  dao = "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
+      |
+      |  tags {
+      |    cacheTtl = 12 hours
+      |  }
       |
       |  tables {
       |    journal {
@@ -160,6 +183,14 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |        message = "message"
       |      }
       |    }
+      |    tags {
+      |      tableName = "tag_id_mappings"
+      |      schemaName = "staging"
+      |      columnNames {
+      |        id = "tagId"
+      |        name = "label"
+      |      }
+      |    }
       |  }
       |
       |  slick {
@@ -171,7 +202,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
       |      port = ${?POSTGRES_PORT}
       |      name = "docker"
       |
-      |      url = "jdbc:postgresql://"${akka-persistence-jdbc.slick.db.host}":"${akka-persistence-jdbc.slick.db.port}"/"${akka-persistence-jdbc.slick.db.name}
+      |      url = "jdbc:postgresql://"${akka-persistence-postgres.slick.db.host}":"${akka-persistence-postgres.slick.db.port}"/"${akka-persistence-postgres.slick.db.name}
       |      user = "docker"
       |      password = "docker"
       |      driver = "org.postgresql.Driver"
@@ -208,7 +239,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -221,6 +252,14 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
 
     cfg.daoConfig.logicalDelete shouldBe true
+
+    cfg.tagsConfig.cacheTtl should equal(1.hour)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tags"
+    cfg.tagsTableConfiguration.schemaName should not be defined
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "id"
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "name"
   }
 
   it should "parse SnapshotConfig" in {
@@ -229,7 +268,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -246,7 +285,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
     cfg.refreshInterval shouldBe 1.second
     cfg.maxBufferSize shouldBe 500
 
@@ -259,15 +298,23 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(1.hour)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tags"
+    cfg.tagsTableConfiguration.schemaName should not be defined
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "id"
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "name"
   }
 
   "full config" should "parse JournalConfig" in {
-    val cfg = new JournalConfig(config.getConfig("jdbc-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-journal.slick"))
+    val cfg = new JournalConfig(config.getConfig("postgres-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -278,15 +325,26 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(30.minutes)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 3
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tag_id_mappings"
+    cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "tagId"
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
+
+    cfg.partitionsConfig.prefix shouldBe "c"
+    cfg.partitionsConfig.size shouldBe 12345
   }
 
   it should "parse SnapshotConfig" in {
-    val cfg = new SnapshotConfig(config.getConfig("jdbc-snapshot-store"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-snapshot-store.slick"))
+    val cfg = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-snapshot-store.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -298,12 +356,12 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
   }
 
   it should "parse ReadJournalConfig" in {
-    val cfg = new ReadJournalConfig(config.getConfig("jdbc-read-journal"))
-    val slickConfiguration = new SlickConfiguration(config.getConfig("jdbc-read-journal.slick"))
+    val cfg = new ReadJournalConfig(config.getConfig("postgres-read-journal"))
+    val slickConfiguration = new SlickConfiguration(config.getConfig("postgres-read-journal.slick"))
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
     cfg.refreshInterval shouldBe 300.millis
     cfg.maxBufferSize shouldBe 10
 
@@ -316,5 +374,13 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers {
     cfg.journalTableConfiguration.columnNames.persistenceId shouldBe "persistence_id"
     cfg.journalTableConfiguration.columnNames.sequenceNumber shouldBe "sequence_number"
     cfg.journalTableConfiguration.columnNames.tags shouldBe "tags"
+
+    cfg.tagsConfig.cacheTtl should equal(12.hours)
+    cfg.tagsConfig.insertionRetryAttempts shouldBe 1
+
+    cfg.tagsTableConfiguration.tableName shouldBe "tag_id_mappings"
+    cfg.tagsTableConfiguration.schemaName.value shouldBe "staging"
+    cfg.tagsTableConfiguration.columnNames.id shouldBe "tagId"
+    cfg.tagsTableConfiguration.columnNames.name shouldBe "label"
   }
 }

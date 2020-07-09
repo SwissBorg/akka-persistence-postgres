@@ -7,7 +7,7 @@ package akka.persistence.postgres
 
 import akka.actor.ActorSystem
 import akka.persistence.postgres.config.{ JournalConfig, ReadJournalConfig }
-import akka.persistence.postgres.query.javadsl.JdbcReadJournal
+import akka.persistence.postgres.query.javadsl.PostgresReadJournal
 import akka.persistence.postgres.util.DropCreate
 import akka.persistence.postgres.db.SlickExtension
 import akka.serialization.SerializationExtension
@@ -34,10 +34,10 @@ abstract class SharedActorSystemTestSpec(val config: Config) extends SimpleSpec 
 
   lazy val serialization = SerializationExtension(system)
 
-  val cfg = config.getConfig("jdbc-journal")
+  val cfg = config.getConfig("postgres-journal")
   val journalConfig = new JournalConfig(cfg)
   lazy val db = SlickExtension(system).database(cfg).database
-  val readJournalConfig = new ReadJournalConfig(config.getConfig(JdbcReadJournal.Identifier))
+  val readJournalConfig = new ReadJournalConfig(config.getConfig(PostgresReadJournal.Identifier))
 
   override protected def afterAll(): Unit = {
     db.close()

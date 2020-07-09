@@ -22,7 +22,7 @@ object SlickExtension extends ExtensionId[SlickExtensionImpl] with ExtensionIdPr
 class SlickExtensionImpl(system: ExtendedActorSystem) extends Extension {
 
   private val dbProvider: SlickDatabaseProvider = {
-    val fqcn = system.settings.config.getString("akka-persistence-jdbc.database-provider-fqcn")
+    val fqcn = system.settings.config.getString("akka-persistence-postgres.database-provider-fqcn")
     val args = List(classOf[ActorSystem] -> system)
     system.dynamicAccess.createInstanceFor[SlickDatabaseProvider](fqcn, args) match {
       case Success(result) => result
@@ -39,7 +39,7 @@ class SlickExtensionImpl(system: ExtendedActorSystem) extends Extension {
  *
  * A SlickDatabaseProvider is loaded using reflection,
  * The instance is created using the following:
- * - The fully qualified class name as configured in `jdbc-journal.database-provider-fqcn`.
+ * - The fully qualified class name as configured in `postgres-journal.database-provider-fqcn`.
  * - The constructor with one argument of type [[akka.actor.ActorSystem]] is used to create the instance.
  *   Therefore the class must have such a constructor.
  */
@@ -55,7 +55,7 @@ trait SlickDatabaseProvider {
 
 class DefaultSlickDatabaseProvider(system: ActorSystem) extends SlickDatabaseProvider {
   val sharedDatabases: Map[String, LazySlickDatabase] = system.settings.config
-    .getObject("akka-persistence-jdbc.shared-databases")
+    .getObject("akka-persistence-postgres.shared-databases")
     .asScala
     .flatMap {
       case (key, confObj: ConfigObject) =>
@@ -66,7 +66,7 @@ class DefaultSlickDatabaseProvider(system: ActorSystem) extends SlickDatabasePro
         } else Nil
       case (key, notAnObject) =>
         throw new RuntimeException(
-          s"""Expected "akka-persistence-jdbc.shared-databases.$key" to be a config ConfigObject, but got ${notAnObject
+          s"""Expected "akka-persistence-postgres.shared-databases.$key" to be a config ConfigObject, but got ${notAnObject
             .valueType()} (${notAnObject.getClass})""")
     }
     .toMap
@@ -75,7 +75,7 @@ class DefaultSlickDatabaseProvider(system: ActorSystem) extends SlickDatabasePro
     sharedDatabases.getOrElse(
       sharedDbName,
       throw new RuntimeException(
-        s"No shared database is configured under akka-persistence-jdbc.shared-databases.$sharedDbName"))
+        s"No shared database is configured under akka-persistence-postgres.shared-databases.$sharedDbName"))
 
   def database(config: Config): SlickDatabase = {
     config.asOptionalNonEmptyString(ConfigKeys.useSharedDb) match {

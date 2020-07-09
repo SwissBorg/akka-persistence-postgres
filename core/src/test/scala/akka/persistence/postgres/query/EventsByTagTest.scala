@@ -20,15 +20,15 @@ object EventsByTagTest {
   val refreshInterval = 500.milliseconds
 
   val configOverrides: Map[String, ConfigValue] = Map(
-    "jdbc-read-journal.max-buffer-size" -> ConfigValueFactory.fromAnyRef(maxBufferSize.toString),
-    "jdbc-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
+    "postgres-read-journal.max-buffer-size" -> ConfigValueFactory.fromAnyRef(maxBufferSize.toString),
+    "postgres-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
 }
 
 abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, configOverrides) {
   final val NoMsgTime: FiniteDuration = 100.millis
 
   it should "not find events for unknown tags" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! withTags(1, "one")
       actor2 ! withTags(2, "two")
@@ -47,7 +47,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 
   it should "find all events by tag" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor2 ? withTags(2, "number")).futureValue
@@ -120,7 +120,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
 
   it should "deliver EventEnvelopes non-zero timestamps" in withActorSystem { implicit system =>
 
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
 
       val testStartTime = System.currentTimeMillis()
@@ -156,7 +156,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 
   it should "select events by tag with exact match" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
 
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "number", "sharded-1")).futureValue
@@ -196,7 +196,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
 
   it should "find all events by tag even when lots of events are persisted concurrently" in withActorSystem {
     implicit system =>
-      val journalOps = new ScalaJdbcReadJournalOperations(system)
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
       val msgCountPerActor = 20
       val numberOfActors = 100
       val totalNumberOfMessages = msgCountPerActor * numberOfActors
@@ -225,7 +225,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 
   it should "find events by tag from an offset" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "number")).futureValue
       (actor2 ? withTags(2, "number")).futureValue
@@ -250,7 +250,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 
   it should "persist and find tagged event for one tag" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       journalOps.withEventsByTag(10.seconds)("one", NoOffset) { tp =>
         tp.request(Int.MaxValue)
@@ -295,7 +295,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 
   it should "persist and find tagged events when stored with multiple tags" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "one", "1", "prime")).futureValue
       (actor1 ? withTags(2, "two", "2", "prime")).futureValue
@@ -373,7 +373,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
 
   it should "show the configured performance characteristics" in withActorSystem { implicit system =>
     import system.dispatcher
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       def sendMessagesWithTag(tag: String, numberOfMessagesPerActor: Int): Future[Done] = {
         val futures = for (actor <- Seq(actor1, actor2, actor3); i <- 1 to numberOfMessagesPerActor) yield {

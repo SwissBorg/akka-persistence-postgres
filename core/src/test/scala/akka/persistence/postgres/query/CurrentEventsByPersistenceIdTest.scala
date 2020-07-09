@@ -7,7 +7,7 @@ package akka.persistence.postgres.query
 
 import akka.Done
 import akka.persistence.Persistence
-import akka.persistence.postgres.journal.JdbcAsyncWriteJournal
+import akka.persistence.postgres.journal.PostgresAsyncWriteJournal
 import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
 import akka.testkit.TestProbe
 
@@ -15,7 +15,7 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
   import QueryTestSpec.EventEnvelopeProbeOps
 
   it should "not find any events for unknown pid" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     journalOps.withCurrentEventsByPersistenceId()("unkown-pid", 0L, Long.MaxValue) { tp =>
       tp.request(Int.MaxValue)
       tp.expectComplete()
@@ -23,7 +23,7 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
   }
 
   it should "find events from sequenceNr" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! 1
       actor1 ! 2
@@ -91,7 +91,7 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
   }
 
   it should "include ordering Offset in EventEnvelope" in withActorSystem { implicit system =>
-    val journalOps = new ScalaJdbcReadJournalOperations(system)
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! 1
       actor1 ! 2
@@ -139,7 +139,7 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
   }
 
   it should "find events for actors" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
       actor1 ! 1
       actor1 ! 2
@@ -171,7 +171,7 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
   }
 
   it should "allow updating events (for data migrations)" in withActorSystem { implicit system =>
-    val journalOps = new JavaDslJdbcReadJournalOperations(system)
+    val journalOps = new JavaDslPostgresReadJournalOperations(system)
     val journal = Persistence(system).journalFor("")
 
     withTestActors() { (actor1, _, _) =>
@@ -194,7 +194,7 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
 
       // perform in-place update
       val journalP = TestProbe()
-      journal.tell(JdbcAsyncWriteJournal.InPlaceUpdateEvent(pid, 1, Integer.valueOf(111)), journalP.ref)
+      journal.tell(PostgresAsyncWriteJournal.InPlaceUpdateEvent(pid, 1, Integer.valueOf(111)), journalP.ref)
       journalP.expectMsg(Done)
 
       journalOps.withCurrentEventsByPersistenceId()(pid, 1, 3) { tp =>

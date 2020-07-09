@@ -20,7 +20,7 @@ import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
 
-abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
+abstract class PostgresJournalSpec(config: Config, schemaType: SchemaType)
     extends JournalSpec(config)
     with BeforeAndAfterAll
     with BeforeAndAfterEach
@@ -33,7 +33,7 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
 
   implicit lazy val ec = system.dispatcher
 
-  lazy val cfg = system.settings.config.getConfig("jdbc-journal")
+  lazy val cfg = system.settings.config.getConfig("postgres-journal")
 
   lazy val journalConfig = new JournalConfig(cfg)
 
@@ -51,7 +51,7 @@ abstract class JdbcJournalSpec(config: Config, schemaType: SchemaType)
 }
 
 abstract class BasePartitionedJournalSpec(config: String)
-    extends JdbcJournalSpec(ConfigFactory.load(config), Partitioned()) {
+    extends PostgresJournalSpec(ConfigFactory.load(config), Partitioned()) {
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
@@ -109,8 +109,8 @@ class PartitionedJournalSpecSharedDb
 class PartitionedJournalSpecPhysicalDelete
     extends BasePartitionedJournalSpec("partitioned-application-with-hard-delete.conf")
 
-class PlainJournalSpec extends JdbcJournalSpec(ConfigFactory.load("plain-application.conf"), Plain())
+class PlainJournalSpec extends PostgresJournalSpec(ConfigFactory.load("plain-application.conf"), Plain())
 class PlainJournalSpecSharedDb
-    extends JdbcJournalSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
+    extends PostgresJournalSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
 class PlainJournalSpecPhysicalDelete
-    extends JdbcJournalSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())
+    extends PostgresJournalSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())

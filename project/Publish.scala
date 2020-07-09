@@ -10,8 +10,8 @@ object Publish extends AutoPlugin {
 
   override val projectSettings = Seq(
     bintrayOrganization := Some("akka"),
-    bintrayPackage := "akka-persistence-jdbc",
+    bintrayPackage := "akka-persistence-postgres",
     bintrayRepository := (if (isSnapshot.value) "snapshots" else "maven"),
     publishMavenStyle := true,
-    bintrayPackageLabels := Seq("akka", "persistence", "jdbc"))
+    bintrayPackageLabels := Seq("akka", "persistence", "postgres"))
 }

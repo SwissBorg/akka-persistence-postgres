@@ -32,6 +32,13 @@ class JournalTableColumnNames(config: Config) {
   override def toString: String = s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message)"
 }
 
+class JournalPartitionsConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.journal.partitions")
+  val size: Int = cfg.asInt("size", 10000000)
+  val prefix: String = cfg.asString("prefix", "j")
+  override def toString: String = s"JournalPartitionsConfiguration($size, $prefix)"
+}
+
 class JournalTableConfiguration(config: Config) {
   private val cfg = config.asConfig("tables.journal")
   val tableName: String = cfg.as[String]("tableName", "journal")
@@ -57,8 +64,25 @@ class SnapshotTableConfiguration(config: Config) {
   override def toString: String = s"SnapshotTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
+class TagsTableColumnNames(config: Config) {
+  private val cfg = config.asConfig("tables.tags.columnNames")
+  val id: String = cfg.asString("id", "id")
+  val name: String = cfg.asString("name", "name")
+
+  override def toString: String = s"TagsTableColumnNames($name)"
+}
+
+class TagsTableConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.tags")
+  val tableName: String = cfg.asString("tableName", "tags")
+  val schemaName: Option[String] = cfg.asOptionalNonEmptyString("schemaName")
+  val columnNames: TagsTableColumnNames = new TagsTableColumnNames(config)
+
+  override def toString: String = s"TagsTableConfiguration($tableName,$schemaName,$columnNames)"
+}
+
 class JournalPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.journal.ByteArrayJournalDao")
+  val dao: String = config.asString("dao", "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
 }
 
@@ -68,28 +92,38 @@ class BaseByteArrayJournalDaoConfig(config: Config) {
   val replayBatchSize: Int = config.asInt("replayBatchSize", 400)
   val parallelism: Int = config.asInt("parallelism", 8)
   val logicalDelete: Boolean = config.asBoolean("logicalDelete", default = true)
-  val partitioned: Boolean = config.asBoolean("partitioned", default = false)
-  override def toString: String = s"BaseByteArrayJournalDaoConfig($bufferSize,$batchSize,$replayBatchSize,$parallelism,$logicalDelete,$partitioned)"
+  override def toString: String =
+    s"BaseByteArrayJournalDaoConfig($bufferSize,$batchSize,$replayBatchSize,$parallelism,$logicalDelete)"
 }
 
 class ReadJournalPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.readjournal.ByteArrayReadJournalDao")
+  val dao: String = config.as[String]("dao", "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao")
   override def toString: String = s"ReadJournalPluginConfig($dao)"
 }
 
 class SnapshotPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.jdbc.dao.bytea.snapshot.ByteArraySnapshotDao")
+  val dao: String = config.as[String]("dao", "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao")
   override def toString: String = s"SnapshotPluginConfig($dao)"
+}
+
+class TagsConfig(config: Config) {
+  private val cfg = config.asConfig("tags")
+  val cacheTtl: FiniteDuration = cfg.asFiniteDuration("cacheTtl", 1.hour)
+  val insertionRetryAttempts: Int = cfg.asInt("insertionRetryAttempts", 1)
+  override def toString: String = s"TagResolverConfig($cacheTtl, $insertionRetryAttempts)"
 }
 
 // aggregations
 
 class JournalConfig(config: Config) {
+  val partitionsConfig = new JournalPartitionsConfiguration(config)
   val journalTableConfiguration = new JournalTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
+  val tagsConfig = new TagsConfig(config)
+  val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
-  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$useSharedDb)"
+  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
 }
 
 class SnapshotConfig(config: Config) {
@@ -119,6 +153,8 @@ class ReadJournalConfig(config: Config) {
   val journalTableConfiguration = new JournalTableConfiguration(config)
   val journalSequenceRetrievalConfiguration = JournalSequenceRetrievalConfig(config)
   val pluginConfig = new ReadJournalPluginConfig(config)
+  val tagsConfig = new TagsConfig(config)
+  val tagsTableConfiguration = new TagsTableConfiguration(config)
   val refreshInterval: FiniteDuration = config.asFiniteDuration("refresh-interval", 1.second)
   val maxBufferSize: Int = config.as[String]("max-buffer-size", "500").toInt
   val addShutdownHook: Boolean = config.asBoolean("add-shutdown-hook", true)

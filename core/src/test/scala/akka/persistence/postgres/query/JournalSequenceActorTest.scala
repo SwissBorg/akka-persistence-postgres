@@ -167,7 +167,9 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
         db,
         readJournalConfig,
         SerializationExtension(system),
-        new CachedTagIdResolver(new SimpleTagDao(db)))
+        new CachedTagIdResolver(
+          new SimpleTagDao(db, readJournalConfig.tagsTableConfiguration),
+          readJournalConfig.tagsConfig))
     val actor =
       system.actorOf(JournalSequenceActor.props(readJournalDao, journalSequenceActorConfig.copy(maxTries = maxTries)))
     try f(actor)

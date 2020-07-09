@@ -8,10 +8,11 @@ package akka.persistence.postgres.query
 import java.lang.management.{ ManagementFactory, MemoryMXBean }
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import akka.persistence.postgres.journal.dao.{ ByteArrayJournalDao, JournalTables }
+import akka.actor.{ ActorSystem, ExtendedActorSystem }
+import akka.persistence.postgres.config.JournalConfig
+import akka.persistence.postgres.journal.dao.{ JournalDao, JournalTables }
 import akka.persistence.{ AtomicWrite, PersistentRepr }
-import akka.serialization.SerializationExtension
+import akka.serialization.{ Serialization, SerializationExtension }
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.testkit.scaladsl.TestSink
 import akka.stream.{ Materializer, SystemMaterializer }
@@ -19,15 +20,17 @@ import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.matchers.should
 import org.slf4j.LoggerFactory
+import slick.jdbc.JdbcBackend.Database
 
 import scala.collection.immutable
-import scala.concurrent.ExecutionContextExecutor
+import scala.collection.immutable.Seq
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor }
 import scala.util.{ Failure, Success }
 
 object JournalDaoStreamMessagesMemoryTest {
 
-  val configOverrides: Map[String, ConfigValue] = Map("jdbc-journal.fetch-size" -> ConfigValueFactory.fromAnyRef("100"))
+  val configOverrides: Map[String, ConfigValue] = Map("postgres-journal.fetch-size" -> ConfigValueFactory.fromAnyRef("100"))
 
   val MB = 1024 * 1024
 }
@@ -58,7 +61,19 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
         implicit val ec: ExecutionContextExecutor = system.dispatcher
 
         val persistenceId = UUID.randomUUID().toString
-        val dao = new ByteArrayJournalDao(db, journalConfig, SerializationExtension(system))
+        val dao = {
+          val fqcn = journalConfig.pluginConfig.dao
+          val args = Seq(
+            (classOf[Database], db),
+            (classOf[JournalConfig], journalConfig),
+            (classOf[Serialization], SerializationExtension(system)),
+            (classOf[ExecutionContext], ec),
+            (classOf[Materializer], mat))
+          system.asInstanceOf[ExtendedActorSystem].dynamicAccess.createInstanceFor[JournalDao](fqcn, args) match {
+            case Success(dao)   => dao
+            case Failure(cause) => throw cause
+          }
+        }
 
         val payloadSize = 5000 // 5000 bytes
         val eventsPerBatch = 1000

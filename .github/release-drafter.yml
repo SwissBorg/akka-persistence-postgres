@@ -1,5 +1,5 @@
 # Config for https://github.com/toolmantim/release-drafter
-name-template: 'Akka Persistence JDBC $NEXT_PATCH_VERSION'
+name-template: 'Akka Persistence Postgres $NEXT_PATCH_VERSION'
 tag-template: 'v$NEXT_PATCH_VERSION'
 
 categories:
@@ -10,7 +10,7 @@ categories:
   - title: 'Dependency changes'
     label: 'dependency-change'
 
-change-template: '- $TITLE [#$NUMBER](https://github.com/akka/akka-persistence-jdbc/issues/$NUMBER) by [@$AUTHOR](https://github.com/$AUTHOR)'
+change-template: '- $TITLE [#$NUMBER](https://github.com/SwissBorg/akka-persistence-postgres/issues/$NUMBER) by [@$AUTHOR](https://github.com/$AUTHOR)'
 
 template: |
   ## Changes
