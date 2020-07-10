@@ -12,7 +12,7 @@ jobs:
     name: Java ${{matrix.java}}
     strategy:
       matrix:
-        java: ['openjdk@1.11', 'openjdk@1.8', '1.8', '1.11']
+        java: ['openjdk@1.11', 'openjdk@1.8', 'adopt@1.8', 'adopt@1.11']
     steps:
     - uses: actions/checkout@v2
     - name: Set up java
