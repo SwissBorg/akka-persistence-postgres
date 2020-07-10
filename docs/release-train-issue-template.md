@@ -32,13 +32,15 @@ Key links:
 ### Cutting the release
 
 - [ ] Wait until [master build finished](https://github.com/SwissBorg/akka-persistence-postgres/actions/) after merging the latest PR
+- [ ] Check that all new features are documented in reference - docs folder.
 - [ ] Update the [draft release](https://github.com/akka/akka-persistence-jdbc/releases) with the next tag version `v$VERSION$`, title and release description linking to announcement and milestone
-- [ ] Check that Travis CI release build has executed successfully (Travis will start a [CI build](https://travis-ci.com/akka/akka-persistence-jdbc/builds) for the new tag and publish artifacts to Bintray)
-- [ ] Go to [Bintray](https://bintray.com/akka/maven/akka-persistence-jdbc) and select the just released version // TODO do we do it - on merge to master, dynver
-- [ ] Go to the Maven Central tab, check the *Close and release repository when done* checkbox and sync with Sonatype (using your Sonatype TOKEN key and password) // TODO do we do it
+- [ ] Check that GitHub Actions release build has executed successfully (GitHub Actions will start a [CI build](https://travis-ci.com/akka/akka-persistence-jdbc/builds) for the new tag and publish artifacts to Bintray)
+- [ ] Go to [Bintray](https://bintray.com/akka/maven/akka-persistence-jdbc) and select the just released version // TODO Should we have this step?
+- [ ] Go to the Maven Central tab, check the *Close and release repository when done* checkbox and sync with Sonatype (using your Sonatype TOKEN key and password) // TODO should we sync our Sonatype with maven central or is it happen automatically?
 
 ### Check availability
 
+- [ ] Check [reference](https://doc.akka.io/docs/akka-persistence-jdbc/) documentation. Check that the reference docs are available.
 - [ ] Check the release on [Maven central](https://repo1.maven.org/maven2/com/lightbend/akka/akka-persistence-jdbc_2.12/$VERSION$/)
 
 ### Afterwards
