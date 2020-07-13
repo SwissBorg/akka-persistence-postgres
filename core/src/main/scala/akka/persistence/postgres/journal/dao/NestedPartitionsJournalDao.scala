@@ -37,7 +37,7 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
         val partitionsToCreate = requiredPartitions.toList.filter(!existingPartitions.contains(_))
 
         if (partitionsToCreate.nonEmpty) {
-          logger.info(s"Adding missing journal partition for persistenceId = \"$persistenceId\"...")
+          logger.info(s"Adding missing journal partition for persistenceId = '${persistenceId}'...")
           // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
           val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
           val tableName = s"${partitionPrefix}_$sanitizedPersistenceId"
