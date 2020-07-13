@@ -31,7 +31,7 @@ If these requirements are not met then the code should **not** be merged into ma
 Documentation should be written in two forms:
 
 1. API documentation in the form of scaladoc/javadoc comments on the Scala and Java user API.
-2. Guide documentation in [docs](docs/) subproject using [Paradox](https://github.com/lightbend/paradox) documentation tool. This documentation should give a short introduction of how a given connector should be used.
+2. Guide documentation in [docs](docs/) subproject. This documentation should give a short introduction of how a given connector should be used.
 
 ## External Dependencies
 
@@ -75,4 +75,3 @@ Example:
 
 1. [GitHub Actions](https://github.com/SwissBorg/akka-persistence-postgres/actions) automatically builds the code, runs the tests and sets Pull Request status accordingly of results in GitHub.
 2. [Scalafmt](https://scalameta.org/scalafmt/) enforces some of the code style rules.
-3. [sbt-header plugin](https://github.com/sbt/sbt-header) manages consistent copyright headers in every source file.
