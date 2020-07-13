@@ -23,6 +23,7 @@ $$ LANGUAGE plpgsql;
 
 CALL dropPartitionsOf('public', 'journal');
 
+
 DROP TABLE IF EXISTS public.journal;
 
 CREATE TABLE IF NOT EXISTS public.journal
@@ -36,8 +37,9 @@ CREATE TABLE IF NOT EXISTS public.journal
     PRIMARY KEY (persistence_id, sequence_number)
 ) PARTITION BY LIST (persistence_id);
 
+CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
+CREATE INDEX journal_tags_idx ON public.journal USING GIN (tags gin__int_ops);
 CREATE INDEX journal_ordering_idx ON public.journal USING BRIN (ordering);
-CREATE INDEX journal_tags_idx ON public.journal USING GIN (tags);
 
 DROP TABLE IF EXISTS public.tags;
 
