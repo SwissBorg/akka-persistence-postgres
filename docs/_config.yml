@@ -18,11 +18,11 @@ description: >- # this means to ignore newlines until "baseurl:"
   The Akka Persistence Postgres plugin allows for using PostgreSQL 11 and Amazon Aurora databases as backend for Akka Persistence and Akka Persistence Query.
   The main goal is to keep index size and memory consumption on a moderate level while being able to cope with an increasing data volume.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://swissborg.github.io/akka-persistence-postgres"
 
 # Build settings
 markdown: kramdown
-theme: just-the-docs
+remote_theme: pmarsceill/just-the-docs
 plugins:
   - jekyll-mentions
   - jekyll-relative-links
