@@ -1,3 +1,10 @@
+---
+layout: page
+title: Documentation
+permalink: /
+---
+
+
 # Akka Persistence Postgres
 
 The Akka Persistence Postgres plugin allows for using Postgres database as backend for @extref:[Akka Persistence](akka:persistence.html) and @extref:[Akka Persistence Query](akka:persistence-query.html).
