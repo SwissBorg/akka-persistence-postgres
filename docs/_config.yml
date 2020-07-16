@@ -19,6 +19,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   The main goal is to keep index size and memory consumption on a moderate level while being able to cope with an increasing data volume.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://swissborg.github.io/akka-persistence-postgres"
+repo: "https://github.com/SwissBorg/akka-persistence-postgres/tree/master"
 
 # Build settings
 markdown: kramdown
@@ -28,6 +29,7 @@ plugins:
   - jekyll-relative-links
   - jekyll-sitemap
   - rouge
+  - jemoji
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list

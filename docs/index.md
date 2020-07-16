@@ -1,46 +1,18 @@
----
-layout: page
-title: Documentation
-permalink: /
----
-
-
 # Akka Persistence Postgres
 
-The Akka Persistence Postgres plugin allows for using Postgres database as backend for @extref:[Akka Persistence](akka:persistence.html) and @extref:[Akka Persistence Query](akka:persistence-query.html).
+The Akka Persistence Postgres plugin allows for using Postgres database as backend for [Akka Persistence](https://doc.akka.io/docs/akka/current/persistence.html) and [Akka Persistence Query](https://doc.akka.io/docs/akka/current/persistence-query.html).
 
 akka-persistence-postgres writes journal and snapshot entries to a configured PostgreSQL store. It implements the full akka-persistence-query API and is therefore very useful for implementing DDD-style application models using Akka and Scala for creating reactive applications.
 
 ## Module info
 
-@@dependency [sbt,Maven,Gradle] {
-  group=com.lightbend.akka
-  artifact=akka-persistence-postgres_$scala.binary.version$
-  version=$project.version$
-  symbol2=AkkaVersion
-  value2=$akka.version$
-  group2=com.typesafe.akka
-  artifact2=akka-persistence-query_$scala.binary.version$
-  version2=AkkaVersion
-  symbol3=SlickVersion
-  value3=$slick.version$
-  group3=com.typesafe.slick
-  artifact3=slick_$scala.binary.version$
-  version3=SlickVersion
-  group4=com.typesafe.slick
-  artifact4=slick-hikaricp_$scala.binary.version$
-  version4=SlickVersion
-}
-
-@@project-info{ projectId="core" }
+```sbt
+libraryDependencies += ??? // TBD
+```
 
 ## Contribution policy
 
 Contributions via GitHub pull requests are gladly accepted from their original author. Along with any pull requests, please state that the contribution is your original work and that you license the work to the project under the project's open source license. Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you agree to license the material under the project's open source license and warrant that you have the legal authority to do so.
-
-## Code of Conduct
-
-Contributors all agree to follow the [Lightbend Community Code of Conduct](https://www.lightbend.com/conduct).
 
 ## License
 
@@ -48,47 +20,45 @@ This source code is made available under the [Apache 2.0 License](https://www.ap
 
 ## Configuration
 
-The plugin relies on @extref[Slick](slick:) to do create the SQL dialect for the database in use, therefore the following must be configured in `application.conf`
+The plugin relies on [Slick-pg](https://github.com/tminglei/slick-pg) to do create the SQL dialect for the database in use, therefore the following must be configured in `application.conf`
 
 Configure `akka-persistence`:
 
 - instruct akka persistence to use the `postgres-journal` plugin,
 - instruct akka persistence to use the `postgres-snapshot-store` plugin,
 
-Configure `slick`:
-
-- The following slick profiles are supported:
-  - `slick.jdbc.PostgresProfile$`
+Configure `slick.db`:
+ 
+- setup [connection pool](https://scala-slick.org/doc/3.3.0/database.html#postgresql)
 
 ## Database Schema
 
-- @extref:[Postgres Schema](github:/core/src/test/resources/schema/postgres/postgres-schema.sql)
+Depending on the journal variant, choose the appropriate schema:
+
+- [Plain (flat) Journal]({{ site.repo }}/core/src/test/resources/schema/postgres/plain-schema.sql)
+- [Journal with Nested Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql)
 
 ## Reference Configuration
 
-akka-persistence-postgres provides the defaults as part of the @extref:[reference.conf](github:/src/main/resources/reference.conf). This file documents all the values which can be configured.
+akka-persistence-postgres provides the defaults as part of the [reference.conf]({{ site.repo }}/core/src/main/resources/reference.conf). This file documents all the values which can be configured.
 
 There are several possible ways to configure loading your database connections. Options will be explained below.
 
 ### One database connection pool per journal type
 
 There is the possibility to create a separate database connection pool per journal-type (one pool for the write-journal,
-one pool for the snapshot-journal, and one pool for the read-journal). This is the default and the following example
-configuration shows how this is configured:
-
-- @extref:[Postgres](github:/src/test/resources/postgres-application.conf)
+one pool for the snapshot-journal, and one pool for the read-journal). This is the default and [the example
+configuration]({{ site.repo }}/src/test/resources/postgres-application.conf) shows how this is configured.
 
 ### Sharing the database connection pool between the journals
 
-In order to create only one connection pool which is shared between all journals the following configuration can be used:
-
-- @extref:[Postgres](github:/src/test/resources/postgres-shared-db-application.conf)
+In order to create only one connection pool which is shared between all journals [this configuration]({{ site.repo }}/src/test/resources/postgres-shared-db-application.conf) can be used.
 
 ### Customized loading of the db connection
 
 It is also possible to load a custom database connection. 
-In order to do so a custom implementation of @extref:[SlickDatabaseProvider](github:/src/main/scala/akka/persistence/jdbc/util/SlickExtension.scala)
-needs to be created. The methods that need to be implemented supply the Slick `Database` and `Profile` to the journals.
+In order to do so a custom implementation of [SlickDatabaseProvider]({{ site.repo }}/core/src/main/scala/akka/persistence/postgres/db/SlickExtension.scala#L46-L54)
+needs to be created. The method that need to be implemented supply the Slick `Database` to the journals.
 
 To enable your custom `SlickDatabaseProvider`, the fully qualified class name of the `SlickDatabaseProvider`
 needs to be configured in the application.conf. In addition, you might want to consider whether you want
@@ -108,14 +78,13 @@ postgres-snapshot-store {
 
 ### DataSource lookup by JNDI name
 
-The plugin uses `Slick` as the database access library. Slick @extref[supports jndi](slick:database.html#using-a-jndi-name) for looking up @javadoc[DataSource](javax.sql.DataSource)s.
+The plugin uses `Slick` as the database access library. Slick [supports jndi](https://scala-slick.org/doc/3.3.0/database.html#using-a-jndi-name) for looking up [DataSource](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/javax/sql/DataSource.html)s.
 
 To enable the JNDI lookup, you must add the following to your application.conf:
 
 ```hocon
 postgres-journal {
   slick {
-    profile = "slick.jdbc.PostgresProfile$"
     jndiName = "java:jboss/datasources/PostgresDS"
   }
 }
@@ -127,7 +96,6 @@ When using the `use-shared-db = slick` setting, the follow configuration can ser
 akka-persistence-postgres {
   shared-databases {
     slick {
-      profile = "slick.jdbc.PostgresProfile$"
       jndiName = "java:/jboss/datasources/bla"
     }
   }
@@ -240,9 +208,9 @@ val willCompleteTheStream: Source[EventEnvelope, NotUsed] = readJournal.currentE
 
 ## Tagging events
 
-To tag events you'll need to create an @extref:[Event Adapter](akka:persistence.html#event-adapters-scala) that will wrap the event in a @apidoc[akka.persistence.journal.Tagged] class with the given tags. The `Tagged` class will instruct `akka-persistence-postgres` to tag the event with the given set of tags.
+To tag events you'll need to create an [Event Adapter](https://doc.akka.io/docs/akka/current/persistence.html#event-adapters) that will wrap the event in a [akka.persistence.journal.Tagged](https://doc.akka.io/api/akka/current/akka/persistence/journal/Tagged.html) class with the given tags. The `Tagged` class will instruct `akka-persistence-postgres` to tag the event with the given set of tags.
 
-The persistence plugin will __not__ store the `Tagged` class in the journal. It will strip the `tags` and `payload` from the `Tagged` class, and use the class only as an instruction to tag the event with the given tags and store the `payload` in the  `message` field of the journal table.
+The persistence plugin will __not__ store the `Tagged` class in the journal. It will strip the `tags` and `payload` from the `Tagged` class, and use the class only as an instruction to tag the event with the given tags and store the `payload` in the `message` field of the journal table.
 
 ```scala
 import akka.persistence.journal.{ Tagged, WriteEventAdapter }
@@ -280,9 +248,9 @@ postgres-journal {
 }
 ```
 
-You can retrieve a subset of all events by specifying offset, or use 0L to retrieve all events with a given tag. The offset corresponds to an ordered sequence number for the specific tag. Note that the corresponding offset of each  event is provided in the EventEnvelope, which makes it possible to resume the stream at a later point from a given offset.
+You can retrieve a subset of all events by specifying offset, or use `0L` to retrieve all events with a given tag. The offset corresponds to an ordered sequence number for the specific tag. Note that the corresponding offset of each event is provided in the `EventEnvelope`, which makes it possible to resume the stream at a later point from a given offset.
 
-In addition to the offset the EventEnvelope also provides persistenceId and sequenceNr for each event. The sequenceNr is  the sequence number for the persistent actor with the persistenceId that persisted the event. The persistenceId + sequenceNr  is an unique identifier for the event.
+In addition to the offset the `EventEnvelope` also provides `persistenceId` and `sequenceNr` for each event. The `sequenceNr` is the sequence number for the persistent actor with the `persistenceId` that persisted the event. The `persistenceId` + `sequenceNr` is an unique identifier for the event.
 
 The returned event stream contains only events that correspond to the given tag, and is ordered by the creation time of the events. The same stream elements (in same order) are returned for multiple executions of the same query. Deleted events are not deleted from the tagged event stream.
 
@@ -292,7 +260,7 @@ The plugin supports loading a custom DAO for the journal and snapshot. You shoul
 any way, but wish to reuse all the logic that the plugin already has in place, eg. the Akka Persistence Query API. For example, the default persistency strategy that the plugin
 supports serializes journal and snapshot messages using a serializer of your choice and stores them as byte arrays in the database.
 
-By means of configuration in `application.conf` a DAO can be configured, below the default DAOs are shown:
+By means of configuration in application.conf a DAO can be configured, below the default DAOs are shown:
 
 ```hocon
 postgres-journal {
@@ -316,27 +284,22 @@ You only have to implement two interfaces `akka.persistence.postgres.journal.dao
 For example, take a look at the following two custom DAOs:
 
 ```scala
-class MyCustomJournalDao(db: Database, val profile: JdbcProfile, journalConfig: JournalConfig, serialization: Serialization)(implicit ec: ExecutionContext, mat: Materializer) extends JournalDao {
+class MyCustomJournalDao(val db: Database, val journalConfig: JournalConfig, serialization: Serialization)(implicit ec: ExecutionContext, mat: Materializer) extends JournalDao {
     // snip
 }
 
-class MyCustomSnapshotDao(db: JdbcBackend#Database, val profile: JdbcProfile, snapshotConfig: SnapshotConfig, serialization: Serialization)(implicit ec: ExecutionContext, val mat: Materializer) extends SnapshotDao {
+class MyCustomSnapshotDao(db: JdbcBackend#Database, snapshotConfig: SnapshotConfig, serialization: Serialization)(implicit ec: ExecutionContext, val mat: Materializer) extends SnapshotDao {
     // snip
 }
 ```
 
-As you can see, the custom DAOs get a _Slick database_, a _Slick profile_, the journal or snapshot _configuration_, an _akka.serialization.Serialization_, an _ExecutionContext_ and _Materializer_ injected after constructed.
-You should register the Fully Qualified Class Name in `application.conf` so that the custom DAOs will be used.
+As you can see, the custom DAOs get a _Slick database_, the journal or snapshot _configuration_, an _akka.serialization.Serialization_, an _ExecutionContext_ and _Materializer_ injected after constructed.
+You should register the Fully Qualified Class Name in application.conf so that the custom DAOs will be used.
 
-For more information please review the two default implementations `akka.persistence.postgres.dao.bytea.journal.FlatJournalDao` and `akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/SwissBorg/demo-akka-persistence-postgres) site.
+For more information please review the two default implementations `akka.persistence.postgres.journal.dao.FlatJournalDao` and `akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/SwissBorg/demo-akka-persistence-postgres) site.
 
-@@@warning { title="Binary compatibility" }
-
-The APIs for custom DAOs are not guaranteed to be binary backwards compatible between major versions of the plugin.
-For example 4.0.0 is not binary backwards compatible with 3.5.x. There may also be source incompatible changes of
-the APIs for customer DAOs if new capabilities must be added to to the traits.
-
-@@@
+> :warning: The APIs for custom DAOs are not guaranteed to be binary backwards compatible between major versions of the plugin.
+> There may also be source incompatible changes of the APIs for customer DAOs if new capabilities must be added to the traits.
 
 ## Explicitly shutting down the database connections
 
