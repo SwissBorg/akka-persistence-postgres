@@ -1,6 +1,23 @@
+---
+layout: page
+title: Conections, threads and deadlocks
+permalink: /deadlocks
+nav_order: 15
+has_toc: true
+---
 
+# Connections, threads and deadlocks
+{: .no_toc }
 
-# Slick Scheduling Algorithm
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
+## Slick Scheduling Algorithm
 For the [new scheduling algorithm in #1461](https://github.com/slick/slick/pull/1461) to work correctly without deadlocks
 it is critical that Slicks knows the connection pool size. It is set automatically [when you let Slick configure HikariCP](https://github.com/szeiger/slick/commit/353a6e41f389fbe776f1c38166bbe1a3f0a3f2e0)
 by calling `Database.forDatabase(...)` or `Database.forDataSource` where the default maxConnections is set to `1` connection if you don't override it yourself which
@@ -16,8 +33,6 @@ The queue backing Slick's ThreadPoolExecutor now consists internally of two back
 
 - A __HighPriority__ queue which contains only the HighPriority runnables
 - The old queue containing the other priority levels.
-
-AsyncExecutor
 
 HighPriority items are always taken first, until this queue is exhausted and only then Low- or MediumPriority items are considered.
 
