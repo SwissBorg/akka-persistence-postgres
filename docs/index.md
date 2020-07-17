@@ -19,12 +19,16 @@ The main goal is to keep index size and memory consumption on a moderate level w
 val AkkaVersion = "2.6.5"
 val SlickVersion = "3.3.2"
 libraryDependencies ++= Seq(
-  "com.swisborg.akka" %% "akka-persistence-postgres" % "0.1.0",
+  "com.swisborg.akka" %% "akka-persistence-postgres" % "X.Y.Z",
   "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
   "com.typesafe.slick" %% "slick" % SlickVersion,
   "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion
 )
 ```
+
+## Source code
+
+Source code for this plugin can be found on [GitHub](https://github.com/SwissBorg/akka-persistence-postgres).
 
 ## Contribution policy
 

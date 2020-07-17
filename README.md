@@ -29,8 +29,10 @@ and for persistence query:
 PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
 ```
 
-## Key features when compared to the original Akka Persistence JDBC plugin
+## Documentation
+Documentation can be found on the [project page](https://swissborg.github.io/akka-persistence-postgres/).
 
+## Key features when compared to the original Akka Persistence JDBC plugin
 
 ### BRIN index on the ordering column
 This plugin has been re-designed in terms of handling very large journals.
