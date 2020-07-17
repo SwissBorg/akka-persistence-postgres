@@ -15,8 +15,15 @@ The main goal is to keep index size and memory consumption on a moderate level w
 
 ## Module info
 
-```sbt
-libraryDependencies += ??? // TBD
+```scala
+val AkkaVersion = "2.6.5"
+val SlickVersion = "3.3.2"
+libraryDependencies ++= Seq(
+  "com.swisborg.akka" %% "akka-persistence-postgres" % "0.1.0",
+  "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
+  "com.typesafe.slick" %% "slick" % SlickVersion,
+  "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion
+)
 ```
 
 ## Contribution policy
