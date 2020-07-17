@@ -101,6 +101,13 @@ akka-persistence-postgres {
 }
 ```
 
+## Tags caching
+Tags are mapped into their unique integer ids and store in a column of type `int[]`.
+
+In order to provide fast access we cache those mappings. You can define how long given mapping entry remains in the cache before it gets wiped out by setting `postgres-journal.tags.cacheTtl` (used by write journal when persisting events) and `postgres-read-journal.tags.cacheTtl` (used by read journal when querying events by tags) config parameters.
+
+Default value is 1 hour.
+
 ## Explicitly shutting down the database connections
 
 The plugin automatically shuts down the HikariCP connection pool when the ActorSystem is terminated.

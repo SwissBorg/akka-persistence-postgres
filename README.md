@@ -29,8 +29,10 @@ and for persistence query:
 PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
 ```
 
-## Key features when compared to the original Akka Persistence JDBC plugin
+## Documentation
+Documentation can be found on the [project page](https://swissborg.github.io/akka-persistence-postgres/).
 
+## Key features when compared to the original Akka Persistence JDBC plugin
 
 ### BRIN index on the ordering column
 This plugin has been re-designed in terms of handling very large journals.
@@ -94,7 +96,7 @@ Keep in mind that the default maximum length for a table name in Postgres is 63 
 > :warning: Once any of the partitioning setting under  `postgres-journal.tables.journal.partitions` branch is settled, you should never change it.  Otherwise you might end up with PostgresExceptions caused by table name or range conflicts.
 
 ## Migration from akka-persistence-jdbc 4.0.0
-It’s possible to migrate flat journals from akka-persistence-jdbc to the partitioned variant. While there is no step by step guide, we provide necessary [migration scripts](scripts/partitioned/migration/),
+It’s possible to migrate flat journals from akka-persistence-jdbc to the partitioned variant. While there is no step by step guide, we provide the necessary [migration scripts](scripts/partitioned/migration/).
 
 ## Contributing
 We are also always looking for contributions and new ideas, so if you’d like to join the project, check out the [open issues](https://github.com/SwissBorg/akka-persistence-postgres/issues), or post your own suggestions!
