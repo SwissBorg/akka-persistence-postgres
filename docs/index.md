@@ -9,7 +9,7 @@ The Akka Persistence Postgres plugin allows for using Postgres database as backe
 
 akka-persistence-postgres writes journal and snapshot entries to a configured PostgreSQL store. It implements the full akka-persistence-query API and is therefore very useful for implementing DDD-style application models using Akka and Scala for creating reactive applications.
 
-It’s been originally created as a fork of [Akka Persistence JDBC plugin](https://github.com/akka/akka-persistence-jdbc) 4.0.0, focused on PostgreSQL features such as partitions, arrays, BRIN indexes and others. Many parts of this doc has been adopted from the original [project page](https://doc.akka.io/docs/akka-persistence-jdbc/4.0.0/index.html).
+It’s been originally created as a fork of [Akka Persistence JDBC plugin](https://github.com/akka/akka-persistence-jdbc) 4.0.0, focused on PostgreSQL features such as partitions, arrays, BRIN indexes and others. Many parts of this doc have been adopted from the original [project page](https://doc.akka.io/docs/akka-persistence-jdbc/4.0.0/index.html).
 
 The main goal is to keep index size and memory consumption on a moderate level while being able to cope with an increasing data volume.
 
