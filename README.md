@@ -13,8 +13,22 @@ The main goal is to keep index size and memory consumption on a moderate level w
 In addition to the support for the most generic case with a single journal table, Akka Persistence Postgres provides an additional Journal DAO (`NestedPartitionsJournalDao`), which addresses most of the issues you might encounter while having a small (or finite) set of persistence IDs, when each of them has a journal of millions of entries (and this number is still growing).
 
 ## Adding Akka Persistence Postgres to your project
-TODO
 
+To use `akka-persistence-postgres` in your SBT project, add the following to your `build.sbt`:
+
+```scala
+libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "X.Y.Z"
+```
+
+For a maven project add:
+```xml
+<dependency>
+    <groupId>com.swisborg</groupId>
+    <artifactId>akka-persistence-postgres_2.12</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+to your `pom.xml`.
 
 ## Enabling Akka Persistence Postgres in your project
 To use this plugin instead of the default one, add the following to application.conf:

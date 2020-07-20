@@ -13,18 +13,23 @@ It’s been originally created as a fork of [Akka Persistence JDBC plugin](https
 
 The main goal is to keep index size and memory consumption on a moderate level while being able to cope with an increasing data volume.
 
-## Module info
+## Installation
+
+To use `akka-persistence-postgres` in your SBT project, add the following to your `build.sbt`:
 
 ```scala
-val AkkaVersion = "2.6.5"
-val SlickVersion = "3.3.2"
-libraryDependencies ++= Seq(
-  "com.swisborg.akka" %% "akka-persistence-postgres" % "X.Y.Z",
-  "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
-  "com.typesafe.slick" %% "slick" % SlickVersion,
-  "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion
-)
+libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "X.Y.Z"
 ```
+
+For a maven project add:
+```xml
+<dependency>
+    <groupId>com.swisborg</groupId>
+    <artifactId>akka-persistence-postgres_2.12</artifactId>
+    <version>X.Y.Z</version>
+</dependency>
+```
+to your `pom.xml`.
 
 ## Source code
 
