@@ -3,7 +3,7 @@ title: About the plugin
 nav_order: 0
 ---
 
-# Akka Persistence Postgres
+![Akka Persistence Postgres](assets/project-logo.png)
 
 The Akka Persistence Postgres plugin allows for using Postgres database as backend for [Akka Persistence](https://doc.akka.io/docs/akka/current/persistence.html) and [Akka Persistence Query](https://doc.akka.io/docs/akka/current/persistence-query.html).
 
@@ -41,6 +41,14 @@ Contributions via GitHub pull requests are gladly accepted. Along with any pull 
 
 ## Contributors
 List of all contributors can be found on [GitHub](https://github.com/SwissBorg/akka-persistence-postgres/graphs/contributors).
+
+Brought to you by
+
+[![SoftwareMill](assets/softwaremill-logo.png)](https://softwaremill.com)
+
+and
+
+[![SwissBorg](assets/swissborg-logo.png)](https://swissborg.com)
 
 ## License
 

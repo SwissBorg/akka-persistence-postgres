@@ -23,7 +23,7 @@ repo: "https://github.com/SwissBorg/akka-persistence-postgres/tree/master"
 
 # Build settings
 markdown: kramdown
-remote_theme: pmarsceill/just-the-docs
+remote_theme: mkubala/just-the-docs
 plugins:
   - jekyll-mentions
   - jekyll-relative-links
