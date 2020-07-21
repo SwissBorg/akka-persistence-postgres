@@ -46,7 +46,7 @@ It's also frictionless - once you detach and remove the unused partition you do 
 
 #### Partition pruning
 
-Another plus point is ability to perform [partition pruning](https://www.postgresql.org/docs/11/ddl-partitioning.html#DDL-PARTITION-PRUNING).
+Another plus point is the ability to perform [partition pruning](https://www.postgresql.org/docs/11/ddl-partitioning.html#DDL-PARTITION-PRUNING).
 This means that query planner will examine the definition of each partition and prove that the partition need not be scanned because it could not contain any rows meeting the query's `WHERE` clause. When the planner can prove this, it excludes (prunes) the partition from the query plan.
 
 ## BRIN index on the ordering column

@@ -103,7 +103,7 @@ akka-persistence-postgres {
 
 ## Choosing journal schema variants
 
-Currently, plugin supports two variants of the journal table schema:
+Currently, the plugin supports two variants of the journal table schema:
 *flat journal* - a single table, similar to what the JDBC plugin provides. All events are appended to the table. Schema can be found [here]({{ site.repo }}/core/src/test/resources/schema/postgres/plain-schema.sql).
 
 This is the default schema.
@@ -117,7 +117,7 @@ This variant is aimed for services that have a finite and/or small number of uni
 
 This is the default variant, a [schema without any partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/plain-schema.sql) similar to what's used by Akka Persistence JDBC.
 
-You do not have to override anything in order to start using it, although if you'd like to set it up explicitly, here's the neccessary config:
+You do not have to override anything in order to start using it, although if you'd like to set it up explicitly, here's the necessary config:
 
 ```hocon
 postgres-journal.dao = "akka.persistence.postgres.journal.dao.FlatJournalDao"
