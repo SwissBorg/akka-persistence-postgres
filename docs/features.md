@@ -26,12 +26,12 @@ A single table, similar to what the JDBC plugin provides. All events are appende
 
 This is the default schema.
 
-![](assets/partitioning/flat-journal.png)
+![](./assets/partitioning/flat-journal.png)
 
 ### Journal with nested partitions
 A journal partitioned by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally, each of the shards is split by sequenceNumber range to cap the indexes.
 You can find the schema [here]({{ repo.url }}/core/src/test/resources/schema/postgres/partitioned-schema.sql).
-![](assets/partitioning/partitioned-journal.png)
+![](./assets/partitioning/partitioned-journal.png)
 
 This variant is aimed for services that have a finite and/or small number of unique persistence aggregates, but each of them has a big journal.
 
@@ -39,7 +39,7 @@ This variant is aimed for services that have a finite and/or small number of uni
 
 One of the advantages for this variant is that you can detach, dump and remove unused partition (for example - when snapshot has been created) and release the memory (each partition has its own index) and disk space.
 
-![](assets/partitioning/detaching.png)
+![](./assets/partitioning/detaching.png)
 
 The process is simple and can be automated using [this script]({{ site.repo }}/scripts/partitioned/archivisation/).
 It's also frictionless - once you detach and remove the unused partition you do not have to reindex the table (which often acquires a lock on the table).
