@@ -114,3 +114,15 @@ It’s possible to migrate flat journals from akka-persistence-jdbc to the parti
 
 ## Contributing
 We are also always looking for contributions and new ideas, so if you’d like to join the project, check out the [open issues](https://github.com/SwissBorg/akka-persistence-postgres/issues), or post your own suggestions!
+
+## Sponsors
+
+Development and maintenance of akka-persistence-postgres is sponsored by:
+
+![SoftwareMill](https://raw.githubusercontent.com/SwissBorg/akka-persistence-postgres/master/docs/assets/softwaremill-logo.png)
+
+[SoftwareMill](https://softwaremill.com) is a software development and consulting company. We help clients scale their business through software. Our areas of expertise include backends, distributed systems, blockchain, machine learning and data analytics.
+
+![SwissBorg](https://raw.githubusercontent.com/SwissBorg/akka-persistence-postgres/master/docs/assets/swissborg-logo.png)
+
+[SwissBorg](https://swissborg.com) makes managing your crypto investment easy and helps control your wealth.
