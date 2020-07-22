@@ -42,13 +42,17 @@ Contributions via GitHub pull requests are gladly accepted. Along with any pull 
 ## Contributors
 List of all contributors can be found on [GitHub](https://github.com/SwissBorg/akka-persistence-postgres/graphs/contributors).
 
-Brought to you by
+## Sponsors
 
-[![SoftwareMill]({{ 'assets/softwaremill-logo.png' | absolute_url }})](https://softwaremill.com)
+Development and maintenance of akka-persistence-postgres is sponsored by:
 
-and
+![SoftwareMill]({{ 'assets/softwaremill-logo.png' | absolute_url }})
 
-[![SwissBorg]({{ 'assets/swissborg-logo.png' | absolute_url }})](https://swissborg.com)
+[SoftwareMill](https://softwaremill.com) is a software development and consulting company. We help clients scale their business through software. Our areas of expertise include backends, distributed systems, blockchain, machine learning and data analytics.
+
+![SwissBorg]({{ 'assets/swissborg-logo.png' | absolute_url }})
+
+[SwissBorg](https://swissborg.com) makes managing your crypto investment easy and helps control your wealth.
 
 ## License
 
