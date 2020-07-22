@@ -24,6 +24,7 @@ trait ExtendedPostgresProfile
   object MyAPI
       extends API
       with ArrayImplicits
+      with SimpleArrayPlainImplicits
       with DateTimeImplicits
       with NetImplicits
       with LTreeImplicits
