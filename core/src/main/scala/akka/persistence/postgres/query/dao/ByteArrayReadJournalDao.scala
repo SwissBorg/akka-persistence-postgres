@@ -56,10 +56,6 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
     Source
       .fromPublisher(db.stream(queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result))
       .via(serializer.deserializeFlow)
-      .map {
-        case Success((repr, ordering)) => Success(repr -> ordering)
-        case Failure(e)                => Failure(e)
-      }
   }
 
   override def journalSequence(offset: Long, limit: Long): Source[Long, NotUsed] =
