@@ -32,7 +32,7 @@ class TaggingEventAdapter extends WriteEventAdapter {
 }
 ```
 
-The `EventAdapter` must be registered by adding the following to the root of `application.conf` Please see the  [demo-akka-persistence-postgres](https://github.com/SwissBorg/demo-akka-persistence-postgres) project for more information.
+The `EventAdapter` must be registered by adding the following to the root of `application.conf` Please see the  [demo-akka-persistence-postgres](https://github.com/mkubala/demo-akka-persistence-postgres) project for more information.
 
 ```bash
 postgres-journal {

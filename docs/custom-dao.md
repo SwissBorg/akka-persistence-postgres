@@ -47,7 +47,7 @@ class MyCustomSnapshotDao(db: JdbcBackend#Database, snapshotConfig: SnapshotConf
 As you can see, the custom DAOs get a _Slick database_, the journal or snapshot _configuration_, an _akka.serialization.Serialization_, an _ExecutionContext_ and _Materializer_ injected after constructed.
 You should register the Fully Qualified Class Name in application.conf so that the custom DAOs will be used.
 
-For more information please review the two default implementations `akka.persistence.postgres.journal.dao.FlatJournalDao` and `akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence](https://github.com/SwissBorg/demo-akka-persistence-postgres) site.
+For more information please review the two default implementations `akka.persistence.postgres.journal.dao.FlatJournalDao` and `akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao` or the demo custom DAO example from the [demo-akka-persistence-postgres](https://github.com/mkubala/demo-akka-persistence-postgres) site.
 
 > :warning: The APIs for custom DAOs are not guaranteed to be binary backwards compatible between major versions of the plugin.
 > There may also be source incompatible changes of the APIs for customer DAOs if new capabilities must be added to the traits.
