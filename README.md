@@ -44,7 +44,8 @@ PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal
 ```
 
 ## Documentation
-Documentation can be found on the [project page](https://swissborg.github.io/akka-persistence-postgres/).
+* [Akka Persistence Postgres documentation](https://swissborg.github.io/akka-persistence-postgres/)
+* [demo-akka-persistence-postgres](https://github.com/mkubala/demo-akka-persistence-postgres)
 
 ## Key features when compared to the original Akka Persistence JDBC plugin
 
