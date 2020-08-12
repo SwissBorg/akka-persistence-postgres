@@ -35,7 +35,7 @@ Configure `slick.db`:
 Depending on the journal variant, choose the appropriate schema:
 
 - [Plain (flat) Journal]({{ site.repo }}/core/src/test/resources/schema/postgres/plain-schema.sql)
-- [Journal with Nested Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql)
+- [Journal with Nested Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql)
 
 ## Reference Configuration
 
@@ -109,7 +109,7 @@ Currently, the plugin supports two variants of the journal table schema:
 This is the default schema.
 
 *journal with nested partitions*  by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally each of the shards is split by sequenceNumber range to cap the indexes.
-You can find the schema [here]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql).
+You can find the schema [here]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql).
 
 This variant is aimed for services that have a finite and/or small number of unique persistence aggregates, but each of them has a big journal.
 
@@ -125,7 +125,7 @@ postgres-journal.dao = "akka.persistence.postgres.journal.dao.FlatJournalDao"
 
 ### Using partitioned journal
 
-In order to start using partitioned journal, you have to create either a partitioned table (here is [the schema]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql)) and set the Journal DAO FQCN:
+In order to start using partitioned journal, you have to create either a partitioned table (here is [the schema]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql)) and set the Journal DAO FQCN:
 ```hocon
 postgres-journal.dao = "akka.persistence.postgres.journal.dao.NestedPartitionsJournalDao"
 ```

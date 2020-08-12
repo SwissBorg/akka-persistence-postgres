@@ -30,7 +30,7 @@ This is the default schema.
 
 ### Journal with nested partitions
 A journal partitioned by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally, each of the shards is split by sequenceNumber range to cap the indexes.
-You can find the schema [here]({{ repo.url }}/core/src/test/resources/schema/postgres/partitioned-schema.sql).
+You can find the schema [here]({{ repo.url }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql).
 ![]({{ 'assets/partitioning/partitioned-journal.png' | absolute_url }})
 
 This variant is aimed for services that have a finite and/or small number of unique persistence aggregates, but each of them has a big journal.

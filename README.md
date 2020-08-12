@@ -84,13 +84,13 @@ This is the default schema.
 
 
 *journal with nested partitions*  by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally each of the shards is split by sequenceNumber range to cap the indexes.
-You can find the schema [here](core/src/test/resources/schema/postgres/partitioned-schema.sql).
+You can find the schema [here](core/src/test/resources/schema/postgres/nested-partitions-schema.sql).
 
 This variant is aimed for services that have a finite and/or small number of unique persistence aggregates, but each of them has a big journal.
 
 ### Using partitioned journal
 
-In order to start using partitioned journal, you have to create either a partitioned table (here is [the schema](core/src/test/resources/schema/postgres/partitioned-schema.sql)) and set the Journal DAO FQCN:
+In order to start using partitioned journal, you have to create either a partitioned table (here is [the schema](core/src/test/resources/schema/postgres/nested-partitions-schema.sql)) and set the Journal DAO FQCN:
 ```
 postgres-journal.dao = "akka.persistence.postgres.journal.dao.NestedPartitionsJournalDao"
 ```

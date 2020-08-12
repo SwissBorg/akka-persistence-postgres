@@ -36,7 +36,7 @@ function showStructure() {
 
 # create schema for journal, snapshots, eventTag, drop schema for archivisation
 showStructure
-psql -qt ${CONNECTION_OPTIONS} --file="../../../core/src/test/resources/schema/postgres/partitioned-schema.sql"
+psql -qt ${CONNECTION_OPTIONS} --file="../../../core/src/test/resources/schema/postgres/nested-partitions-schema.sql"
 showStructure
 psql -qt ${CONNECTION_OPTIONS} --file="demo-prepare.sql"
 showStructure
