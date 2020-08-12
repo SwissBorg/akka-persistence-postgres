@@ -38,6 +38,10 @@ class NestedPartitionsScalaCurrentPersistenceIdsTest
     extends CurrentPersistenceIdsTest("nested-partitions-shared-db-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaCurrentPersistenceIdsTest
+  extends CurrentPersistenceIdsTest("partitioned-shared-db-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaCurrentPersistenceIdsTest
     extends CurrentPersistenceIdsTest("plain-shared-db-application.conf")
     with PlainDbCleaner

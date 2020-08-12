@@ -205,6 +205,10 @@ class NestedPartitionsScalaCurrentEventsByTagTest
     extends CurrentEventsByTagTest("nested-partitions-shared-db-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaCurrentEventsByTagTest
+  extends CurrentEventsByTagTest("partitioned-shared-db-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaCurrentEventsByTagTest
     extends CurrentEventsByTagTest("plain-shared-db-application.conf")
     with PlainDbCleaner

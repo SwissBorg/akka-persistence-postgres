@@ -57,4 +57,8 @@ class NestedPartitionsScalaAllPersistenceIdsTest
     extends AllPersistenceIdsTest("nested-partitions-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaAllPersistenceIdsTest
+  extends AllPersistenceIdsTest("partitioned-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest("plain-application.conf") with PlainDbCleaner

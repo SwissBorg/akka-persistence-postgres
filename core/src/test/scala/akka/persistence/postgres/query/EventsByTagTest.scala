@@ -419,4 +419,8 @@ class NestedPartitionsScalaEventsByTagTest
     extends EventsByTagTest("nested-partitions-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaEventsByTagTest
+  extends EventsByTagTest("partitioned-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaEventsByTagTest extends EventsByTagTest("plain-application.conf") with PlainDbCleaner

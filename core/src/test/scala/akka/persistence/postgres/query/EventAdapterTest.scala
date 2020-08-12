@@ -180,4 +180,8 @@ class NestedPartitionsScalaEventAdapterTest
     extends EventAdapterTest("nested-partitions-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaEventAdapterTest
+  extends EventAdapterTest("partitioned-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaEventAdapterTest extends EventAdapterTest("plain-application.conf") with PlainDbCleaner

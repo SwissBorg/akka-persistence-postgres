@@ -102,4 +102,8 @@ class NestedPartitionsLogicalDeleteQueryTest
     extends LogicalDeleteQueryTest("nested-partitions-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedLogicalDeleteQueryTest
+  extends LogicalDeleteQueryTest("partitioned-application.conf")
+    with PartitionedDbCleaner
+
 class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest("plain-application.conf") with PlainDbCleaner

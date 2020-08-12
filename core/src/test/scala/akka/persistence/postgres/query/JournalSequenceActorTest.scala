@@ -295,4 +295,18 @@ class NestedPartitionsJournalSequenceActorTest
   }
 }
 
+class PartitionedJournalSequenceActorTest
+  extends JournalSequenceActorTest("partitioned-application.conf")
+    with PartitionedDbCleaner {
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
+    withActorSystem { implicit system: ActorSystem =>
+      withDatabase { db =>
+        db.run(sqlu"""CREATE TABLE IF NOT EXISTS j_1 PARTITION OF journal FOR VALUES FROM (0) TO (1000000000);""")
+      }
+    }
+  }
+}
+
 class PlainJournalSequenceActorTest extends JournalSequenceActorTest("plain-application.conf") with PlainDbCleaner

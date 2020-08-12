@@ -158,6 +158,10 @@ class NestedPartitionsJournalDaoStreamMessagesMemoryTest
     extends JournalDaoStreamMessagesMemoryTest("nested-partitions-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedJournalDaoStreamMessagesMemoryTest
+  extends JournalDaoStreamMessagesMemoryTest("partitioned-application.conf")
+    with PartitionedDbCleaner
+
 class PlainJournalDaoStreamMessagesMemoryTest
     extends JournalDaoStreamMessagesMemoryTest("plain-application.conf")
     with PlainDbCleaner

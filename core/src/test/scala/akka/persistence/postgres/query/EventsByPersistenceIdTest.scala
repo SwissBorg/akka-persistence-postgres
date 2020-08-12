@@ -335,6 +335,10 @@ class NestedPartitionsScalaEventsByPersistenceIdTest
     extends EventsByPersistenceIdTest("nested-partitions-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaEventsByPersistenceIdTest
+  extends EventsByPersistenceIdTest("partitioned-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaEventsByPersistenceIdTest
     extends EventsByPersistenceIdTest("plain-application.conf")
     with PlainDbCleaner

@@ -214,6 +214,10 @@ class NestedPartitionsScalaCurrentEventsByPersistenceIdTest
     extends CurrentEventsByPersistenceIdTest("nested-partitions-shared-db-application.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedScalaCurrentEventsByPersistenceIdTest
+  extends CurrentEventsByPersistenceIdTest("partitioned-shared-db-application.conf")
+    with PartitionedDbCleaner
+
 class PlainScalaCurrentEventsByPersistenceIdTest
     extends CurrentEventsByPersistenceIdTest("plain-shared-db-application.conf")
     with PlainDbCleaner

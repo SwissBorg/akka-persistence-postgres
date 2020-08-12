@@ -112,6 +112,15 @@ class NestedPartitionsJournalPerfSpecSharedDb
 class NestedPartitionsJournalPerfSpecPhysicalDelete
   extends PostgresJournalPerfSpec(ConfigFactory.load("nested-partitions-application-with-hard-delete.conf"), NestedPartitions())
 
+class PartitionedJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-application.conf"), Partitioned())
+
+class PartitionedJournalPerfSpecSharedDb
+  extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-shared-db-application.conf"), Partitioned())
+
+class PartitionedJournalPerfSpecPhysicalDelete
+  extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-application-with-hard-delete.conf"), Partitioned())
+
+
 class PlainJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("plain-application.conf"), Plain())
 
 class PlainJournalPerfSpecSharedDb

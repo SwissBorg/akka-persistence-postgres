@@ -99,6 +99,10 @@ class NestedPartitionsHardDeleteQueryTest
     extends HardDeleteQueryTest("nested-partitions-application-with-hard-delete.conf")
     with NestedPartitionsDbCleaner
 
+class PartitionedHardDeleteQueryTest
+  extends HardDeleteQueryTest("partitioned-application-with-hard-delete.conf")
+    with PartitionedDbCleaner
+
 class PlainHardDeleteQueryTest
     extends HardDeleteQueryTest("plain-application-with-hard-delete.conf")
     with PlainDbCleaner
