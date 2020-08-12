@@ -98,8 +98,8 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
   }
 }
 
-class PartitionedLogicalDeleteQueryTest
-    extends LogicalDeleteQueryTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsLogicalDeleteQueryTest
+    extends LogicalDeleteQueryTest("nested-partitions-application.conf")
+    with NestedPartitionsDbCleaner
 
 class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest("plain-application.conf") with PlainDbCleaner

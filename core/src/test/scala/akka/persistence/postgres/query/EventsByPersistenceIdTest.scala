@@ -331,9 +331,9 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 }
 
-class PartitionedScalaEventsByPersistenceIdTest
-    extends EventsByPersistenceIdTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaEventsByPersistenceIdTest
+    extends EventsByPersistenceIdTest("nested-partitions-application.conf")
+    with NestedPartitionsDbCleaner
 
 class PlainScalaEventsByPersistenceIdTest
     extends EventsByPersistenceIdTest("plain-application.conf")

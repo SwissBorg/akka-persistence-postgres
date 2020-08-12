@@ -13,7 +13,7 @@ import slick.jdbc.JdbcBackend.{ Database, Session }
 object Schema {
   sealed trait SchemaType { def schema: String }
   final case class Plain(schema: String = "schema/postgres/plain-schema.sql") extends SchemaType
-  final case class Partitioned(schema: String = "schema/postgres/partitioned-schema.sql") extends SchemaType
+  final case class NestedPartitions(schema: String = "schema/postgres/nested-partitions-schema.sql") extends SchemaType
 }
 
 trait DropCreate extends ClasspathResources {

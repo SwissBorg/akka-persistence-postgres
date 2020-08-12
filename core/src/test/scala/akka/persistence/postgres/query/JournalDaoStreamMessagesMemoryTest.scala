@@ -154,9 +154,9 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
   }
 }
 
-class PartitionedJournalDaoStreamMessagesMemoryTest
-    extends JournalDaoStreamMessagesMemoryTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsJournalDaoStreamMessagesMemoryTest
+    extends JournalDaoStreamMessagesMemoryTest("nested-partitions-application.conf")
+    with NestedPartitionsDbCleaner
 
 class PlainJournalDaoStreamMessagesMemoryTest
     extends JournalDaoStreamMessagesMemoryTest("plain-application.conf")

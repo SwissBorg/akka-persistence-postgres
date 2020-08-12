@@ -50,8 +50,8 @@ abstract class PostgresJournalSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-abstract class BasePartitionedJournalSpec(config: String)
-    extends PostgresJournalSpec(ConfigFactory.load(config), Partitioned()) {
+abstract class BaseNestedPartitionsJournalSpec(config: String)
+    extends PostgresJournalSpec(ConfigFactory.load(config), NestedPartitions()) {
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
@@ -103,11 +103,11 @@ abstract class BasePartitionedJournalSpec(config: String)
     ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
-class PartitionedJournalSpec extends BasePartitionedJournalSpec("partitioned-application.conf")
-class PartitionedJournalSpecSharedDb
-    extends BasePartitionedJournalSpec("partitioned-shared-db-application.conf")
-class PartitionedJournalSpecPhysicalDelete
-    extends BasePartitionedJournalSpec("partitioned-application-with-hard-delete.conf")
+class NestedPartitionsJournalSpec extends BaseNestedPartitionsJournalSpec("nested-partitions-application.conf")
+class NestedPartitionsJournalSpecSharedDb
+    extends BaseNestedPartitionsJournalSpec("nested-partitions-shared-db-application.conf")
+class NestedPartitionsJournalSpecPhysicalDelete
+    extends BaseNestedPartitionsJournalSpec("nested-partitions-application-with-hard-delete.conf")
 
 class PlainJournalSpec extends PostgresJournalSpec(ConfigFactory.load("plain-application.conf"), Plain())
 class PlainJournalSpecSharedDb

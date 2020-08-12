@@ -123,8 +123,8 @@ abstract class StoreOnlySerializableMessagesTest(config: String, schemaType: Sch
   }
 }
 
-class PartitionedStoreOnlySerializableMessagesTest
-    extends StoreOnlySerializableMessagesTest("partitioned-application.conf", Partitioned())
+class NestedPartitionsStoreOnlySerializableMessagesTest
+    extends StoreOnlySerializableMessagesTest("nested-partitions-application.conf", NestedPartitions())
 
 class PlainStoreOnlySerializableMessagesTest
     extends StoreOnlySerializableMessagesTest("plain-application.conf", Plain())

@@ -176,8 +176,8 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 }
 
-class PartitionedScalaEventAdapterTest
-    extends EventAdapterTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaEventAdapterTest
+    extends EventAdapterTest("nested-partitions-application.conf")
+    with NestedPartitionsDbCleaner
 
 class PlainScalaEventAdapterTest extends EventAdapterTest("plain-application.conf") with PlainDbCleaner

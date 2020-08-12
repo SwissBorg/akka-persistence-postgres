@@ -95,9 +95,9 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   }
 }
 
-class PartitionedHardDeleteQueryTest
-    extends HardDeleteQueryTest("partitioned-application-with-hard-delete.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsHardDeleteQueryTest
+    extends HardDeleteQueryTest("nested-partitions-application-with-hard-delete.conf")
+    with NestedPartitionsDbCleaner
 
 class PlainHardDeleteQueryTest
     extends HardDeleteQueryTest("plain-application-with-hard-delete.conf")

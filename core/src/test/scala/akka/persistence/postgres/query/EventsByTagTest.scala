@@ -415,8 +415,8 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 }
 
-class PartitionedScalaEventsByTagTest
-    extends EventsByTagTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaEventsByTagTest
+    extends EventsByTagTest("nested-partitions-application.conf")
+    with NestedPartitionsDbCleaner
 
 class PlainScalaEventsByTagTest extends EventsByTagTest("plain-application.conf") with PlainDbCleaner

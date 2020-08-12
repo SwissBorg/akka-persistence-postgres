@@ -11,7 +11,7 @@ import akka.persistence.postgres.SingleActorSystemPerTestSpec
 import akka.persistence.postgres.query.EventAdapterTest.{Event, TaggedAsyncEvent, TaggedEvent}
 import akka.persistence.postgres.query.javadsl.{PostgresReadJournal => JavaPostgresReadJournal}
 import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
-import akka.persistence.postgres.util.Schema.{Plain, Partitioned, SchemaType}
+import akka.persistence.postgres.util.Schema.{Plain, NestedPartitions, SchemaType}
 import akka.persistence.journal.Tagged
 import akka.persistence.query.{EventEnvelope, Offset, PersistenceQuery}
 import akka.persistence.{DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor}
@@ -309,8 +309,8 @@ trait PlainDbCleaner extends BaseDbCleaner {
   override def schemaType: SchemaType = Plain()
 }
 
-trait PartitionedDbCleaner extends BaseDbCleaner {
-  override def schemaType: SchemaType = Partitioned()
+trait NestedPartitionsDbCleaner extends BaseDbCleaner {
+  override def schemaType: SchemaType = NestedPartitions()
 }
 
 trait BaseDbCleaner extends QueryTestSpec {

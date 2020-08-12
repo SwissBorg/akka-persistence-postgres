@@ -279,9 +279,9 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
   }
 }
 
-class PartitionedJournalSequenceActorTest
-    extends JournalSequenceActorTest("partitioned-application.conf")
-    with PartitionedDbCleaner {
+class NestedPartitionsJournalSequenceActorTest
+    extends JournalSequenceActorTest("nested-partitions-application.conf")
+    with NestedPartitionsDbCleaner {
   override def beforeEach(): Unit = {
     super.beforeEach()
     import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
