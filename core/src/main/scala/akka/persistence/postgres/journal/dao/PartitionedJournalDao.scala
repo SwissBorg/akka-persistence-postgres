@@ -10,8 +10,8 @@ import akka.serialization.Serialization
 import akka.stream.Materializer
 import slick.jdbc.JdbcBackend.Database
 
-import scala.collection.immutable.{List, Nil, Seq}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.immutable.{ Nil, Seq }
+import scala.concurrent.{ ExecutionContext, Future }
 
 class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
@@ -27,16 +27,17 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
   override protected def writeJournalRows(xs: Seq[JournalRow]): Future[Unit] =
-  xs match {
-    case Nil => Future.successful(())
-    case _ =>for {
-      ordered <- attachOrderingValues(xs)
-      _ <- attachJournalPartition(ordered)
-      res <- super.writeJournalRows(ordered)
-    } yield res
-  }
+    xs match {
+      case Nil => Future.successful(())
+      case _ =>
+        for {
+          ordered <- attachOrderingValues(xs)
+          _ <- attachJournalPartition(ordered)
+          res <- super.writeJournalRows(ordered)
+        } yield res
+    }
 
-  private val createdPartitions: AtomicReference[List[Long]] = new AtomicReference[List[Long]](Nil)
+  private val createdPartitions: AtomicReference[Set[Long]] = new AtomicReference[Set[Long]](Set.empty)
 
   def attachOrderingValues(xs: Seq[JournalRow]): Future[Seq[JournalRow]] = {
     for {
@@ -59,26 +60,33 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     val partitionsToCreate = requiredPartitions.toList.filter(!existingPartitions.contains(_))
 
     if (partitionsToCreate.nonEmpty) {
-      val actions = DBIO.sequence {
+      val actions = {
         for (partitionNumber <- partitionsToCreate) yield {
           val name = s"${partitionPrefix}_$partitionNumber"
           val minRange = partitionNumber * partitionSize
           val maxRange = minRange + partitionSize
           logger.info(s"Adding missing journal partition for ordering between $minRange and $maxRange...")
-          sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+          val query =
+            sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+          db.run(query).recoverWith(ignorePartitionAlreadyExistsError).map { _ =>
+            createdPartitions.updateAndGet(_ + partitionNumber)
+            ()
+          }
         }
       }
-      db.run(actions)
-        .recoverWith {
-          case ex: SQLException if ex.getSQLState == DbErrorCodes.PgDuplicateTable =>
-            // Partition already created from another session, all good, recovery succeeded
-            Future.successful(())
-        }
-        .map(_ => {
-          createdPartitions.updateAndGet(_ ::: partitionsToCreate)
-        })
+      Future.sequence(actions).map(_ => ())
     } else {
       Future.successful(())
     }
   }
+
+  private def ignorePartitionAlreadyExistsError: PartialFunction[Throwable, Future[Unit]] = {
+    case ex: SQLException if ex.getSQLState == DbErrorCodes.PgDuplicateTable =>
+      // Partition already created from another session, all good, recovery succeeded
+      Future.successful(())
+    case ex =>
+      logger.error("Unexpected error occured while persisting events", ex)
+      Future.failed(ex)
+  }
+
 }

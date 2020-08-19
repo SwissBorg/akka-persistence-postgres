@@ -10,15 +10,20 @@ import akka.persistence.JournalProtocol.{ RecoverySuccess, ReplayMessages, Repla
 import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
+import akka.persistence.postgres.query.ScalaPostgresReadJournalOperations
 import akka.persistence.postgres.util.Schema._
 import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
+import akka.persistence.query.Sequence
 import akka.persistence.{ CapabilityFlag, PersistentImpl }
 import akka.testkit.TestProbe
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ Config, ConfigFactory }
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{ Minute, Span }
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
 
 abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     extends JournalSpec(ConfigFactory.load(config))
@@ -31,9 +36,9 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
 
   implicit val pc: PatienceConfig = PatienceConfig(timeout = 10.seconds)
 
-  implicit lazy val ec = system.dispatcher
+  implicit lazy val ec: ExecutionContext = system.dispatcher
 
-  lazy val cfg = system.settings.config.getConfig("postgres-journal")
+  lazy val cfg: Config = system.settings.config.getConfig("postgres-journal")
 
   lazy val journalConfig = new JournalConfig(cfg)
 
@@ -100,7 +105,7 @@ trait NestedPartitionsJournalSpecTestCases {
   }
 
   def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
-    ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
+    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
 trait PartitionedJournalSpecTestCases {
@@ -124,12 +129,51 @@ trait PartitionedJournalSpecTestCases {
         receiverProbe.expectMsg(replayedPostgresMessage(i, pId))
       }
       receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
-
     }
+
+    "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
+      //given
+      val perId = "perId-1"
+      val numOfSenders = 10
+      val batchSize = 5000
+      val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
+
+      //when
+      Future
+        .sequence {
+          senders.map {
+            case (sender, idx) =>
+              Future {
+                writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
+              }
+          }
+        }
+        .futureValue(Timeout(Span(1, Minute)))
+
+      //then
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
+      journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
+        tp.request(Long.MaxValue)
+        val replayedMessages = (1 to batchSize * numOfSenders).map { _ =>
+          tp.expectNext()
+        }
+        tp.expectComplete()
+        val orderings = replayedMessages.map(_.offset).collect {
+          case Sequence(value) => value
+        }
+        orderings.size should equal(batchSize * numOfSenders)
+        val minOrd = orderings.min
+        val maxOrd = orderings.max
+        val expectedOrderings = (minOrd to maxOrd).toList
+
+        (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
+      }
+    }
+
   }
 
   def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
-    ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
+    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
 class NestedPartitionsJournalSpec
