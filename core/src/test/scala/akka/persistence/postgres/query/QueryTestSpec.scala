@@ -5,26 +5,26 @@
 
 package akka.persistence.postgres.query
 
-import akka.actor.{ActorRef, ActorSystem, Props, Stash, Status}
+import akka.actor.{ ActorRef, ActorSystem, Props, Stash, Status }
 import akka.event.LoggingReceive
-import akka.persistence.postgres.SingleActorSystemPerTestSpec
-import akka.persistence.postgres.query.EventAdapterTest.{Event, TaggedAsyncEvent, TaggedEvent}
-import akka.persistence.postgres.query.javadsl.{PostgresReadJournal => JavaPostgresReadJournal}
-import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
-import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
 import akka.persistence.journal.Tagged
-import akka.persistence.query.{EventEnvelope, Offset, PersistenceQuery}
-import akka.persistence.{DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor}
+import akka.persistence.postgres.SingleActorSystemPerTestSpec
+import akka.persistence.postgres.query.EventAdapterTest.{ Event, TaggedAsyncEvent, TaggedEvent }
+import akka.persistence.postgres.query.javadsl.{ PostgresReadJournal => JavaPostgresReadJournal }
+import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
+import akka.persistence.postgres.util.Schema.SchemaType
+import akka.persistence.query.{ EventEnvelope, Offset, PersistenceQuery }
+import akka.persistence.{ DeleteMessagesFailure, DeleteMessagesSuccess, PersistentActor }
 import akka.stream.scaladsl.Sink
 import akka.stream.testkit.TestSubscriber
-import akka.stream.testkit.javadsl.{TestSink => JavaSink}
+import akka.stream.testkit.javadsl.{ TestSink => JavaSink }
 import akka.stream.testkit.scaladsl.TestSink
-import akka.stream.{Materializer, SystemMaterializer}
+import akka.stream.{ Materializer, SystemMaterializer }
 import com.typesafe.config.ConfigValue
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Future
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{ FiniteDuration, _ }
 
 trait ReadJournalOperations {
   def withCurrentPersistenceIds(within: FiniteDuration = 60.second)(f: TestSubscriber.Probe[String] => Unit): Unit
@@ -44,7 +44,9 @@ trait ReadJournalOperations {
   def countJournal: Future[Long]
 }
 
-class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(implicit system: ActorSystem, mat: Materializer)
+class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(
+    implicit system: ActorSystem,
+    mat: Materializer)
     extends ReadJournalOperations {
   def this(system: ActorSystem) =
     this(PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier))(
@@ -112,7 +114,9 @@ class JavaDslPostgresReadJournalOperations(readJournal: javadsl.PostgresReadJour
     extends ReadJournalOperations {
   def this(system: ActorSystem) =
     this(
-      PersistenceQuery.get(system).getReadJournalFor(classOf[javadsl.PostgresReadJournal], JavaPostgresReadJournal.Identifier))(
+      PersistenceQuery
+        .get(system)
+        .getReadJournalFor(classOf[javadsl.PostgresReadJournal], JavaPostgresReadJournal.Identifier))(
       system,
       SystemMaterializer(system).materializer)
 
@@ -212,9 +216,22 @@ object QueryTestSpec {
 
 abstract class QueryTestSpec(config: String, configOverrides: Map[String, ConfigValue] = Map.empty)
     extends SingleActorSystemPerTestSpec(config, configOverrides) {
+
   case class DeleteCmd(toSequenceNr: Long = Long.MaxValue) extends Serializable
 
   final val ExpectNextTimeout = 10.second
+
+  def schemaType: SchemaType
+
+  override def beforeAll(): Unit = {
+    dropCreate(schemaType)
+    super.beforeAll()
+  }
+
+  override def beforeEach(): Unit = {
+    dropCreate(schemaType)
+    super.beforeEach()
+  }
 
   class TestActor(id: Int, replyToMessages: Boolean) extends PersistentActor with Stash {
     override val persistenceId: String = "my-" + id
@@ -305,35 +322,3 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
 
 }
 
-trait PlainDbCleaner extends BaseDbCleaner {
-  override def schemaType: SchemaType = Plain()
-}
-
-trait PartitionedDbCleaner extends BaseDbCleaner {
-  override def schemaType: SchemaType = Partitioned()
-}
-
-trait NestedPartitionsDbCleaner extends BaseDbCleaner {
-  override def schemaType: SchemaType = NestedPartitions()
-}
-
-trait BaseDbCleaner extends QueryTestSpec {
-
-  def schemaType: SchemaType
-
-  val clearActions =
-    DBIO.seq(sqlu"""TRUNCATE journal""", sqlu"""TRUNCATE snapshot""", sqlu"""TRUNCATE tags""").transactionally
-
-  def clearPostgres(): Unit =
-    withDatabase(_.run(clearActions).futureValue)
-
-  override def beforeAll(): Unit = {
-    dropCreate(schemaType)
-    super.beforeAll()
-  }
-
-  override def beforeEach(): Unit = {
-    dropCreate(schemaType)
-    super.beforeEach()
-  }
-}

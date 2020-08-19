@@ -10,7 +10,8 @@ import java.util.UUID
 
 import akka.actor.{ ActorSystem, ExtendedActorSystem }
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.journal.dao.{ JournalDao, JournalTables }
+import akka.persistence.postgres.journal.dao.JournalDao
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.serialization.{ Serialization, SerializationExtension }
 import akka.stream.scaladsl.{ Sink, Source }
@@ -30,14 +31,14 @@ import scala.util.{ Failure, Success }
 
 object JournalDaoStreamMessagesMemoryTest {
 
-  val configOverrides: Map[String, ConfigValue] = Map("postgres-journal.fetch-size" -> ConfigValueFactory.fromAnyRef("100"))
+  val configOverrides: Map[String, ConfigValue] = Map(
+    "postgres-journal.fetch-size" -> ConfigValueFactory.fromAnyRef("100"))
 
   val MB = 1024 * 1024
 }
 
-abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
-    extends QueryTestSpec(configFile, JournalDaoStreamMessagesMemoryTest.configOverrides)
-    with JournalTables
+abstract class JournalDaoStreamMessagesMemoryTest(val schemaType: SchemaType)
+    extends QueryTestSpec(schemaType.configName, JournalDaoStreamMessagesMemoryTest.configOverrides)
     with should.Matchers {
   import JournalDaoStreamMessagesMemoryTest.MB
 
@@ -154,14 +155,8 @@ abstract class JournalDaoStreamMessagesMemoryTest(configFile: String)
   }
 }
 
-class NestedPartitionsJournalDaoStreamMessagesMemoryTest
-    extends JournalDaoStreamMessagesMemoryTest("nested-partitions-application.conf")
-    with NestedPartitionsDbCleaner
+class NestedPartitionsJournalDaoStreamMessagesMemoryTest extends JournalDaoStreamMessagesMemoryTest(NestedPartitions)
 
-class PartitionedJournalDaoStreamMessagesMemoryTest
-  extends JournalDaoStreamMessagesMemoryTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class PartitionedJournalDaoStreamMessagesMemoryTest extends JournalDaoStreamMessagesMemoryTest(Partitioned)
 
-class PlainJournalDaoStreamMessagesMemoryTest
-    extends JournalDaoStreamMessagesMemoryTest("plain-application.conf")
-    with PlainDbCleaner
+class PlainJournalDaoStreamMessagesMemoryTest extends JournalDaoStreamMessagesMemoryTest(Plain)

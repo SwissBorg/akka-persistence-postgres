@@ -5,9 +5,11 @@
 
 package akka.persistence.postgres.query
 
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
+
 import scala.concurrent.duration._
 
-abstract class AllPersistenceIdsTest(config: String) extends QueryTestSpec(config) {
+abstract class AllPersistenceIdsTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   it should "not terminate the stream when there are not pids" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     journalOps.withPersistenceIds() { tp =>
@@ -53,12 +55,8 @@ abstract class AllPersistenceIdsTest(config: String) extends QueryTestSpec(confi
   }
 }
 
-class NestedPartitionsScalaAllPersistenceIdsTest
-    extends AllPersistenceIdsTest("nested-partitions-application.conf")
-    with NestedPartitionsDbCleaner
+class NestedPartitionsScalaAllPersistenceIdsTest extends AllPersistenceIdsTest(NestedPartitions)
 
-class PartitionedScalaAllPersistenceIdsTest
-  extends AllPersistenceIdsTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class PartitionedScalaAllPersistenceIdsTest extends AllPersistenceIdsTest(Partitioned)
 
-class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest("plain-application.conf") with PlainDbCleaner
+class PlainScalaAllPersistenceIdsTest extends AllPersistenceIdsTest(Plain)

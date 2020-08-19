@@ -9,6 +9,7 @@ import akka.Done
 import akka.pattern.ask
 import akka.persistence.postgres.query.CurrentEventsByTagTest._
 import akka.persistence.postgres.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 
@@ -24,7 +25,8 @@ object CurrentEventsByTagTest {
     "postgres-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
 }
 
-abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(config, configOverrides) {
+abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
+    extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-shared-db-application.conf", configOverrides) {
   it should "not find an event by tag for unknown tag" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
@@ -168,7 +170,10 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
       import system.dispatcher
       withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
         def sendMessagesWithTag(tag: String, numberOfMessagesPerActor: Int): Future[Done] = {
-          val futures = for (actor <- Seq(actor1, actor2, actor3); i <- 1 to numberOfMessagesPerActor) yield {
+          val futures = for {
+            actor <- Seq(actor1, actor2, actor3)
+            i <- 1 to numberOfMessagesPerActor
+          } yield {
             actor ? TaggedAsyncEvent(Event(i.toString), tag)
           }
           Future.sequence(futures).map(_ => Done)
@@ -201,14 +206,8 @@ abstract class CurrentEventsByTagTest(config: String) extends QueryTestSpec(conf
 
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
 
-class NestedPartitionsScalaCurrentEventsByTagTest
-    extends CurrentEventsByTagTest("nested-partitions-shared-db-application.conf")
-    with NestedPartitionsDbCleaner
+class NestedPartitionsScalaCurrentEventsByTagTest extends CurrentEventsByTagTest(NestedPartitions)
 
-class PartitionedScalaCurrentEventsByTagTest
-  extends CurrentEventsByTagTest("partitioned-shared-db-application.conf")
-    with PartitionedDbCleaner
+class PartitionedScalaCurrentEventsByTagTest extends CurrentEventsByTagTest(Partitioned)
 
-class PlainScalaCurrentEventsByTagTest
-    extends CurrentEventsByTagTest("plain-shared-db-application.conf")
-    with PlainDbCleaner
+class PlainScalaCurrentEventsByTagTest extends CurrentEventsByTagTest(Plain)

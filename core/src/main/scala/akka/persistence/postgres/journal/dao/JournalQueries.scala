@@ -6,38 +6,40 @@
 package akka.persistence.postgres
 package journal.dao
 
-import akka.persistence.postgres.config.JournalTableConfiguration
+import slick.lifted.TableQuery
 import slick.sql.FixedSqlAction
 
-class JournalQueries(override val journalTableCfg: JournalTableConfiguration)
-    extends JournalTables {
+class JournalQueries(journalTable: TableQuery[JournalTable]) {
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
-  private val JournalTableC = Compiled(JournalTable)
+  private val compiledJournalTable = Compiled(journalTable)
 
   def writeJournalRows(xs: Seq[JournalRow]): FixedSqlAction[Option[Int], NoStream, slick.dbio.Effect.Write] =
-    JournalTableC ++= xs.sortBy(_.sequenceNumber)
+    compiledJournalTable ++= xs.sortBy(_.sequenceNumber)
 
   private def selectAllJournalForPersistenceId(persistenceId: Rep[String]) =
-    JournalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
+    journalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
 
   def delete(persistenceId: String, toSequenceNr: Long): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
-    JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
+    journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
   }
 
   /**
    * Updates (!) a payload stored in a specific events row.
    * Intended to be used sparingly, e.g. moving all events to their encrypted counterparts.
    */
-  def update(persistenceId: String, seqNr: Long, replacement: Array[Byte]): FixedSqlAction[Int, NoStream, Effect.Write] = {
-    val baseQuery = JournalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
+  def update(
+      persistenceId: String,
+      seqNr: Long,
+      replacement: Array[Byte]): FixedSqlAction[Int, NoStream, Effect.Write] = {
+    val baseQuery = journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
 
     baseQuery.map(_.message).update(replacement)
   }
 
   def markJournalMessagesAsDeleted(persistenceId: String, maxSequenceNr: Long) =
-    JournalTable
+    journalTable
       .filter(_.persistenceId === persistenceId)
       .filter(_.sequenceNumber <= maxSequenceNr)
       .filter(_.deleted === false)
@@ -45,10 +47,10 @@ class JournalQueries(override val journalTableCfg: JournalTableConfiguration)
       .update(true)
 
   private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
-    JournalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
+    journalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
-    JournalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
+    journalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
   val highestSequenceNrForPersistenceId = Compiled(_highestSequenceNrForPersistenceId _)
 
@@ -60,7 +62,7 @@ class JournalQueries(override val journalTableCfg: JournalTableConfiguration)
   val selectByPersistenceIdAndMaxSequenceNumber = Compiled(_selectByPersistenceIdAndMaxSequenceNumber _)
 
   private def _allPersistenceIdsDistinct: Query[Rep[String], String, Seq] =
-    JournalTable.map(_.persistenceId).distinct
+    journalTable.map(_.persistenceId).distinct
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
 
@@ -69,7 +71,7 @@ class JournalQueries(override val journalTableCfg: JournalTableConfiguration)
       fromSequenceNr: Rep[Long],
       toSequenceNr: Rep[Long],
       max: ConstColumn[Long]) =
-    JournalTable
+    journalTable
       .filter(_.persistenceId === persistenceId)
       .filter(_.deleted === false)
       .filter(_.sequenceNumber >= fromSequenceNr)

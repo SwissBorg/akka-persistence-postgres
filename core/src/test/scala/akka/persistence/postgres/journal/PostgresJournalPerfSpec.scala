@@ -7,21 +7,21 @@ package akka.persistence.postgres.journal
 
 import akka.actor.Props
 import akka.persistence.CapabilityFlag
-import akka.persistence.postgres.config._
-import akka.persistence.postgres.util.Schema._
-import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
-import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.journal.JournalPerfSpec
 import akka.persistence.journal.JournalPerfSpec.{ BenchActor, Cmd, ResetCounter }
+import akka.persistence.postgres.config._
+import akka.persistence.postgres.db.SlickExtension
+import akka.persistence.postgres.util.Schema._
+import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
 import akka.testkit.TestProbe
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
 
-abstract class PostgresJournalPerfSpec(config: Config, schemaType: SchemaType)
-    extends JournalPerfSpec(config)
+abstract class PostgresJournalPerfSpec(config: String, schemaType: SchemaType)
+    extends JournalPerfSpec(ConfigFactory.load(config))
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with ScalaFutures
@@ -104,27 +104,26 @@ abstract class PostgresJournalPerfSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class NestedPartitionsJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("nested-partitions-application.conf"), NestedPartitions())
+class NestedPartitionsJournalPerfSpec
+    extends PostgresJournalPerfSpec("nested-partitions-application.conf", NestedPartitions)
 
 class NestedPartitionsJournalPerfSpecSharedDb
-    extends PostgresJournalPerfSpec(ConfigFactory.load("nested-partitions-shared-db-application.conf"), NestedPartitions())
+    extends PostgresJournalPerfSpec("nested-partitions-shared-db-application.conf", NestedPartitions)
 
 class NestedPartitionsJournalPerfSpecPhysicalDelete
-  extends PostgresJournalPerfSpec(ConfigFactory.load("nested-partitions-application-with-hard-delete.conf"), NestedPartitions())
+    extends PostgresJournalPerfSpec("nested-partitions-application-with-hard-delete.conf", NestedPartitions)
 
-class PartitionedJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-application.conf"), Partitioned())
+class PartitionedJournalPerfSpec extends PostgresJournalPerfSpec("partitioned-application.conf", Partitioned)
 
 class PartitionedJournalPerfSpecSharedDb
-  extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-shared-db-application.conf"), Partitioned())
+    extends PostgresJournalPerfSpec("partitioned-shared-db-application.conf", Partitioned)
 
 class PartitionedJournalPerfSpecPhysicalDelete
-  extends PostgresJournalPerfSpec(ConfigFactory.load("partitioned-application-with-hard-delete.conf"), Partitioned())
+    extends PostgresJournalPerfSpec("partitioned-application-with-hard-delete.conf", Partitioned)
 
+class PlainJournalPerfSpec extends PostgresJournalPerfSpec("plain-application.conf", Plain)
 
-class PlainJournalPerfSpec extends PostgresJournalPerfSpec(ConfigFactory.load("plain-application.conf"), Plain())
-
-class PlainJournalPerfSpecSharedDb
-  extends PostgresJournalPerfSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
+class PlainJournalPerfSpecSharedDb extends PostgresJournalPerfSpec("plain-shared-db-application.conf", Plain)
 
 class PlainJournalPerfSpecPhysicalDelete
-  extends PostgresJournalPerfSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())
+    extends PostgresJournalPerfSpec("plain-application-with-hard-delete.conf", Plain)

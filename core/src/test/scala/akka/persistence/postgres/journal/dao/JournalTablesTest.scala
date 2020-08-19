@@ -10,26 +10,28 @@ import akka.persistence.postgres.TablesTestSpec
 class JournalTablesTest extends TablesTestSpec {
   val journalTableConfiguration = journalConfig.journalTableConfiguration
 
-  object TestByteAJournalTables extends JournalTables {
-    override val journalTableCfg = journalTableConfiguration
-  }
+  for {
+    (journalName, journalTable) <- List(
+      ("FlatJournalTable", FlatJournalTable(journalTableConfiguration)),
+      ("PartitionedJournalTable", PartitionedJournalTable(journalTableConfiguration)),
+      ("NestedPartitionsJournalTable", NestedPartitionsJournalTable(journalTableConfiguration)))
+  } {
+    journalName should "be configured with a schema name" in {
+      journalTable.baseTableRow.schemaName shouldBe journalTableConfiguration.schemaName
+    }
 
-  "JournalTable" should "be configured with a schema name" in {
-    TestByteAJournalTables.JournalTable.baseTableRow.schemaName shouldBe journalTableConfiguration.schemaName
-  }
+    it should "be configured with a table name" in {
+      journalTable.baseTableRow.tableName shouldBe journalTableConfiguration.tableName
+    }
 
-  it should "be configured with a table name" in {
-    TestByteAJournalTables.JournalTable.baseTableRow.tableName shouldBe journalTableConfiguration.tableName
-  }
-
-  it should "be configured with column names" in {
-    val colName = toColumnName(journalTableConfiguration.tableName)(_)
-    TestByteAJournalTables.JournalTable.baseTableRow.persistenceId.toString shouldBe colName(
-      journalTableConfiguration.columnNames.persistenceId)
-    TestByteAJournalTables.JournalTable.baseTableRow.deleted.toString shouldBe colName(
-      journalTableConfiguration.columnNames.deleted)
-    TestByteAJournalTables.JournalTable.baseTableRow.sequenceNumber.toString shouldBe colName(
-      journalTableConfiguration.columnNames.sequenceNumber)
-    //    TestByteAJournalTables.JournalTable.baseTableRow.tags.toString() shouldBe colName(journalTableConfiguration.columnNames.tags)
+    it should "be configured with column names" in {
+      val colName = toColumnName(journalTableConfiguration.tableName)(_)
+      journalTable.baseTableRow.persistenceId.toString shouldBe colName(
+        journalTableConfiguration.columnNames.persistenceId)
+      journalTable.baseTableRow.deleted.toString shouldBe colName(journalTableConfiguration.columnNames.deleted)
+      journalTable.baseTableRow.sequenceNumber.toString shouldBe colName(
+        journalTableConfiguration.columnNames.sequenceNumber)
+      journalTable.baseTableRow.tags.toString shouldBe colName(journalTableConfiguration.columnNames.tags)
+    }
   }
 }

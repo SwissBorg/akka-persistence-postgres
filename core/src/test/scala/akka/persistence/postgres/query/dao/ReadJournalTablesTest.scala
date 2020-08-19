@@ -6,29 +6,32 @@
 package akka.persistence.postgres.query.dao
 
 import akka.persistence.postgres.TablesTestSpec
-import akka.persistence.postgres.journal.dao.JournalTables
+import akka.persistence.postgres.journal.dao.{FlatJournalTable, NestedPartitionsJournalTable, PartitionedJournalTable}
 
 class ReadJournalTablesTest extends TablesTestSpec {
   val readJournalTableConfiguration = readJournalConfig.journalTableConfiguration
 
-  object TestByteAReadJournalTables extends JournalTables {
-    override val journalTableCfg = readJournalTableConfiguration
-  }
+  for {
+    (journalName, journalTable) <- List(
+      ("FlatJournalTable", FlatJournalTable(readJournalTableConfiguration)),
+      ("PartitionedJournalTable", PartitionedJournalTable(readJournalTableConfiguration)),
+      ("NestedPartitionsJournalTable", NestedPartitionsJournalTable(readJournalTableConfiguration)))
+  } {
+    s"Read $journalName" should "be configured with a schema name" in {
+      journalTable.baseTableRow.schemaName shouldBe readJournalTableConfiguration.schemaName
+    }
 
-  "JournalTable" should "be configured with a schema name" in {
-    TestByteAReadJournalTables.JournalTable.baseTableRow.schemaName shouldBe readJournalTableConfiguration.schemaName
-  }
+    it should "be configured with a table name" in {
+      journalTable.baseTableRow.tableName shouldBe readJournalTableConfiguration.tableName
+    }
 
-  it should "be configured with a table name" in {
-    TestByteAReadJournalTables.JournalTable.baseTableRow.tableName shouldBe readJournalTableConfiguration.tableName
-  }
-
-  it should "be configured with column names" in {
-    val colName = toColumnName(readJournalTableConfiguration.tableName)(_)
-    TestByteAReadJournalTables.JournalTable.baseTableRow.persistenceId.toString shouldBe colName(
-      readJournalTableConfiguration.columnNames.persistenceId)
-    TestByteAReadJournalTables.JournalTable.baseTableRow.sequenceNumber.toString shouldBe colName(
-      readJournalTableConfiguration.columnNames.sequenceNumber)
-    //    TestByteAJournalTables.JournalTable.baseTableRow.tags.toString() shouldBe colName(journalTableConfiguration.columnNames.tags)
+    it should "be configured with column names" in {
+      val colName = toColumnName(readJournalTableConfiguration.tableName)(_)
+      journalTable.baseTableRow.persistenceId.toString shouldBe colName(
+        readJournalTableConfiguration.columnNames.persistenceId)
+      journalTable.baseTableRow.sequenceNumber.toString shouldBe colName(
+        readJournalTableConfiguration.columnNames.sequenceNumber)
+      journalTable.baseTableRow.tags.toString shouldBe colName(readJournalTableConfiguration.columnNames.tags)
+    }
   }
 }

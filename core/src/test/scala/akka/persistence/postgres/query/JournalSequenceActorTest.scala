@@ -5,37 +5,40 @@
 
 package akka.persistence.postgres.query
 
-import akka.actor.{ ActorRef, ActorSystem }
+import java.util.concurrent.atomic.AtomicLong
+
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.persistence.postgres.config.JournalSequenceRetrievalConfig
 import akka.persistence.postgres.db.ExtendedPostgresProfile
-import akka.persistence.postgres.journal.dao.JournalTables
-import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
-import akka.persistence.postgres.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
-import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao }
-import akka.persistence.postgres.{ JournalRow, SharedActorSystemTestSpec }
+import akka.persistence.postgres.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
+import akka.persistence.postgres.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
+import akka.persistence.postgres.tag.{CachedTagIdResolver, SimpleTagDao}
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
+import akka.persistence.postgres.{JournalRow, SharedActorSystemTestSpec}
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.{ Materializer, SystemMaterializer }
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{Materializer, SystemMaterializer}
 import akka.testkit.TestProbe
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
-import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
+import slick.jdbc.{JdbcBackend, JdbcCapabilities}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpec(configFile) with JournalTables {
+abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   private val log = LoggerFactory.getLogger(classOf[JournalSequenceActorTest])
 
   val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
-  val journalTableCfg = journalConfig.journalTableConfiguration
+  val journalTable = schemaType.table(journalConfig.journalTableConfiguration)
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
   implicit val askTimeout = 50.millis
 
-  def generateId: Int = 0
+  private val orderingSeq = new AtomicLong(0L)
+  def generateId: Long = orderingSeq.incrementAndGet()
 
   behavior.of("JournalSequenceActor")
 
@@ -45,7 +48,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
         val numberOfRows = 15000
         val rows =
           for (i <- 1 to numberOfRows) yield JournalRow(generateId, deleted = false, "id", i, Array(0.toByte), Nil)
-        db.run(JournalTable ++= rows).futureValue
+        db.run(journalTable ++= rows).futureValue
         withJournalSequenceActor(db, maxTries = 100) { actor =>
           eventually {
             actor.ask(GetMaxOrderingId).mapTo[MaxOrderingId].futureValue shouldBe MaxOrderingId(numberOfRows)
@@ -68,7 +71,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
             .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
             .grouped(10000)
             .mapAsync(4) { rows =>
-              db.run(JournalTable.forceInsertAll(rows))
+              db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
             .futureValue
@@ -102,7 +105,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
             .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
             .grouped(10000)
             .mapAsync(4) { rows =>
-              db.run(JournalTable.forceInsertAll(rows))
+              db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
             .futureValue
@@ -133,7 +136,7 @@ abstract class JournalSequenceActorTest(configFile: String) extends QueryTestSpe
             .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
             .grouped(10000)
             .mapAsync(4) { rows =>
-              db.run(JournalTable.forceInsertAll(rows))
+              db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
             .futureValue
@@ -279,9 +282,7 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
   }
 }
 
-class NestedPartitionsJournalSequenceActorTest
-    extends JournalSequenceActorTest("nested-partitions-application.conf")
-    with NestedPartitionsDbCleaner {
+class NestedPartitionsJournalSequenceActorTest extends JournalSequenceActorTest(NestedPartitions) {
   override def beforeEach(): Unit = {
     super.beforeEach()
     import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -295,9 +296,7 @@ class NestedPartitionsJournalSequenceActorTest
   }
 }
 
-class PartitionedJournalSequenceActorTest
-  extends JournalSequenceActorTest("partitioned-application.conf")
-    with PartitionedDbCleaner {
+class PartitionedJournalSequenceActorTest extends JournalSequenceActorTest(Partitioned) {
   override def beforeEach(): Unit = {
     super.beforeEach()
     import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -309,4 +308,4 @@ class PartitionedJournalSequenceActorTest
   }
 }
 
-class PlainJournalSequenceActorTest extends JournalSequenceActorTest("plain-application.conf") with PlainDbCleaner
+class PlainJournalSequenceActorTest extends JournalSequenceActorTest(Plain)

@@ -44,7 +44,7 @@ class JournalQueriesTest extends BaseQueryTest {
 
   private def withJournalQueries(f: JournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(new JournalQueries(journalConfig.journalTableConfiguration))
+      f(new JournalQueries(FlatJournalTable.apply(journalConfig.journalTableConfiguration)))
     }
   }
 }

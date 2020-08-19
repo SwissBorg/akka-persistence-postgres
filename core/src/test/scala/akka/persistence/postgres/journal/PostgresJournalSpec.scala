@@ -7,21 +7,21 @@ package akka.persistence.postgres.journal
 
 import akka.actor.Actor
 import akka.persistence.JournalProtocol.{ RecoverySuccess, ReplayMessages, ReplayedMessage }
+import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.util.Schema._
 import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
-import akka.persistence.journal.JournalSpec
 import akka.persistence.{ CapabilityFlag, PersistentImpl }
 import akka.testkit.TestProbe
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
 
-abstract class PostgresJournalSpec(config: Config, schemaType: SchemaType)
-    extends JournalSpec(config)
+abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
+    extends JournalSpec(ConfigFactory.load(config))
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with ScalaFutures
@@ -50,8 +50,8 @@ abstract class PostgresJournalSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-abstract class BaseNestedPartitionsJournalSpec(config: String)
-    extends PostgresJournalSpec(ConfigFactory.load(config), NestedPartitions()) {
+trait NestedPartitionsJournalSpecTestCases {
+  this: PostgresJournalSpec =>
 
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in {
@@ -68,13 +68,13 @@ abstract class BaseNestedPartitionsJournalSpec(config: String)
       //then
       journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId1, receiverProbe.ref)
       (1 to 1000).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId1))
+        receiverProbe.expectMsg(replayedPostgresMessage(i, pId1))
       }
       receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
 
       journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId2, receiverProbe.ref)
       (1 to 1000).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId2))
+        receiverProbe.expectMsg(replayedPostgresMessage(i, pId2))
       }
       receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
     }
@@ -87,36 +87,71 @@ abstract class BaseNestedPartitionsJournalSpec(config: String)
       //when
       writeMessages(1, 1000, pId, sender.ref, writerUuid)
 
-      // TODO we are assuming that sub-partition will be created for 2000 events, change it when will make parameter for number of events per partition
+      // Assuming that partition's capacity is 2000 rows.
       writeMessages(1001, 2500, pId, sender.ref, writerUuid)
 
       //then
       journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
       (1 to 2500).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgreSQLMessage(i, pId))
+        receiverProbe.expectMsg(replayedPostgresMessage(i, pId))
       }
       receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
     }
   }
 
-  def replayedPostgreSQLMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
+  def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
     ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
-class NestedPartitionsJournalSpec extends BaseNestedPartitionsJournalSpec("nested-partitions-application.conf")
+trait PartitionedJournalSpecTestCases {
+  this: PostgresJournalSpec =>
+
+  "A journal" must {
+    "create new partition for new events" in {
+      //given
+      val pId = "persist3"
+      val sender = TestProbe()
+      val receiverProbe = TestProbe()
+      //when
+      writeMessages(1, 2000, pId, sender.ref, writerUuid)
+
+      // Assuming that partition's capacity is 2000 rows.
+      writeMessages(2001, 2500, pId, sender.ref, writerUuid)
+
+      //then
+      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
+      (1 to 2500).foreach { i =>
+        receiverProbe.expectMsg(replayedPostgresMessage(i, pId))
+      }
+      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
+
+    }
+  }
+
+  def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
+    ReplayedMessage(PersistentImpl(s"a-${snr}", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
+}
+
+class NestedPartitionsJournalSpec
+    extends PostgresJournalSpec("nested-partitions-application.conf", NestedPartitions)
+    with NestedPartitionsJournalSpecTestCases
 class NestedPartitionsJournalSpecSharedDb
-    extends BaseNestedPartitionsJournalSpec("nested-partitions-shared-db-application.conf")
+    extends PostgresJournalSpec("nested-partitions-shared-db-application.conf", NestedPartitions)
+    with NestedPartitionsJournalSpecTestCases
 class NestedPartitionsJournalSpecPhysicalDelete
-    extends BaseNestedPartitionsJournalSpec("nested-partitions-application-with-hard-delete.conf")
+    extends PostgresJournalSpec("nested-partitions-application-with-hard-delete.conf", NestedPartitions)
+    with NestedPartitionsJournalSpecTestCases
 
-class PartitionedJournalSpec extends PostgresJournalSpec(ConfigFactory.load("partitioned-application.conf"), Partitioned())
+class PartitionedJournalSpec
+    extends PostgresJournalSpec("partitioned-application.conf", Partitioned)
+    with PartitionedJournalSpecTestCases
 class PartitionedJournalSpecSharedDb
-  extends PostgresJournalSpec(ConfigFactory.load("partitioned-shared-db-application.conf"), Partitioned())
+    extends PostgresJournalSpec("partitioned-shared-db-application.conf", Partitioned)
+    with PartitionedJournalSpecTestCases
 class PartitionedJournalSpecPhysicalDelete
-  extends PostgresJournalSpec(ConfigFactory.load("partitioned-application-with-hard-delete.conf"), Partitioned())
+    extends PostgresJournalSpec("partitioned-application-with-hard-delete.conf", Partitioned)
+    with PartitionedJournalSpecTestCases
 
-class PlainJournalSpec extends PostgresJournalSpec(ConfigFactory.load("plain-application.conf"), Plain())
-class PlainJournalSpecSharedDb
-    extends PostgresJournalSpec(ConfigFactory.load("plain-shared-db-application.conf"), Plain())
-class PlainJournalSpecPhysicalDelete
-    extends PostgresJournalSpec(ConfigFactory.load("plain-application-with-hard-delete.conf"), Plain())
+class PlainJournalSpec extends PostgresJournalSpec("plain-application.conf", Plain)
+class PlainJournalSpecSharedDb extends PostgresJournalSpec("plain-shared-db-application.conf", Plain)
+class PlainJournalSpecPhysicalDelete extends PostgresJournalSpec("plain-application-with-hard-delete.conf", Plain)

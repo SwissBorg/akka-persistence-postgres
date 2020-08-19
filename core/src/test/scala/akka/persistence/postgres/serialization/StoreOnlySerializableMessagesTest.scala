@@ -14,8 +14,8 @@ import akka.testkit.TestProbe
 
 import scala.concurrent.duration._
 
-abstract class StoreOnlySerializableMessagesTest(config: String, schemaType: SchemaType)
-    extends SharedActorSystemTestSpec(config) {
+abstract class StoreOnlySerializableMessagesTest(schemaType: SchemaType)
+    extends SharedActorSystemTestSpec(schemaType.configName) {
   case class PersistFailure(cause: Throwable, event: Any, seqNr: Long)
   case class PersistRejected(cause: Throwable, event: Any, seqNr: Long)
 
@@ -123,11 +123,8 @@ abstract class StoreOnlySerializableMessagesTest(config: String, schemaType: Sch
   }
 }
 
-class NestedPartitionsStoreOnlySerializableMessagesTest
-    extends StoreOnlySerializableMessagesTest("nested-partitions-application.conf", NestedPartitions())
+class NestedPartitionsStoreOnlySerializableMessagesTest extends StoreOnlySerializableMessagesTest(NestedPartitions)
 
-class PartitionedStoreOnlySerializableMessagesTest
-  extends StoreOnlySerializableMessagesTest("partitioned-application.conf", Partitioned())
+class PartitionedStoreOnlySerializableMessagesTest extends StoreOnlySerializableMessagesTest(Partitioned)
 
-class PlainStoreOnlySerializableMessagesTest
-    extends StoreOnlySerializableMessagesTest("plain-application.conf", Plain())
+class PlainStoreOnlySerializableMessagesTest extends StoreOnlySerializableMessagesTest(Plain)
