@@ -34,7 +34,7 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     with DropCreate {
   override protected def supportsRejectingNonSerializableObjects: CapabilityFlag = true
 
-  implicit val pc: PatienceConfig = PatienceConfig(timeout = 10.seconds)
+  implicit val pc: PatienceConfig = PatienceConfig(timeout = 30.seconds)
 
   implicit lazy val ec: ExecutionContext = system.dispatcher
 
