@@ -134,8 +134,8 @@ trait PartitionedJournalSpecTestCases {
     "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
       //given
       val perId = "perId-1"
-      val numOfSenders = 10
-      val batchSize = 5000
+      val numOfSenders = 5
+      val batchSize = 1000
       val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
 
       //when

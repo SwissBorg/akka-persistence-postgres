@@ -9,9 +9,11 @@ import akka.persistence.postgres.db.DbErrorCodes
 import akka.serialization.Serialization
 import akka.stream.Materializer
 import slick.jdbc.JdbcBackend.Database
+import slick.sql.SqlAction
 
 import scala.collection.immutable.{ Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
@@ -30,18 +32,24 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     xs match {
       case Nil => Future.successful(())
       case _ =>
-        for {
+        val actions = for {
           ordered <- attachOrderingValues(xs)
           _ <- attachJournalPartition(ordered)
-          res <- super.writeJournalRows(ordered)
-        } yield res
+          _ <- queries.writeJournalRows(ordered).transactionally
+        } yield ()
+        db.run(actions).recoverWith {
+          case ex =>
+            logger.error(s"Cannot write journal rows.", ex)
+            Future.failed(ex)
+        }
+
     }
 
   private val createdPartitions: AtomicReference[Set[Long]] = new AtomicReference[Set[Long]](Set.empty)
 
-  def attachOrderingValues(xs: Seq[JournalRow]): Future[Seq[JournalRow]] = {
+  def attachOrderingValues(xs: Seq[JournalRow]): DBIOAction[Seq[JournalRow], NoStream, Effect] = {
     for {
-      orderingsSeq <- db.run(sql"""select nextval('#$seqName') from generate_series(1, #${xs.length}) n""".as[Long])
+      orderingsSeq <- sql"""select nextval('#$seqName') from generate_series(1, #${xs.length}) n""".as[Long]
     } yield {
       xs.sortBy(_.sequenceNumber).zip(orderingsSeq).map {
         case (row, ord) => row.copy(ordering = ord)
@@ -49,7 +57,7 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     }
   }
 
-  def attachJournalPartition(xs: Seq[JournalRow]): Future[Unit] = {
+  def attachJournalPartition(xs: Seq[JournalRow]): DBIOAction[Unit, NoStream, Effect] = {
     val (minOrd, maxOrd) = {
       val os = xs.map(_.ordering)
       (os.min, os.max)
@@ -65,18 +73,23 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
           val name = s"${partitionPrefix}_$partitionNumber"
           val minRange = partitionNumber * partitionSize
           val maxRange = minRange + partitionSize
-          logger.info(s"Adding missing journal partition for ordering between $minRange and $maxRange...")
-          val query =
+          val query: SqlAction[Int, NoStream, Effect] = {
             sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
-          db.run(query).recoverWith(ignorePartitionAlreadyExistsError).map { _ =>
-            createdPartitions.updateAndGet(_ + partitionNumber)
-            ()
+          }
+          query.asTry.flatMap {
+            case Failure(exception) =>
+              logger.debug(s"Partition for ordering between $minRange and $maxRange already exists")
+              DBIO.from(ignorePartitionAlreadyExistsError(exception))
+            case Success(_) =>
+              createdPartitions.updateAndGet(_ + partitionNumber)
+              logger.debug(s"Created missing journal partition for ordering between $minRange and $maxRange")
+              DBIO.successful(())
           }
         }
       }
-      Future.sequence(actions).map(_ => ())
+      DBIO.sequence(actions).map(_ => ())
     } else {
-      Future.successful(())
+      DBIO.successful(())
     }
   }
 
@@ -85,7 +98,7 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
       // Partition already created from another session, all good, recovery succeeded
       Future.successful(())
     case ex =>
-      logger.error("Unexpected error occured while persisting events", ex)
+      logger.error("Unexpected error occurred while persisting events", ex)
       Future.failed(ex)
   }
 
