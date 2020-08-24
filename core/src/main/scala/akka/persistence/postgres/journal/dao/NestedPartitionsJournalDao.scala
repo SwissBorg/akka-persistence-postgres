@@ -1,17 +1,18 @@
 package akka.persistence.postgres.journal.dao
 
-import java.sql.SQLException
 import java.util.concurrent.ConcurrentHashMap
 
 import akka.persistence.postgres.JournalRow
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.db.DbErrorCodes
+import akka.persistence.postgres.db.{DbErrors, ExtendedPostgresProfile}
+import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 import akka.serialization.Serialization
 import akka.stream.Materializer
 import slick.jdbc.JdbcBackend.Database
 
-import scala.collection.immutable.{ List, Nil, Seq }
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.collection.immutable.{List, Nil, Seq}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
@@ -28,7 +29,6 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
   private val createdPartitions = new ConcurrentHashMap[String, List[Long]]()
 
   def attachJournalPartition(xs: Seq[JournalRow]): Future[Unit] = {
-    import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
     val persistenceIdToMaxSequenceNumber =
       xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map {
@@ -43,31 +43,49 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
           val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
           val tableName = s"${partitionPrefix}_$sanitizedPersistenceId"
           val schema = journalTableCfg.schemaName.map(_ + ".").getOrElse("")
-          val actions = for {
-            _ <- sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
-            _ <- slick.jdbc.PostgresProfile.api.DBIO.sequence {
-              for (partitionNumber <- partitionsToCreate) yield {
-                val name = s"${tableName}_$partitionNumber"
-                val minRange = partitionNumber * partitionSize
-                val maxRange = minRange + partitionSize
-                sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+
+          def createPersistenceIdPartition(): DBIOAction[Unit, NoStream, Effect] =
+              sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
+                .asTry
+                .flatMap(swallowPartitionAlreadyExistsError)
+
+          def createSequenceNumberPartitions(): DBIOAction[List[Unit], NoStream, Effect] = {
+            DBIO
+              .sequence {
+                partitionsToCreate.map { partitionNumber =>
+                  val name = s"${tableName}_$partitionNumber"
+                  val minRange = partitionNumber * partitionSize
+                  val maxRange = minRange + partitionSize
+                    sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+                      .asTry
+                      .flatMap(swallowPartitionAlreadyExistsError)
+                      .andThen {
+                        createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
+                        DBIO.successful(())
+                      }
+                }
               }
-            }
-          } yield ()
-          db.run(actions)
-            .recoverWith {
-              case ex: SQLException if ex.getSQLState == DbErrorCodes.PgDuplicateTable =>
-                // Partition already created from another session, all good, recovery succeeded
-                Future.successful(())
-            }
-            .map(_ => {
-              createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
-            })
+          }
+
+          lazy val swallowPartitionAlreadyExistsError: Try[_] => DBIOAction[Unit, NoStream, Effect] = {
+            case Failure(exception) =>
+              logger.debug(s"Partition for persistenceId '$persistenceId' already exists")
+              DBIO.from(DbErrors.SwallowPartitionAlreadyExistsError.applyOrElse(exception, Future.failed))
+            case Success(_) =>
+              logger.debug(s"Created missing journal partition for persistenceId '$persistenceId'")
+              DBIO.successful(())
+          }
+
+            for {
+              _ <- createPersistenceIdPartition()
+              _ <- createSequenceNumberPartitions()
+            } yield ()
         } else {
-          Future.successful(())
+          DBIO.successful(())
         }
     }
 
-    Future.sequence(databaseOperations).map(_ => ())
+    db.run(DBIO.sequence(databaseOperations)).map(_ => ())
+//    Future.sequence(databaseOperations).map(_ => ())
   }
 }

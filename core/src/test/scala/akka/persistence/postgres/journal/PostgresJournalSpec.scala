@@ -53,6 +53,46 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     db.close()
     super.afterAll()
   }
+
+  "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
+    //given
+    val perId = "perId-1"
+    val numOfSenders = 5
+    val batchSize = 1000
+    val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
+
+    //when
+    Future
+      .sequence {
+        senders.map {
+          case (sender, idx) =>
+            Future {
+              writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
+            }
+        }
+      }
+      .futureValue(Timeout(Span(1, Minute)))
+
+    //then
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
+    journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
+      tp.request(Long.MaxValue)
+      val replayedMessages = (1 to batchSize * numOfSenders).map { _ =>
+        tp.expectNext()
+      }
+      tp.expectComplete()
+      val orderings = replayedMessages.map(_.offset).collect {
+        case Sequence(value) => value
+      }
+      orderings.size should equal(batchSize * numOfSenders)
+      val minOrd = orderings.min
+      val maxOrd = orderings.max
+      val expectedOrderings = (minOrd to maxOrd).toList
+
+      (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
+    }
+  }
+
 }
 
 trait NestedPartitionsJournalSpecTestCases {
@@ -130,46 +170,6 @@ trait PartitionedJournalSpecTestCases {
       }
       receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
     }
-
-    "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
-      //given
-      val perId = "perId-1"
-      val numOfSenders = 5
-      val batchSize = 1000
-      val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
-
-      //when
-      Future
-        .sequence {
-          senders.map {
-            case (sender, idx) =>
-              Future {
-                writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
-              }
-          }
-        }
-        .futureValue(Timeout(Span(1, Minute)))
-
-      //then
-      val journalOps = new ScalaPostgresReadJournalOperations(system)
-      journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
-        tp.request(Long.MaxValue)
-        val replayedMessages = (1 to batchSize * numOfSenders).map { _ =>
-          tp.expectNext()
-        }
-        tp.expectComplete()
-        val orderings = replayedMessages.map(_.offset).collect {
-          case Sequence(value) => value
-        }
-        orderings.size should equal(batchSize * numOfSenders)
-        val minOrd = orderings.min
-        val maxOrd = orderings.max
-        val expectedOrderings = (minOrd to maxOrd).toList
-
-        (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
-      }
-    }
-
   }
 
   def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
