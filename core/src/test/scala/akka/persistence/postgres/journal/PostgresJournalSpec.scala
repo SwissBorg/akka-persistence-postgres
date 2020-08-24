@@ -135,7 +135,7 @@ trait PartitionedJournalSpecTestCases {
       //given
       val perId = "perId-1"
       val numOfSenders = 10
-      val batchSize = 5000
+      val batchSize = 500
       val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
 
       //when
