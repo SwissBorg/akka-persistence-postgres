@@ -20,7 +20,10 @@ object ProjectAutoPlugin extends AutoPlugin {
             "git@github.com:SwissBorg/akka-persistence-postgres.git")),
       licenses := Seq("Apache-2.0" -> url("https://opensource.org/licenses/Apache-2.0")),
       description := "A plugin for storing events in a PostgreSQL journal",
-      startYear := Some(2020))
+      startYear := Some(2020),
+      developers := List(
+        Developer("mkubala", "Marcin Kubala", "marcin.kubala+oss@softwaremill.com", url("https://softwaremill.com"))
+      ))
 
   override val projectSettings: Seq[Setting[_]] = Seq(
     crossVersion := CrossVersion.binary,

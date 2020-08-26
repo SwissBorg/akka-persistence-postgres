@@ -1,19 +1,5 @@
 import com.typesafe.tools.mima.plugin.MimaKeys.mimaBinaryIssueFilters
 
-lazy val publishSettings = inThisBuild(
-  List(
-    organization := "com.swissborg",
-    homepage := Some(url("https://github.com/SwissBorg/akka-persistence-postgres")),
-    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
-    scmInfo := Some(
-      ScmInfo(
-        url("https://github.com/SwissBorg/akka-persistence-postgres"),
-        "scm:git@github.com:SwissBorg/akka-persistence-postgres.git")),
-    developers := List(
-      Developer("mkubala", "Marcin Kubala", "marcin.kubala+oss@softwaremill.com", url("https://softwaremill.com/open-source/"))
-    ))
-)
-
 lazy val `akka-persistence-postgres` = project
   .in(file("."))
   .enablePlugins(ScalaUnidocPlugin)
