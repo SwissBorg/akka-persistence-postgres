@@ -28,10 +28,15 @@ This is the default schema.
 
 ![]({{ 'assets/partitioning/flat-journal.png' | absolute_url }})
 
+### Journal partitioned by ordering (offset) values
+A journal partitioned by ordering (offset) values - this schema fits scenarios with a huge or unbounded number of unique persistence units. Because ordering (offset) is used as a partition key, we can leverage [partition pruning](https://www.postgresql.org/docs/11/ddl-partitioning.html#DDL-PARTITION-PRUNING) while reading from the journal, thus gaining better performance.
+You can find the schema [here]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql).
+![]({{ 'assets/partitioning/partitioned-journal.png' | absolute_url }})
+
 ### Journal with nested partitions
 A journal partitioned by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally, each of the shards is split by sequenceNumber range to cap the indexes.
 You can find the schema [here]({{ repo.url }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql).
-![]({{ 'assets/partitioning/partitioned-journal.png' | absolute_url }})
+![]({{ 'assets/partitioning/nested-partitions-journal.png' | absolute_url }})
 
 This variant is aimed for services that have a finite and/or small number of unique persistence aggregates, but each of them has a big journal.
 
@@ -55,6 +60,8 @@ The original plugin (akka-persistence-jdbc) uses B-Tree indexes on three columns
 
 
 Wherever it makes sense, we decided to use more lightweight [BRIN indexes](https://www.postgresql.org/docs/11/brin-intro.html).
+
+> [Journal partitioned by ordering](http://localhost:4000/features#journal-partitioned-by-ordering-offset-values) column still uses B-Tree index since partition keys has to be included in primary key which must be unique. Unfortunately BRIN indices cannot guard uniqueness.
 
 ## Tags as an array of int
 Akka-persistence-jdbc stores all tags in a single column as String separated by an arbitrary separator (by default it’s a comma character).
