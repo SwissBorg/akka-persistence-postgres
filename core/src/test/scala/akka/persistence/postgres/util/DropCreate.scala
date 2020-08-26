@@ -7,13 +7,43 @@ package akka.persistence.postgres.util
 
 import java.sql.Statement
 
+import akka.persistence.postgres.config.JournalTableConfiguration
+import akka.persistence.postgres.journal.dao.{
+  FlatJournalTable,
+  JournalTable,
+  NestedPartitionsJournalTable,
+  PartitionedJournalTable
+}
 import akka.persistence.postgres.util.Schema.SchemaType
 import slick.jdbc.JdbcBackend.{ Database, Session }
+import slick.lifted.TableQuery
 
 object Schema {
-  sealed trait SchemaType { def schema: String }
-  final case class Plain(schema: String = "schema/postgres/plain-schema.sql") extends SchemaType
-  final case class Partitioned(schema: String = "schema/postgres/partitioned-schema.sql") extends SchemaType
+
+  sealed trait SchemaType {
+    def resourceNamePrefix: String
+    lazy val schema: String = s"schema/postgres/$resourceNamePrefix-schema.sql"
+    lazy val configName: String = s"${resourceNamePrefix}-application.conf"
+    def table(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable]
+  }
+
+  case object Plain extends SchemaType {
+    override val resourceNamePrefix: String = "plain"
+    override def table(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
+      FlatJournalTable(journalTableCfg)
+  }
+
+  case object NestedPartitions extends SchemaType {
+    override val resourceNamePrefix: String = "nested-partitions"
+    override def table(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
+      NestedPartitionsJournalTable(journalTableCfg)
+  }
+
+  case object Partitioned extends SchemaType {
+    override val resourceNamePrefix: String = "partitioned"
+    override def table(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
+      PartitionedJournalTable(journalTableCfg)
+  }
 }
 
 trait DropCreate extends ClasspathResources {

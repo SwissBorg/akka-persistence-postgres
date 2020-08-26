@@ -5,7 +5,10 @@
 
 package akka.persistence.postgres.query
 
-abstract class CurrentPersistenceIdsTest(config: String) extends QueryTestSpec(config) {
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
+
+abstract class CurrentPersistenceIdsTest(val schemaType: SchemaType)
+    extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-shared-db-application.conf") {
   it should "not find any persistenceIds for empty journal" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     journalOps.withCurrentPersistenceIds() { tp =>
@@ -34,10 +37,8 @@ abstract class CurrentPersistenceIdsTest(config: String) extends QueryTestSpec(c
 
 // Note: these tests use the shared-db configs, the test for all persistence ids use the regular db config
 
-class PartitionedScalaCurrentPersistenceIdsTest
-    extends CurrentPersistenceIdsTest("partitioned-shared-db-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaCurrentPersistenceIdsTest extends CurrentPersistenceIdsTest(NestedPartitions)
 
-class PlainScalaCurrentPersistenceIdsTest
-    extends CurrentPersistenceIdsTest("plain-shared-db-application.conf")
-    with PlainDbCleaner
+class PartitionedScalaCurrentPersistenceIdsTest extends CurrentPersistenceIdsTest(Partitioned)
+
+class PlainScalaCurrentPersistenceIdsTest extends CurrentPersistenceIdsTest(Plain)

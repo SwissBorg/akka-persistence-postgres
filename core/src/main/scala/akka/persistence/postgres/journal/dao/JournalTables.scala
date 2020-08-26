@@ -7,29 +7,66 @@ package akka.persistence.postgres
 package journal.dao
 
 import akka.persistence.postgres.config.JournalTableConfiguration
+import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
-trait JournalTables {
-  import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
+trait JournalTable extends Table[JournalRow] {
+  def ordering: Rep[Long]
+  def persistenceId: Rep[String]
+  def sequenceNumber: Rep[Long]
+  def deleted: Rep[Boolean]
+  def tags: Rep[List[Int]]
+  def message: Rep[Array[Byte]]
+}
 
-  def journalTableCfg: JournalTableConfiguration
+abstract class BaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+    extends Table[JournalRow](
+      _tableTag,
+      _schemaName = journalTableCfg.schemaName,
+      _tableName = journalTableCfg.tableName)
+    with JournalTable
 
-  class Journal(_tableTag: Tag)
-      extends Table[JournalRow](
-        _tableTag,
-        _schemaName = journalTableCfg.schemaName,
-        _tableName = journalTableCfg.tableName) {
-    def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags) <> (JournalRow.tupled, JournalRow.unapply)
+class FlatJournalTable private[dao] (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+    extends BaseJournalTable(_tableTag, journalTableCfg) {
+  def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags) <> (JournalRow.tupled, JournalRow.unapply)
 
-    val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering, O.AutoInc)
-    val persistenceId: Rep[String] =
-      column[String](journalTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
-    val sequenceNumber: Rep[Long] = column[Long](journalTableCfg.columnNames.sequenceNumber)
-    val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
-    val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
-    val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
-    val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
-    val orderingIdx = index(s"${tableName}_ordering_idx", ordering, unique = true)
-  }
+  val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering, O.AutoInc)
+  val persistenceId: Rep[String] =
+    column[String](journalTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
+  val sequenceNumber: Rep[Long] = column[Long](journalTableCfg.columnNames.sequenceNumber)
+  val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
+  val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
+  val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
+  val orderingIdx = index(s"${tableName}_ordering_idx", ordering, unique = true)
+  val tagsIdx = index(s"${tableName}_tags_idx", tags)
+}
 
-  lazy val JournalTable = new TableQuery(tag => new Journal(tag))
+object FlatJournalTable {
+  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
+    TableQuery(tag => new FlatJournalTable(tag, journalTableCfg))
+}
+
+class PartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+    extends BaseJournalTable(_tableTag, journalTableCfg) {
+  def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags) <> (JournalRow.tupled, JournalRow.unapply)
+
+  val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
+  val persistenceId: Rep[String] =
+    column[String](journalTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
+  val sequenceNumber: Rep[Long] = column[Long](journalTableCfg.columnNames.sequenceNumber)
+  val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
+  val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
+  val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber, ordering))
+  val tagsIdx = index(s"${tableName}_tags_idx", tags)
+}
+
+object PartitionedJournalTable {
+  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
+    TableQuery(tag => new PartitionedJournalTable(tag, journalTableCfg))
+}
+
+object NestedPartitionsJournalTable {
+  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
+    FlatJournalTable.apply(journalTableCfg)
 }

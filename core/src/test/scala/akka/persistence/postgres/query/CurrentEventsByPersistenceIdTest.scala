@@ -8,10 +8,11 @@ package akka.persistence.postgres.query
 import akka.Done
 import akka.persistence.Persistence
 import akka.persistence.postgres.journal.PostgresAsyncWriteJournal
-import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
+import akka.persistence.query.{EventEnvelope, Offset, Sequence}
 import akka.testkit.TestProbe
 
-abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTestSpec(config) {
+abstract class CurrentEventsByPersistenceIdTest(val schemaType: SchemaType) extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-shared-db-application.conf") {
   import QueryTestSpec.EventEnvelopeProbeOps
 
   it should "not find any events for unknown pid" in withActorSystem { implicit system =>
@@ -210,10 +211,8 @@ abstract class CurrentEventsByPersistenceIdTest(config: String) extends QueryTes
 
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
 
-class PartitionedScalaCurrentEventsByPersistenceIdTest
-    extends CurrentEventsByPersistenceIdTest("partitioned-shared-db-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaCurrentEventsByPersistenceIdTest extends CurrentEventsByPersistenceIdTest(NestedPartitions)
 
-class PlainScalaCurrentEventsByPersistenceIdTest
-    extends CurrentEventsByPersistenceIdTest("plain-shared-db-application.conf")
-    with PlainDbCleaner
+class PartitionedScalaCurrentEventsByPersistenceIdTest extends CurrentEventsByPersistenceIdTest(Partitioned)
+
+class PlainScalaCurrentEventsByPersistenceIdTest extends CurrentEventsByPersistenceIdTest(Plain)

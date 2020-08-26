@@ -8,12 +8,14 @@ package akka.persistence.postgres.query
 import akka.Done
 import akka.pattern.ask
 import akka.persistence.postgres.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(config) {
+abstract class EventsByPersistenceIdTest(val schemaType: SchemaType)
+    extends QueryTestSpec(schemaType.configName) {
   import QueryTestSpec.EventEnvelopeProbeOps
 
   it should "not find any events for unknown pid" in withActorSystem { implicit system =>
@@ -331,10 +333,8 @@ abstract class EventsByPersistenceIdTest(config: String) extends QueryTestSpec(c
   }
 }
 
-class PartitionedScalaEventsByPersistenceIdTest
-    extends EventsByPersistenceIdTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaEventsByPersistenceIdTest extends EventsByPersistenceIdTest(NestedPartitions)
 
-class PlainScalaEventsByPersistenceIdTest
-    extends EventsByPersistenceIdTest("plain-application.conf")
-    with PlainDbCleaner
+class PartitionedScalaEventsByPersistenceIdTest extends EventsByPersistenceIdTest(Partitioned)
+
+class PlainScalaEventsByPersistenceIdTest extends EventsByPersistenceIdTest(Plain)

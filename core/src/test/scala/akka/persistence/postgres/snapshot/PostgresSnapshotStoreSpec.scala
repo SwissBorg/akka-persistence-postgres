@@ -6,18 +6,18 @@
 package akka.persistence.postgres.snapshot
 
 import akka.persistence.postgres.config._
+import akka.persistence.postgres.db.SlickDatabase
 import akka.persistence.postgres.util.Schema._
 import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
-import akka.persistence.postgres.db.SlickDatabase
 import akka.persistence.snapshot.SnapshotStoreSpec
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 
 import scala.concurrent.duration._
 
-abstract class PostgresSnapshotStoreSpec(config: Config, schemaType: SchemaType)
-    extends SnapshotStoreSpec(config)
+abstract class PostgresSnapshotStoreSpec(schemaType: SchemaType)
+    extends SnapshotStoreSpec(ConfigFactory.load(schemaType.configName))
     with BeforeAndAfterAll
     with ScalaFutures
     with ClasspathResources
@@ -42,5 +42,4 @@ abstract class PostgresSnapshotStoreSpec(config: Config, schemaType: SchemaType)
   }
 }
 
-class PlainSnapshotStoreSpec
-  extends PostgresSnapshotStoreSpec(ConfigFactory.load("plain-application.conf"), Plain())
+class PlainSnapshotStoreSpec extends PostgresSnapshotStoreSpec(Plain)

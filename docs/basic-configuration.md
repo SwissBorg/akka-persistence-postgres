@@ -35,7 +35,7 @@ Configure `slick.db`:
 Depending on the journal variant, choose the appropriate schema:
 
 - [Plain (flat) Journal]({{ site.repo }}/core/src/test/resources/schema/postgres/plain-schema.sql)
-- [Journal with Nested Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql)
+- [Journal with Nested Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql)
 
 ## Reference Configuration
 
@@ -108,10 +108,13 @@ Currently, the plugin supports two variants of the journal table schema:
 
 This is the default schema.
 
-*journal with nested partitions*  by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally each of the shards is split by sequenceNumber range to cap the indexes.
-You can find the schema [here]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql).
+*journal with nested partitions*  by persistenceId and sequenceNumber - this version allows you to shard your events by the persistenceId. Additionally, each of the shards is split by sequenceNumber range to cap the indexes.
+You can find the schema [here]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql).
 
 This variant is aimed for services that have a finite and/or small number of unique persistence aggregates, but each of them has a big journal.
+
+*journal partitioned by ordering* (offset) values - this schema fits scenarios with a huge or unbounded number of unique persistence units. Because ordering (offset) is used as a partition key, we can leverage [partition pruning](https://www.postgresql.org/docs/11/ddl-partitioning.html#DDL-PARTITION-PRUNING) while reading from the journal, thus gaining better performance.
+You can find the schema [here]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql).
 
 ### Using flat journal
 
@@ -123,9 +126,9 @@ You do not have to override anything in order to start using it, although if you
 postgres-journal.dao = "akka.persistence.postgres.journal.dao.FlatJournalDao"
 ```
 
-### Using partitioned journal
+### Using journal partitioned by persistence id and sequence number
 
-In order to start using partitioned journal, you have to create either a partitioned table (here is [the schema]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql)) and set the Journal DAO FQCN:
+In order to start using journal with nested partitions, you have to create a table with nested partitions (here is [the schema]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql)) and set the Journal DAO FQCN:
 ```hocon
 postgres-journal.dao = "akka.persistence.postgres.journal.dao.NestedPartitionsJournalDao"
 ```
@@ -145,6 +148,28 @@ The `prefix` can be configured by changing the `posgres-journal.tables.journal.p
 Example partition names: `j_myActor_0`, `j_myActor_1`, `j_worker_0` etc.
 
 Keep in mind that the default maximum length for a table name in Postgres is 63 bytes, so you should avoid any non-ascii characters in your `persistenceId`s and keep the `prefix` reasonably short.
+
+> :warning: Once any of the partitioning setting under  `postgres-journal.tables.journal.partitions` branch is settled, you should never change it.  Otherwise you might end up with PostgresExceptions caused by table name or range conflicts.
+
+### Using journal partitioned by ordering (offset)
+
+In order to start using partitioned journal, you have to apply [this schema]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql) and set the Journal DAO FQCN:
+```hocon
+postgres-journal.dao = "akka.persistence.postgres.journal.dao.PartitionedJournalDao"
+```
+
+#### Partition size
+The size of each partition (`ordering`’s range) can be changed by setting `postgres-journal.tables.journal.partitions.size`. By default partition size is set to `10000000` (10M).
+
+Partitions are automatically created by the plugin in advance. `PartitionedJournalDao` keeps track of created partitions and once ordering is out of the range for any known partitions, a new one is created.
+
+#### Partition table names
+
+Partitions follow the `prefix_partitionNumber` naming pattern.
+The `prefix` can be configured by changing the `posgres-journal.tables.journal.partitions.prefix` value. By default it’s set to `j`.
+`partitionNumber` is the ordinal number of the partition for a given partition id.
+
+Example partition names: `j_0`, `j_1`, `j_2` etc.
 
 > :warning: Once any of the partitioning setting under  `postgres-journal.tables.journal.partitions` branch is settled, you should never change it.  Otherwise you might end up with PostgresExceptions caused by table name or range conflicts.
 

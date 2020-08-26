@@ -6,11 +6,12 @@
 package akka.persistence.postgres.query
 
 import akka.pattern._
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
+import akka.persistence.query.{EventEnvelope, NoOffset, Sequence}
 
 import scala.concurrent.duration._
 
-abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(config) {
+abstract class LogicalDeleteQueryTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   implicit val askTimeout = 500.millis
 
   it should "return logically deleted events when using CurrentEventsByTag (backward compatibility)" in withActorSystem {
@@ -98,8 +99,8 @@ abstract class LogicalDeleteQueryTest(config: String) extends QueryTestSpec(conf
   }
 }
 
-class PartitionedLogicalDeleteQueryTest
-    extends LogicalDeleteQueryTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsLogicalDeleteQueryTest extends LogicalDeleteQueryTest(NestedPartitions)
 
-class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest("plain-application.conf") with PlainDbCleaner
+class PartitionedLogicalDeleteQueryTest extends LogicalDeleteQueryTest(Partitioned)
+
+class PlainLogicalDeleteQueryTest extends LogicalDeleteQueryTest(Plain)

@@ -17,6 +17,7 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
     implicit ec: ExecutionContext,
     mat: Materializer)
     extends FlatJournalDao(db, journalConfig, serialization) {
+  override val queries = new JournalQueries(NestedPartitionsJournalTable(journalConfig.journalTableConfiguration))
   private val journalTableCfg = journalConfig.journalTableConfiguration
   private val partitionSize = journalConfig.partitionsConfig.size
   private val partitionPrefix = journalConfig.partitionsConfig.prefix
@@ -26,7 +27,7 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
 
   private val createdPartitions = new ConcurrentHashMap[String, List[Long]]()
 
-  def attachJournalPartition(xs: Seq[JournalRow])(implicit ec: ExecutionContext): Future[Unit] = {
+  def attachJournalPartition(xs: Seq[JournalRow]): Future[Unit] = {
     import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
     val persistenceIdToMaxSequenceNumber =
       xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
@@ -37,7 +38,7 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
         val partitionsToCreate = requiredPartitions.toList.filter(!existingPartitions.contains(_))
 
         if (partitionsToCreate.nonEmpty) {
-          logger.info(s"Adding missing journal partition for persistenceId = '${persistenceId}'...")
+          logger.debug(s"Adding missing journal partition for persistenceId = '${persistenceId}'...")
           // tableName can contain only digits, letters and _ (underscore), all other characters will be replaced with _ (underscore)
           val sanitizedPersistenceId = persistenceId.replaceAll("\\W", "_")
           val tableName = s"${partitionPrefix}_$sanitizedPersistenceId"

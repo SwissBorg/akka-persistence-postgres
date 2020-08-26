@@ -28,19 +28,18 @@ DROP TABLE IF EXISTS public.journal;
 
 CREATE TABLE IF NOT EXISTS public.journal
 (
-    ordering        BIGINT,
+    ordering        BIGSERIAL,
     sequence_number BIGINT                NOT NULL,
     deleted         BOOLEAN DEFAULT FALSE NOT NULL,
     persistence_id  TEXT                  NOT NULL,
     message         BYTEA                 NOT NULL,
     tags            int[],
-    PRIMARY KEY (persistence_id, sequence_number, ordering)
-) PARTITION BY RANGE (ordering);
-
-CREATE SEQUENCE journal_ordering_seq OWNED BY public.journal.ordering;
+    PRIMARY KEY (persistence_id, sequence_number)
+) PARTITION BY LIST (persistence_id);
 
 CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
 CREATE INDEX journal_tags_idx ON public.journal USING GIN (tags gin__int_ops);
+CREATE INDEX journal_ordering_idx ON public.journal USING BRIN (ordering);
 
 DROP TABLE IF EXISTS public.tags;
 

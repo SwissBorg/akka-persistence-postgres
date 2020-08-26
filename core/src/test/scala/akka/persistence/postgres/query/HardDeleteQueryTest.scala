@@ -6,12 +6,13 @@
 package akka.persistence.postgres.query
 
 import akka.pattern._
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
 import akka.persistence.query.NoOffset
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 
-abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config) with Matchers {
+abstract class HardDeleteQueryTest(val schemaType: SchemaType) extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-application-with-hard-delete.conf") with Matchers {
   implicit val askTimeout = 500.millis
 
   it should "not return deleted events when using CurrentEventsByTag" in withActorSystem { implicit system =>
@@ -95,10 +96,8 @@ abstract class HardDeleteQueryTest(config: String) extends QueryTestSpec(config)
   }
 }
 
-class PartitionedHardDeleteQueryTest
-    extends HardDeleteQueryTest("partitioned-application-with-hard-delete.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsHardDeleteQueryTest extends HardDeleteQueryTest(NestedPartitions)
 
-class PlainHardDeleteQueryTest
-    extends HardDeleteQueryTest("plain-application-with-hard-delete.conf")
-    with PlainDbCleaner
+class PartitionedHardDeleteQueryTest extends HardDeleteQueryTest(Partitioned)
+
+class PlainHardDeleteQueryTest extends HardDeleteQueryTest(Plain)

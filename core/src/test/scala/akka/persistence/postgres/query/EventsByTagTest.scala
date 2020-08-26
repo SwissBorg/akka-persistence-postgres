@@ -9,6 +9,7 @@ import akka.Done
 import akka.pattern.ask
 import akka.persistence.postgres.query.EventAdapterTest.{ Event, EventRestored, TaggedAsyncEvent, TaggedEvent }
 import akka.persistence.postgres.query.EventsByTagTest._
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 
@@ -24,7 +25,8 @@ object EventsByTagTest {
     "postgres-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
 }
 
-abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, configOverrides) {
+abstract class EventsByTagTest(val schemaType: SchemaType)
+    extends QueryTestSpec(schemaType.configName, configOverrides) {
   final val NoMsgTime: FiniteDuration = 100.millis
 
   it should "not find events for unknown tags" in withActorSystem { implicit system =>
@@ -415,8 +417,8 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
   }
 }
 
-class PartitionedScalaEventsByTagTest
-    extends EventsByTagTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaEventsByTagTest extends EventsByTagTest(NestedPartitions) //with BaseDbCleaner
 
-class PlainScalaEventsByTagTest extends EventsByTagTest("plain-application.conf") with PlainDbCleaner
+class PartitionedScalaEventsByTagTest extends EventsByTagTest(Partitioned) //with BaseDbCleaner
+
+class PlainScalaEventsByTagTest extends EventsByTagTest(Plain) //with BaseDbCleaner

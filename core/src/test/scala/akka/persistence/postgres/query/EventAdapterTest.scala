@@ -7,6 +7,7 @@ package akka.persistence.postgres.query
 
 import akka.pattern.ask
 import akka.persistence.journal.{ EventSeq, ReadEventAdapter, Tagged, WriteEventAdapter }
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 
 import scala.concurrent.duration._
@@ -47,7 +48,8 @@ object EventAdapterTest {
 /**
  * Tests that check persistence queries when event adapter is configured for persisted event.
  */
-abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
+abstract class EventAdapterTest(val schemaType: SchemaType)
+    extends QueryTestSpec(schemaType.configName) {
   import EventAdapterTest._
 
   final val NoMsgTime: FiniteDuration = 100.millis
@@ -176,8 +178,8 @@ abstract class EventAdapterTest(config: String) extends QueryTestSpec(config) {
   }
 }
 
-class PartitionedScalaEventAdapterTest
-    extends EventAdapterTest("partitioned-application.conf")
-    with PartitionedDbCleaner
+class NestedPartitionsScalaEventAdapterTest extends EventAdapterTest(NestedPartitions)
 
-class PlainScalaEventAdapterTest extends EventAdapterTest("plain-application.conf") with PlainDbCleaner
+class PartitionedScalaEventAdapterTest extends EventAdapterTest(Partitioned)
+
+class PlainScalaEventAdapterTest extends EventAdapterTest(Plain)

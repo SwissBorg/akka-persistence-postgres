@@ -6,20 +6,20 @@
 package akka.persistence.postgres
 package query.dao
 
-import akka.persistence.postgres.config.{ JournalTableConfiguration, ReadJournalConfig }
-import akka.persistence.postgres.journal.dao.JournalTables
+import akka.persistence.postgres.config.ReadJournalConfig
+import akka.persistence.postgres.journal.dao.{ FlatJournalTable, JournalTable }
 
-class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends JournalTables {
-  override val journalTableCfg: JournalTableConfiguration = readJournalConfig.journalTableConfiguration
-
+class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
+
+  private val journalTable: TableQuery[JournalTable] = FlatJournalTable(readJournalConfig.journalTableConfiguration)
 
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
 
   private def baseTableQuery() =
-    if (readJournalConfig.includeDeleted) JournalTable
-    else JournalTable.filter(_.deleted === false)
+    if (readJournalConfig.includeDeleted) journalTable
+    else journalTable.filter(_.deleted === false)
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
 
@@ -52,11 +52,11 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) extends Journ
   val eventsByTag = Compiled(_eventsByTag _)
 
   private def _journalSequenceQuery(from: ConstColumn[Long], limit: ConstColumn[Long]) =
-    JournalTable.filter(_.ordering > from).map(_.ordering).sorted.take(limit)
+    journalTable.filter(_.ordering > from).map(_.ordering).sorted.take(limit)
 
   val orderingByOrdering = Compiled(_journalSequenceQuery _)
 
   val maxOrdering = Compiled {
-    JournalTable.map(_.ordering).max.getOrElse(0L)
+    journalTable.map(_.ordering).max.getOrElse(0L)
   }
 }
