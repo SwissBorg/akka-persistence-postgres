@@ -6,7 +6,7 @@
 package akka.persistence.postgres.journal
 
 import akka.actor.Actor
-import akka.persistence.JournalProtocol.{ RecoverySuccess, ReplayMessages, ReplayedMessage }
+import akka.persistence.JournalProtocol.ReplayedMessage
 import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
@@ -54,121 +54,49 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     super.afterAll()
   }
 
-  "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
-    //given
-    val perId = "perId-1"
-    val numOfSenders = 5
-    val batchSize = 1000
-    val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
-
-    //when
-    Future
-      .sequence {
-        senders.map {
-          case (sender, idx) =>
-            Future {
-              writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
-            }
-        }
-      }
-      .futureValue(Timeout(Span(1, Minute)))
-
-    //then
-    val journalOps = new ScalaPostgresReadJournalOperations(system)
-    journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
-      tp.request(Long.MaxValue)
-      val replayedMessages = (1 to batchSize * numOfSenders).map { _ =>
-        tp.expectNext()
-      }
-      tp.expectComplete()
-      val orderings = replayedMessages.map(_.offset).collect {
-        case Sequence(value) => value
-      }
-      orderings.size should equal(batchSize * numOfSenders)
-      val minOrd = orderings.min
-      val maxOrd = orderings.max
-      val expectedOrderings = (minOrd to maxOrd).toList
-
-      (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
-    }
-  }
-
-}
-
-trait NestedPartitionsJournalSpecTestCases {
-  this: PostgresJournalSpec =>
-
-  "A journal" must {
-    "allow to store concurrently events for different persistenceId" in {
-      //given
-      val pId1 = "persist1"
-      val pId2 = "persist2"
-      val sender1 = TestProbe()
-      val sender2 = TestProbe()
-      val receiverProbe = TestProbe()
-      //when
-      writeMessages(1, 1000, pId1, sender1.ref, writerUuid)
-      writeMessages(1, 1000, pId2, sender2.ref, writerUuid)
-
-      //then
-      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId1, receiverProbe.ref)
-      (1 to 1000).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgresMessage(i, pId1))
-      }
-      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
-
-      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId2, receiverProbe.ref)
-      (1 to 1000).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgresMessage(i, pId2))
-      }
-      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 1000L))
-    }
-
-    "create new sub-partition for new events" in {
-      //given
-      val pId = "persist3"
-      val sender = TestProbe()
-      val receiverProbe = TestProbe()
-      //when
-      writeMessages(1, 1000, pId, sender.ref, writerUuid)
-
-      // Assuming that partition's capacity is 2000 rows.
-      writeMessages(1001, 2500, pId, sender.ref, writerUuid)
-
-      //then
-      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
-      (1 to 2500).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgresMessage(i, pId))
-      }
-      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
-    }
-  }
-
-  def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
-    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
 trait PartitionedJournalSpecTestCases {
   this: PostgresJournalSpec =>
 
   "A journal" must {
-    "create new partition for new events" in {
+    "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
       //given
-      val pId = "persist3"
-      val sender = TestProbe()
-      val receiverProbe = TestProbe()
-      //when
-      writeMessages(1, 2000, pId, sender.ref, writerUuid)
+      val perId = "perId-1"
+      val numOfSenders = 5
+      val batchSize = 1000
+      val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
 
-      // Assuming that partition's capacity is 2000 rows.
-      writeMessages(2001, 2500, pId, sender.ref, writerUuid)
+      //when
+      Future
+        .sequence {
+          senders.map {
+            case (sender, idx) =>
+              Future {
+                writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
+              }
+          }
+        }
+        .futureValue(Timeout(Span(1, Minute)))
 
       //then
-      journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
-      (1 to 2500).foreach { i =>
-        receiverProbe.expectMsg(replayedPostgresMessage(i, pId))
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
+      journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
+        tp.request(Long.MaxValue)
+        val replayedMessages = (1 to batchSize * numOfSenders).map { _ =>
+          tp.expectNext()
+        }
+        tp.expectComplete()
+        val orderings = replayedMessages.map(_.offset).collect {
+          case Sequence(value) => value
+        }
+        orderings.size should equal(batchSize * numOfSenders)
+        val minOrd = orderings.min
+        val maxOrd = orderings.max
+        val expectedOrderings = (minOrd to maxOrd).toList
+
+        (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
       }
-      receiverProbe.expectMsg(RecoverySuccess(highestSequenceNr = 2500L))
     }
   }
 
@@ -176,15 +104,11 @@ trait PartitionedJournalSpecTestCases {
     ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
 }
 
-class NestedPartitionsJournalSpec
-    extends PostgresJournalSpec("nested-partitions-application.conf", NestedPartitions)
-    with NestedPartitionsJournalSpecTestCases
+class NestedPartitionsJournalSpec extends PostgresJournalSpec("nested-partitions-application.conf", NestedPartitions)
 class NestedPartitionsJournalSpecSharedDb
     extends PostgresJournalSpec("nested-partitions-shared-db-application.conf", NestedPartitions)
-    with NestedPartitionsJournalSpecTestCases
 class NestedPartitionsJournalSpecPhysicalDelete
     extends PostgresJournalSpec("nested-partitions-application-with-hard-delete.conf", NestedPartitions)
-    with NestedPartitionsJournalSpecTestCases
 
 class PartitionedJournalSpec
     extends PostgresJournalSpec("partitioned-application.conf", Partitioned)
