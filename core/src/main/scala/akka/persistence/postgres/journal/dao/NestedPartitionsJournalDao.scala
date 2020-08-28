@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import akka.persistence.postgres.JournalRow
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.db.DbErrors
+import akka.persistence.postgres.db.DbErrors.withHandledPartitionErrors
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 import akka.serialization.Serialization
 import akka.stream.Materializer
@@ -12,7 +12,6 @@ import slick.jdbc.JdbcBackend.Database
 
 import scala.collection.immutable.{ List, Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
 
 class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
@@ -45,8 +44,9 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
           val schema = journalTableCfg.schemaName.map(_ + ".").getOrElse("")
 
           def createPersistenceIdPartition(): DBIOAction[Unit, NoStream, Effect] =
-            sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})""".asTry
-              .flatMap(swallowPartitionAlreadyExistsError)
+            withHandledPartitionErrors(logger, s"persistenceId = '$persistenceId'") {
+              sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
+            }
 
           def createSequenceNumberPartitions(): DBIOAction[List[Unit], NoStream, Effect] = {
             DBIO.sequence {
@@ -54,23 +54,16 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
                 val name = s"${tableName}_$partitionNumber"
                 val minRange = partitionNumber * partitionSize
                 val maxRange = minRange + partitionSize
-                sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)""".asTry
-                  .flatMap(swallowPartitionAlreadyExistsError)
-                  .andThen {
-                    createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
-                    DBIO.successful(())
-                  }
+                val partitionDetails =
+                  s"persistenceId = '$persistenceId' and sequenceNr between $minRange and $maxRange"
+                withHandledPartitionErrors(logger, partitionDetails) {
+                  sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)""".asTry
+                }.andThen {
+                  createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
+                  DBIO.successful(())
+                }
               }
             }
-          }
-
-          lazy val swallowPartitionAlreadyExistsError: Try[_] => DBIOAction[Unit, NoStream, Effect] = {
-            case Failure(exception) =>
-              logger.debug(s"Partition for persistenceId '$persistenceId' already exists")
-              DBIO.from(DbErrors.SwallowPartitionAlreadyExistsError.applyOrElse(exception, Future.failed))
-            case Success(_) =>
-              logger.debug(s"Created missing journal partition for persistenceId '$persistenceId'")
-              DBIO.successful(())
           }
 
           for {

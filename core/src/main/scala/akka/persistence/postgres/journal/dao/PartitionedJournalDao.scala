@@ -4,15 +4,13 @@ import java.util.concurrent.atomic.AtomicReference
 
 import akka.persistence.postgres.JournalRow
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.db.DbErrors
+import akka.persistence.postgres.db.DbErrors.withHandledPartitionErrors
 import akka.serialization.Serialization
 import akka.stream.Materializer
 import slick.jdbc.JdbcBackend.Database
-import slick.sql.SqlAction
 
 import scala.collection.immutable.{ Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
 
 class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
@@ -72,17 +70,8 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
           val name = s"${partitionPrefix}_$partitionNumber"
           val minRange = partitionNumber * partitionSize
           val maxRange = minRange + partitionSize
-          val query: SqlAction[Int, NoStream, Effect] = {
+          withHandledPartitionErrors(logger, s"ordering between $minRange and $maxRange") {
             sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
-          }
-          query.asTry.flatMap {
-            case Failure(exception) =>
-              logger.debug(s"Partition for ordering between $minRange and $maxRange already exists")
-              DBIO.from(DbErrors.SwallowPartitionAlreadyExistsError.applyOrElse(exception, Future.failed))
-            case Success(_) =>
-              createdPartitions.updateAndGet(_ + partitionNumber)
-              logger.debug(s"Created missing journal partition for ordering between $minRange and $maxRange")
-              DBIO.successful(())
           }
         }
       }
