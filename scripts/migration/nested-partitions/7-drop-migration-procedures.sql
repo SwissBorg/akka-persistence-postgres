@@ -1,0 +1,8 @@
+DROP PROCEDURE IF EXISTS create_schema;
+DROP PROCEDURE IF EXISTS create_sub_partitions;
+DROP PROCEDURE IF EXISTS fill_tags;
+DROP PROCEDURE IF EXISTS copy_data;
+DROP PROCEDURE IF EXISTS copy_piece_of_data;
+DROP PROCEDURE IF EXISTS move_sequence;
+DROP PROCEDURE IF EXISTS create_indexes;
+
