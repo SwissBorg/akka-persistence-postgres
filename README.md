@@ -17,7 +17,7 @@ In addition to the support for the most generic case with a single journal table
 To use `akka-persistence-postgres` in your SBT project, add the following to your `build.sbt`:
 
 ```scala
-libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "X.Y.Z"
+libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "0.2.0"
 ```
 
 For a maven project add:
@@ -25,7 +25,7 @@ For a maven project add:
 <dependency>
     <groupId>com.swisborg</groupId>
     <artifactId>akka-persistence-postgres_2.12</artifactId>
-    <version>X.Y.Z</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 to your `pom.xml`.
