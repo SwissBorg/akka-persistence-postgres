@@ -7,22 +7,22 @@ package akka.persistence.postgres.query
 
 import java.util.concurrent.atomic.AtomicLong
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.pattern.ask
 import akka.persistence.postgres.config.JournalSequenceRetrievalConfig
 import akka.persistence.postgres.db.ExtendedPostgresProfile
-import akka.persistence.postgres.query.JournalSequenceActor.{GetMaxOrderingId, MaxOrderingId}
-import akka.persistence.postgres.query.dao.{ByteArrayReadJournalDao, TestProbeReadJournalDao}
-import akka.persistence.postgres.tag.{CachedTagIdResolver, SimpleTagDao}
-import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
-import akka.persistence.postgres.{JournalRow, SharedActorSystemTestSpec}
+import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
+import akka.persistence.postgres.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
+import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao }
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
+import akka.persistence.postgres.{ JournalRow, SharedActorSystemTestSpec }
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{Sink, Source}
-import akka.stream.{Materializer, SystemMaterializer}
+import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.{ Materializer, SystemMaterializer }
 import akka.testkit.TestProbe
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
-import slick.jdbc.{JdbcBackend, JdbcCapabilities}
+import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -30,12 +30,12 @@ import scala.concurrent.duration._
 abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   private val log = LoggerFactory.getLogger(classOf[JournalSequenceActorTest])
 
-  val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
-  val journalTable = schemaType.table(journalConfig.journalTableConfiguration)
+  private val journalSequenceActorConfig = readJournalConfig.journalSequenceRetrievalConfiguration
+  private val journalTable = schemaType.table(journalConfig.journalTableConfiguration)
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
-  implicit val askTimeout = 50.millis
+  implicit val askTimeout: FiniteDuration = 50.millis
 
   private val orderingSeq = new AtomicLong(0L)
   def generateId: Long = orderingSeq.incrementAndGet()
@@ -192,7 +192,7 @@ class MockDaoJournalSequenceActorTest extends SharedActorSystemTestSpec {
 
     val almostQueryDelay = queryDelay - 50.millis
     val almostImmediately = 50.millis
-    withTestProbeJournalSequenceActor(batchSize, maxTries, queryDelay) { (daoProbe, actor) =>
+    withTestProbeJournalSequenceActor(batchSize, maxTries, queryDelay) { (daoProbe, _) =>
       daoProbe.expectMsg(almostImmediately, TestProbeReadJournalDao.JournalSequence(0, batchSize))
       val firstBatch = (1L to 40L) ++ (51L to 110L)
       daoProbe.reply(firstBatch)

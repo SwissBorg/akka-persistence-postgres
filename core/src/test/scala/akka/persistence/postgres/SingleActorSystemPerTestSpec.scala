@@ -7,9 +7,9 @@ package akka.persistence.postgres
 
 import akka.actor.ActorSystem
 import akka.persistence.postgres.config.{ JournalConfig, ReadJournalConfig, SlickConfiguration }
+import akka.persistence.postgres.db.SlickDatabase
 import akka.persistence.postgres.query.javadsl.PostgresReadJournal
 import akka.persistence.postgres.util.DropCreate
-import akka.persistence.postgres.db.SlickDatabase
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValue }
 import org.scalatest.BeforeAndAfterEach
@@ -29,7 +29,7 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
   implicit val pc: PatienceConfig = PatienceConfig(timeout = 1.minute)
   implicit val timeout: Timeout = Timeout(1.minute)
 
-  val cfg = config.getConfig("postgres-journal")
+  val cfg: Config = config.getConfig("postgres-journal")
   val journalConfig = new JournalConfig(cfg)
   val readJournalConfig = new ReadJournalConfig(config.getConfig(PostgresReadJournal.Identifier))
 
@@ -66,6 +66,12 @@ abstract class SingleActorSystemPerTestSpec(val config: Config)
   }
 
   def withActorSystem(f: ActorSystem => Unit): Unit = {
+    implicit val system: ActorSystem = ActorSystem("test", config)
+    f(system)
+    system.terminate().futureValue
+  }
+
+  def withActorSystem(config: Config = config)(f: ActorSystem => Unit): Unit = {
     implicit val system: ActorSystem = ActorSystem("test", config)
     f(system)
     system.terminate().futureValue

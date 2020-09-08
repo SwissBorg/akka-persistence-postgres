@@ -40,13 +40,11 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   protected def _eventsByTag(
       tag: Rep[List[Int]],
       offset: ConstColumn[Long],
-      maxOffset: ConstColumn[Long],
-      max: ConstColumn[Long]) = {
+      maxOffset: ConstColumn[Long]): Query[JournalTable, JournalRow, Seq] = {
     baseTableQuery()
       .filter(_.tags @> tag)
       .sortBy(_.ordering.asc)
       .filter(row => row.ordering > offset && row.ordering <= maxOffset)
-      .take(max)
   }
 
   val eventsByTag = Compiled(_eventsByTag _)

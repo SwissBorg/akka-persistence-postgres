@@ -13,7 +13,7 @@ class ReadJournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for eventsByTag" in withReadJournalQueries { queries =>
-    queries.eventsByTag(List(11), 23L, 2L, 3L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ("tags" @> ?) and (("ordering" > ?) and ("ordering" <= ?)) order by "ordering" limit ?"""
+    queries.eventsByTag(List(11), 23L, 25L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags" from "journal" where ("tags" @> ?) and (("ordering" > ?) and ("ordering" <= ?)) order by "ordering""""
   }
 
   it should "create SQL query for journalSequenceQuery" in withReadJournalQueries { queries =>

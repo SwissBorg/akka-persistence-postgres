@@ -22,6 +22,7 @@ import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ Materializer, SystemMaterializer }
 import akka.util.Timeout
 import com.typesafe.config.Config
+import org.slf4j.LoggerFactory
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
@@ -41,6 +42,8 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
     with EventsByPersistenceIdQuery
     with CurrentEventsByTagQuery
     with EventsByTagQuery {
+
+  private val log = LoggerFactory.getLogger(this.getClass)
 
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mat: Materializer = SystemMaterializer(system).materializer
@@ -203,11 +206,14 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
       latestOrdering: MaxOrderingId): Source[EventEnvelope, NotUsed] = {
     if (latestOrdering.maxOrdering < offset) Source.empty
     else {
-      readJournalDao.eventsByTag(tag, offset, latestOrdering.maxOrdering, max).mapAsync(1)(Future.fromTry).mapConcat {
-        case (repr, ordering) =>
-          adaptEvents(repr).map(r =>
-            EventEnvelope(Sequence(ordering), r.persistenceId, r.sequenceNr, r.payload, r.timestamp))
-      }
+      readJournalDao
+        .eventsByTag(tag, offset, math.min(offset + max, latestOrdering.maxOrdering), max)
+        .mapAsync(1)(Future.fromTry)
+        .mapConcat {
+          case (repr, ordering) =>
+            adaptEvents(repr).map(r =>
+              EventEnvelope(Sequence(ordering), r.persistenceId, r.sequenceNr, r.payload, r.timestamp))
+        }
     }
   }
 
@@ -227,14 +233,21 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
     val batchSize = readJournalConfig.maxBufferSize
 
     Source
-      .unfoldAsync[(Long, FlowControl), Seq[EventEnvelope]]((offset, Continue)) {
+      .unfoldAsync[(Long, FlowControl), Seq[EventEnvelope]]((math.max(0L, offset), Continue)) {
         case (from, control) =>
           def retrieveNextBatch() = {
             for {
               queryUntil <- journalSequenceActor.ask(GetMaxOrderingId).mapTo[MaxOrderingId]
               xs <- currentJournalEventsByTag(tag, from, batchSize, queryUntil).runWith(Sink.seq)
             } yield {
-              val hasMoreEvents = xs.size == batchSize
+              val to = from + batchSize
+              val highestOffset = xs.map(_.offset.value) match {
+                case Nil     => to
+                case offsets => offsets.max
+              }
+              val hasMoreEvents = {
+                highestOffset < queryUntil.maxOrdering
+              }
               val nextControl: FlowControl =
                 terminateAfterOffset match {
                   // we may stop if target is behind queryUntil and we don't have more events to fetch
@@ -247,15 +260,25 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
                     if (hasMoreEvents) Continue else ContinueDelayed
                 }
 
-              val nextStartingOffset = if (xs.isEmpty) {
-                /* If no events matched the tag between `from` and `maxOrdering` then there is no need to execute the exact
-                 * same query again. We can continue querying from `maxOrdering`, which will save some load on the db.
-                 * (Note: we may never return a value smaller than `from`, otherwise we might return duplicate events) */
-                math.max(from, queryUntil.maxOrdering)
-              } else {
-                // Continue querying from the largest offset
-                xs.map(_.offset.value).max
+              val nextStartingOffset = (xs, queryUntil.maxOrdering) match {
+                case (Nil, 0L) =>
+                  /* If `maxOrdering` is not known yet or journal is empty (min value for Postgres' bigserial is 1)
+                   * then we should not move the query window forward. Otherwise we might miss (skip) some events.
+                   * By setting nextStartingOffset to `from` we wait for either maxOrdering to be discovered or first
+                   * event to be persisted in the journal. */
+                  from
+                case (Nil, maxOrdering) =>
+                  /* If no events matched the tag between `from` and `to` (`from + batchSize`) and `maxOrdering` then
+                   * there is no need to execute the exact same query again. We can continue querying from `to`,
+                   * which will save some load on the db. */
+                  math.min(to, maxOrdering)
+                case _ =>
+                  // Continue querying from the largest offset
+                  highestOffset
               }
+
+              log.trace(
+                s"tag = $tag => ($nextStartingOffset, $nextControl), [highestOffset = $highestOffset, maxOrdering = ${queryUntil.maxOrdering}, hasMoreEvents = $hasMoreEvents, results = ${xs.size}, from = $from]")
               Some((nextStartingOffset, nextControl), xs)
             }
           }
