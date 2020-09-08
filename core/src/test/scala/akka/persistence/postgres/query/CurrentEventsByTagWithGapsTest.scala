@@ -9,11 +9,23 @@ import akka.persistence.postgres.util.Schema.SchemaType
 import akka.persistence.query.NoOffset
 import akka.serialization.SerializationExtension
 import akka.stream.scaladsl.{ Sink, Source }
+import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 
 import scala.concurrent.duration._
 
+object CurrentEventsByTagWithGapsTest {
+  private val maxBufferSize = 10000
+  private val refreshInterval = 500.milliseconds
+
+  val configOverrides: Map[String, ConfigValue] = Map(
+    "postgres-read-journal.max-buffer-size" -> ConfigValueFactory.fromAnyRef(maxBufferSize.toString),
+    "postgres-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
+}
+
 class CurrentEventsByTagWithGapsTest
-    extends QueryTestSpec(s"${Schema.Partitioned.resourceNamePrefix}-shared-db-application.conf") {
+    extends QueryTestSpec(
+      s"${Schema.Partitioned.resourceNamePrefix}-shared-db-application.conf",
+      CurrentEventsByTagWithGapsTest.configOverrides) {
 
   // We are using Partitioned variant because it does not override values for an `ordering` field
   override val schemaType: SchemaType = Schema.Partitioned
@@ -63,7 +75,7 @@ class CurrentEventsByTagWithGapsTest
           .futureValue
 
         journalOps.withCurrentEventsByTag(5.minutes)(tag, NoOffset) { tp =>
-          val allEvents = tp.toStrict(atMost = 3.minutes)
+          val allEvents = tp.toStrict(atMost = 5.minutes)
           allEvents.size should equal(expectedTotalNumElements)
         }
 
