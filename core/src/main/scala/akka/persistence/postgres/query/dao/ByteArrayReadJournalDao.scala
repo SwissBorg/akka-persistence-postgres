@@ -20,7 +20,7 @@ import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 
 trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWithReadMessages {
   def db: Database
@@ -40,8 +40,7 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
       maxOffset: Long,
       max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
     val publisher: Int => DatabasePublisher[JournalRow] = tagId =>
-      db.stream(queries.eventsByTag(List(tagId), offset, maxOffset, max).result)
-    // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
+      db.stream(queries.eventsByTag(List(tagId), offset, maxOffset).result)
     Source
       .future(tagIdResolver.lookupIdFor(tag))
       .flatMapConcat(_.fold(Source.empty[JournalRow])(tagId => Source.fromPublisher(publisher(tagId))))

@@ -11,22 +11,26 @@ import akka.persistence.postgres.query.CurrentEventsByTagTest._
 import akka.persistence.postgres.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
 import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
-import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
+import com.typesafe.config.{ Config, ConfigFactory, ConfigValue, ConfigValueFactory }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object CurrentEventsByTagTest {
   val maxBufferSize = 20
-  val refreshInterval = 500.milliseconds
+  val refreshInterval: FiniteDuration = 500.milliseconds
 
   val configOverrides: Map[String, ConfigValue] = Map(
     "postgres-read-journal.max-buffer-size" -> ConfigValueFactory.fromAnyRef(maxBufferSize.toString),
     "postgres-read-journal.refresh-interval" -> ConfigValueFactory.fromAnyRef(refreshInterval.toString()))
+
+  case class TestEvent(greetings: String)
+
 }
 
 abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
     extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-shared-db-application.conf", configOverrides) {
+
   it should "not find an event by tag for unknown tag" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
@@ -164,8 +168,15 @@ abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
     }
   }
 
-  it should "complete without any gaps in case events are being persisted when the query is executed" in withActorSystem {
-    implicit system =>
+  {
+    val numOfActors = 3
+    val batch1Size = 200
+    val batch2Size = 10000
+
+    import scala.collection.JavaConverters._
+
+    it should "complete without any gaps in case events are being persisted when the query is executed" in withActorSystem(
+      withMaxBufferSize(1000)) { implicit system =>
       val journalOps = new JavaDslPostgresReadJournalOperations(system)
       import system.dispatcher
       withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
@@ -201,7 +212,53 @@ abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
         }
         batch2.futureValue
       }
+    }
+
+    it should "complete without omitting any events in case events are being persisted when the query is executed" in withActorSystem(
+      withMaxBufferSize((batch1Size + batch2Size) * (numOfActors + 1))) { implicit system =>
+      val journalOps = new JavaDslPostgresReadJournalOperations(system)
+      import system.dispatcher
+      withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
+        def sendMessagesWithTag(tag: String, numberOfMessagesPerActor: Int): Future[Done] = {
+          val futures = for {
+            actor <- Seq(actor1, actor2, actor3)
+            i <- 1 to numberOfMessagesPerActor
+          } yield {
+            actor ? TaggedAsyncEvent(Event(i.toString), tag)
+          }
+          Future.sequence(futures).map(_ => Done)
+        }
+
+        val tag = "someTag"
+        // send a batch of 3 * 200
+        val batch1 = sendMessagesWithTag(tag, 200)
+        // Try to persist a large batch of events per actor. Some of these may be returned, but not all!
+        val batch2 = sendMessagesWithTag(tag, 10000)
+
+        // wait for acknowledgement of the first batch only
+        batch1.futureValue
+        // Sanity check, all events in the first batch must be in the journal
+        journalOps.countJournal.futureValue should be >= 600L
+
+        // start the query before the last batch completes
+        journalOps.withCurrentEventsByTag()(tag, NoOffset) { tp =>
+          // The stream must complete within the given amount of time
+          // This make take a while in case the journal sequence actor detects gaps
+          val allEvents = tp.toStrict(atMost = 30.seconds)
+          allEvents.size should be >= 600
+        }
+        batch2.futureValue
+        journalOps.withCurrentEventsByTag()(tag, Sequence(600)) { tp =>
+          val allEvents = tp.toStrict(atMost = 3.minutes)
+          allEvents.size should equal(3 * 10000)
+        }
+      }
+    }
+
+    def withMaxBufferSize(size: Long): Config =
+      ConfigFactory.parseMap(Map("postgres-read-journal.max-buffer-size" -> size.toString).asJava).withFallback(config)
   }
+
 }
 
 // Note: these tests use the shared-db configs, the test for all (so not only current) events use the regular db config
