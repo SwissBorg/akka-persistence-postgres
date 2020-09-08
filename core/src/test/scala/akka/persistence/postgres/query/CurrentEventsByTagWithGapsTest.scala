@@ -62,7 +62,7 @@ class CurrentEventsByTagWithGapsTest
           .runWith(Sink.ignore)
           .futureValue
 
-        journalOps.withCurrentEventsByTag()(tag, NoOffset) { tp =>
+        journalOps.withCurrentEventsByTag(5.minutes)(tag, NoOffset) { tp =>
           val allEvents = tp.toStrict(atMost = 3.minutes)
           allEvents.size should equal(expectedTotalNumElements)
         }
