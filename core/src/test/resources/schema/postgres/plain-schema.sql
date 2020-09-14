@@ -35,5 +35,6 @@ CREATE TABLE IF NOT EXISTS public.snapshot
     sequence_number BIGINT NOT NULL,
     created         BIGINT NOT NULL,
     snapshot        BYTEA  NOT NULL,
+    metadata        jsonb,
     PRIMARY KEY (persistence_id, sequence_number)
 );
