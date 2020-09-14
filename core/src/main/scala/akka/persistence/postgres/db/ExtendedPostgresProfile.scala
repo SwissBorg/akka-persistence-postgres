@@ -12,7 +12,11 @@ trait ExtendedPostgresProfile
     with PgHStoreSupport
     with PgSearchSupport
     with PgNetSupport
-    with PgLTreeSupport {
+    with PgLTreeSupport
+    with PgJsonSupport
+    with array.PgArrayJdbcTypes
+    with PgCirceJsonSupport {
+
   def pgjson = "jsonb" // jsonb support is in postgres 9.4.0 onward; for 9.3.x use "json"
 
   // Add back `capabilities.insertOrUpdate` to enable native `upsert` support; for postgres 9.5+
@@ -32,6 +36,9 @@ trait ExtendedPostgresProfile
       with HStoreImplicits
       with SearchImplicits
       with SearchAssistants
+      with JsonImplicits {
+    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+  }
 }
 
 object ExtendedPostgresProfile extends ExtendedPostgresProfile

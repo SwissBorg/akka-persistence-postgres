@@ -29,6 +29,7 @@ class JournalTableColumnNames(config: Config) {
   val created: String = cfg.as[String]("created", "created")
   val tags: String = cfg.as[String]("tags", "tags")
   val message: String = cfg.as[String]("message", "message")
+  val metadata: String = cfg.as[String]("metadata", "metadata")
   override def toString: String = s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message)"
 }
 

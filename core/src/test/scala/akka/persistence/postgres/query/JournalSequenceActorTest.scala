@@ -20,6 +20,7 @@ import akka.serialization.SerializationExtension
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ Materializer, SystemMaterializer }
 import akka.testkit.TestProbe
+import io.circe.{ Json, JsonObject }
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
 import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
@@ -40,6 +41,8 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
   private val orderingSeq = new AtomicLong(0L)
   def generateId: Long = orderingSeq.incrementAndGet()
 
+  private lazy val emptyJson = Json.fromJsonObject(JsonObject.empty)
+
   behavior.of("JournalSequenceActor")
 
   it should "recover normally" in {
@@ -47,7 +50,15 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
       withDatabase { db =>
         val numberOfRows = 15000
         val rows =
-          for (i <- 1 to numberOfRows) yield JournalRow(generateId, deleted = false, "id", i, Array(0.toByte), Nil)
+          for (i <- 1 to numberOfRows)
+            yield JournalRow(
+              generateId,
+              deleted = false,
+              "id",
+              i,
+              Array(0.toByte),
+              Nil,
+              emptyJson)
         db.run(journalTable ++= rows).futureValue
         withJournalSequenceActor(db, maxTries = 100) { actor =>
           eventually {
@@ -68,7 +79,9 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
           val elements = 100000
           Source
             .fromIterator(() => (1 to elements).iterator)
-            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
+            .map { id =>
+              JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
+            }
             .grouped(10000)
             .mapAsync(4) { rows =>
               db.run(journalTable.forceInsertAll(rows))
@@ -102,7 +115,9 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
           val lastElement = firstElement + (numElements * gapSize)
           Source
             .fromIterator(() => (firstElement to lastElement by gapSize).iterator)
-            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
+            .map { id =>
+              JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
+            }
             .grouped(10000)
             .mapAsync(4) { rows =>
               db.run(journalTable.forceInsertAll(rows))
@@ -133,7 +148,9 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
           val idSeq = 2 to maxElement by 2
           Source
             .fromIterator(() => idSeq.iterator)
-            .map(id => JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil))
+            .map { id =>
+              JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
+            }
             .grouped(10000)
             .mapAsync(4) { rows =>
               db.run(journalTable.forceInsertAll(rows))

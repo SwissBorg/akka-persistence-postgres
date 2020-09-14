@@ -8,6 +8,7 @@ package journal.dao
 
 import akka.persistence.postgres.config.JournalTableConfiguration
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
+import io.circe.Json
 
 trait JournalTable extends Table[JournalRow] {
   def ordering: Rep[Long]
@@ -16,6 +17,7 @@ trait JournalTable extends Table[JournalRow] {
   def deleted: Rep[Boolean]
   def tags: Rep[List[Int]]
   def message: Rep[Array[Byte]]
+  def metadata: Rep[Json]
 }
 
 abstract class BaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
@@ -27,7 +29,7 @@ abstract class BaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableCon
 
 class FlatJournalTable private[dao] (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends BaseJournalTable(_tableTag, journalTableCfg) {
-  def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags) <> (JournalRow.tupled, JournalRow.unapply)
+  def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (JournalRow.tupled, JournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering, O.AutoInc)
   val persistenceId: Rep[String] =
@@ -36,6 +38,8 @@ class FlatJournalTable private[dao] (_tableTag: Tag, journalTableCfg: JournalTab
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
   val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
+
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
   val orderingIdx = index(s"${tableName}_ordering_idx", ordering, unique = true)
   val tagsIdx = index(s"${tableName}_tags_idx", tags)
@@ -48,7 +52,7 @@ object FlatJournalTable {
 
 class PartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends BaseJournalTable(_tableTag, journalTableCfg) {
-  def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags) <> (JournalRow.tupled, JournalRow.unapply)
+  def * = (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (JournalRow.tupled, JournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
   val persistenceId: Rep[String] =
@@ -57,6 +61,8 @@ class PartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalT
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
   val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
+  
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber, ordering))
   val tagsIdx = index(s"${tableName}_tags_idx", tags)
 }

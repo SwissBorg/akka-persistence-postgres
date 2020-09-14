@@ -10,7 +10,7 @@ object Dependencies {
 
   val SlickVersion = "3.3.2"
   val ScalaTestVersion = "3.1.2"
-  val SlickPgVersion = "0.19.0"
+  val SlickPgVersion = "0.19.2"
 
   val ScaffeineVersion = "4.0.1"
 
@@ -21,6 +21,7 @@ object Dependencies {
       "com.typesafe.slick" %% "slick" % SlickVersion,
       "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
       "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
+      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
       "com.github.blemale" %% "scaffeine" % ScaffeineVersion,
       "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Test,
