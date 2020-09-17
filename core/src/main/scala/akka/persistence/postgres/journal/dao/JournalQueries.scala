@@ -6,6 +6,7 @@
 package akka.persistence.postgres
 package journal.dao
 
+import io.circe.Json
 import slick.lifted.TableQuery
 import slick.sql.FixedSqlAction
 
@@ -32,10 +33,11 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
   def update(
       persistenceId: String,
       seqNr: Long,
-      replacement: Array[Byte]): FixedSqlAction[Int, NoStream, Effect.Write] = {
+      replacement: Array[Byte],
+      metadata: Json): FixedSqlAction[Int, NoStream, Effect.Write] = {
     val baseQuery = journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
 
-    baseQuery.map(_.message).update(replacement)
+    baseQuery.map(r => (r.message, r.metadata)).update((replacement, metadata))
   }
 
   def markJournalMessagesAsDeleted(persistenceId: String, maxSequenceNr: Long) =

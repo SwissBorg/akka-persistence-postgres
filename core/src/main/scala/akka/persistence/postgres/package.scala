@@ -5,6 +5,8 @@
 
 package akka.persistence
 
+import io.circe.Json
+
 package object postgres {
   final case class JournalRow(
       ordering: Long,
@@ -12,5 +14,6 @@ package object postgres {
       persistenceId: String,
       sequenceNumber: Long,
       message: Array[Byte],
-      tags: List[Int])
+      tags: List[Int],
+      metadata: Json)
 }

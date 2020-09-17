@@ -10,17 +10,17 @@ import akka.actor.Scheduler
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
 import akka.persistence.postgres.tag.TagIdResolver
-import akka.persistence.{AtomicWrite, PersistentRepr}
-import akka.stream.scaladsl.{Keep, Sink, Source}
-import akka.stream.{Materializer, OverflowStrategy, QueueOfferResult}
-import akka.{Done, NotUsed}
-import org.slf4j.{Logger, LoggerFactory}
+import akka.persistence.{ AtomicWrite, PersistentRepr }
+import akka.stream.scaladsl.{ Keep, Sink, Source }
+import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
+import akka.{ Done, NotUsed }
+import org.slf4j.{ Logger, LoggerFactory }
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * The DefaultJournalDao contains all the knowledge to persist and load serialized journal entries
@@ -129,7 +129,7 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   def update(persistenceId: String, sequenceNr: Long, payload: AnyRef): Future[Done] = {
     val write = PersistentRepr(payload, sequenceNr, persistenceId)
     serializer.serialize(write).transformWith {
-      case Success(t) => db.run(queries.update(persistenceId, sequenceNr, t.message).map(_ => Done))
+      case Success(t) => db.run(queries.update(persistenceId, sequenceNr, t.message, t.metadata).map(_ => Done))
       case Failure(_) =>
         throw new IllegalArgumentException(
           s"Failed to serialize ${write.getClass} for update of [$persistenceId] @ [$sequenceNr]")

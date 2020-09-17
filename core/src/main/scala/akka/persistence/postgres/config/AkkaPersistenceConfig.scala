@@ -29,7 +29,8 @@ class JournalTableColumnNames(config: Config) {
   val created: String = cfg.as[String]("created", "created")
   val tags: String = cfg.as[String]("tags", "tags")
   val message: String = cfg.as[String]("message", "message")
-  override def toString: String = s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message)"
+  val metadata: String = cfg.as[String]("metadata", "metadata")
+  override def toString: String = s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message,$metadata)"
 }
 
 class JournalPartitionsConfiguration(config: Config) {
@@ -53,7 +54,8 @@ class SnapshotTableColumnNames(config: Config) {
   val sequenceNumber: String = cfg.as[String]("sequenceNumber", "sequence_number")
   val created: String = cfg.as[String]("created", "created")
   val snapshot: String = cfg.as[String]("snapshot", "snapshot")
-  override def toString: String = s"SnapshotTableColumnNames($persistenceId,$sequenceNumber,$created,$snapshot)"
+  val metadata: String = cfg.as[String]("metadata", "metadata")
+  override def toString: String = s"SnapshotTableColumnNames($persistenceId,$sequenceNumber,$created,$snapshot,$metadata)"
 }
 
 class SnapshotTableConfiguration(config: Config) {
@@ -123,7 +125,8 @@ class JournalConfig(config: Config) {
   val tagsConfig = new TagsConfig(config)
   val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
-  override def toString: String = s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
+  override def toString: String =
+    s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
 }
 
 class SnapshotConfig(config: Config) {
