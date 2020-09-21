@@ -13,8 +13,17 @@ lazy val core = project
   .settings(
     name := "akka-persistence-postgres",
     libraryDependencies ++= Dependencies.Libraries,
-    mimaBinaryIssueFilters ++= Seq()
-  )
+    mimaBinaryIssueFilters ++= Seq())
+
+lazy val migration = project
+  .in(file("migration"))
+  .disablePlugins(MimaPlugin)
+  .settings(
+    name := "akka-persistence-postgres-migration",
+    libraryDependencies ++= Dependencies.Migration,
+    publish / skip := true,
+    Compile / managedResources ++= (core / Compile / managedResources).value)
+  .dependsOn(core)
 
 TaskKey[Unit]("verifyCodeFmt") := {
   scalafmtCheckAll.all(ScopeFilter(inAnyProject)).result.value.toEither.left.foreach { _ =>

@@ -37,7 +37,9 @@
 
     <!--<logger name="slick.util.AsyncExecutor" level="DEBUG" />-->
 
-    <root level="INFO">
+    <logger name="akka.persistence.postgres" level="WARN" />
+
+    <root level="WARN">
         <appender-ref ref="console"/>
     </root>
 
