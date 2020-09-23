@@ -1,9 +1,12 @@
 package db.migration.v2
 
-final case class OldJournalRow(
+import io.circe.Json
+
+final case class NewJournalRow(
     ordering: Long,
     deleted: Boolean,
     persistenceId: String,
     sequenceNumber: Long,
     message: Array[Byte],
-    tags: List[Int])
+    tags: List[Int],
+    metadata: Json)

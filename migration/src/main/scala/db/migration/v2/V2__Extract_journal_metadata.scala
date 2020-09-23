@@ -2,96 +2,183 @@ package db.migration.v2
 
 import java.nio.charset.StandardCharsets
 
+import akka.Done
 import akka.actor.{ActorRef, ActorSystem, ExtendedActorSystem}
-import akka.persistence.postgres.config.JournalConfig
+import akka.persistence.SnapshotMetadata
+import akka.persistence.postgres.config.{JournalConfig, SnapshotConfig}
 import akka.persistence.postgres.db.{ExtendedPostgresProfile, SlickExtension}
-import akka.persistence.postgres.journal.dao.{ByteArrayJournalSerializer, FlatJournalTable, JournalQueries}
-import akka.persistence.postgres.tag.{CachedTagIdResolver, SimpleTagDao}
+import akka.persistence.postgres.journal.dao._
+import akka.persistence.postgres.tag.TagIdResolver
 import akka.serialization.{Serialization, SerializationExtension, SerializerWithStringManifest}
-import akka.stream.{ActorMaterializer, Materializer, SystemMaterializer}
-import akka.stream.scaladsl.{Sink, Source}
-import com.typesafe.config.ConfigFactory
+import akka.stream.scaladsl.Source
+import akka.stream.{Materializer, SystemMaterializer}
+import com.typesafe.config.{Config, ConfigFactory}
 import io.circe.{Json, Printer}
 import org.flywaydb.core.api.migration.{BaseJavaMigration, Context}
-import slick.jdbc.{GetResult, SetParameter}
+import org.slf4j.{Logger, LoggerFactory}
+import slick.jdbc.{GetResult, JdbcBackend, SetParameter}
+import slick.lifted.TableQuery
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 class V2__Extract_journal_metadata extends BaseJavaMigration {
 
+  val log: Logger = LoggerFactory.getLogger(this.getClass)
+
+  val config: Config = ConfigFactory.load("general.conf")
+
+  val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
+  val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
+
+  val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+
+  lazy val journalQueries: NewJournalQueries = {
+    val daoFqcn = journalConfig.pluginConfig.dao
+
+    import akka.persistence.postgres.journal.dao.FlatJournalDao
+
+    val table: TableQuery[NewJournalTable] =
+      if (daoFqcn == classOf[FlatJournalDao].getName) NewFlatJournalTable(journalConfig.journalTableConfiguration)
+      else if (daoFqcn == classOf[PartitionedJournalDao].getName)
+        NewPartitionedJournalTable(journalConfig.journalTableConfiguration)
+      else if (daoFqcn == classOf[NestedPartitionsJournalDao].getName)
+        NewNestedPartitionsJournalTable(journalConfig.journalTableConfiguration)
+      else throw new IllegalStateException(s"Unsupported DAO class - '$daoFqcn'")
+
+    new NewJournalQueries(table)
+  }
+
+  lazy val snapshotQueries = new NewSnapshotQueries(snapshotConfig.snapshotTableConfiguration)
+
+  import ExtendedPostgresProfile.api._
+
+  implicit val GetByteArr: GetResult[Array[Byte]] = GetResult(_.nextBytes())
+  implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
+  implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
+
+  val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
+
   @throws[Exception]
   override def migrate(context: Context): Unit = {
-    val config = ConfigFactory.load("general.conf")
-
     val system = ActorSystem("migration-tool-AS", config)
     import system.dispatcher
     implicit val met: Materializer = SystemMaterializer(system).materializer
 
-    val migrationConf = config.getConfig("akka-persistence-postgres.migration")
-
-    val serialization = SerializationExtension(system)
     val slickDb = SlickExtension(system).database(migrationConf.withFallback(config.getConfig("postgres-journal")))
     val db = slickDb.database
 
-    val migrationBatchSize = migrationConf.getLong("v1.batchSize")
-    val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
+    val serialization = SerializationExtension(system)
 
-    val queries = new JournalQueries(FlatJournalTable(journalConfig.journalTableConfiguration))
+    val migrationRes = for {
+      _ <- migrateJournal(db, serialization)
+      _ <- migrateSnapshots(db, serialization)
+    } yield Done
 
-    import ExtendedPostgresProfile.api._
+    migrationRes.onComplete(((r: Try[Done]) => r match {
+      case Failure(exception) => log.error(s"Metadata extraction has failed", exception)
+      case Success(_) => log.info(s"Metadata extraction is now completed")
+    }).andThen(_ => system.terminate().map(_ => db.close())))
 
-    implicit val GetByteArr: GetResult[Array[Byte]] = GetResult(_.nextBytes())
-    implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
-    implicit val SetJson: SetParameter[Json] = SetParameter(
-      (json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
+    Await.result(migrationRes, Duration.Inf)
+  }
 
+  def migrateJournal(db: JdbcBackend.Database, serialization: Serialization)(
+      implicit ec: ExecutionContext,
+      mat: Materializer): Future[Done] = {
     val deserializer = new OldDeserializer(serialization)
-    val serializer = new ByteArrayJournalSerializer(
-      serialization,
-      new CachedTagIdResolver(new SimpleTagDao(db, journalConfig.tagsTableConfiguration), journalConfig.tagsConfig))
+    // because we neither rely on nor touch tags column
+    val tagIdResolver = DummyTagIdResolver
+    val serializer = new ByteArrayJournalSerializer(serialization, tagIdResolver)
 
-    println(Await.result(db.run(sqlu"ALTER TABLE journal ADD COLUMN metadata jsonb"), 3.seconds))
+    val ddl = db.run(sqlu"ALTER TABLE journal ADD COLUMN metadata jsonb")
 
-//    val n = 0
-    val rows = Await.result(
-      db.run(
-        sql"select ordering, persistence_id, sequence_number, message from journal" // where ordering >= #${n * migrationBatchSize} and ordering < #${(n + 1) * migrationBatchSize}"
-          .as[(Long, String, Long, Array[Byte])]),
-      5.seconds)
-    val updateRes = rows.map {
-      case (ordering, persistenceId, sequenceNumber, message) =>
-        println(s"read msg for ordering = $ordering")
-        val deserializedFut = for {
-          pr <- Future.fromTry(deserializer.deserialize(message))
-          ser <- serializer.serialize(pr)
-        } yield (ordering, persistenceId, sequenceNumber, ser.message, ser.metadata)
-        deserializedFut.onComplete {
-          case Failure(ex) =>
-            println(
-              s"An error occurred during deserialization od message with ordering = $ordering"
-            ) // (batch $n of ${maxOrdering / migrationBatchSize})")
-            ex.printStackTrace()
-          case Success(row) => println(s"Successfully deserialized msg $row")
-        }
-        deserializedFut.flatMap {
-          case (_, persistenceId, sequenceNumber, message, metadata) =>
-            val fut = db.run(queries.update(persistenceId, sequenceNumber, message, metadata))
-            fut.onComplete(r => println(s"Update resulted with: $r"))
-            fut
-        }
+    val eventsPublisher =
+      db.stream(sql"select persistence_id, sequence_number, message from journal".as[(String, Long, Array[Byte])])
+
+    val dml = Source
+      .fromPublisher(eventsPublisher)
+      .mapAsync(8) {
+        case (persistenceId, sequenceNumber, message) =>
+          for {
+            pr <- Future.fromTry(deserializer.deserialize(message))
+            ser <- serializer.serialize(pr)
+          } yield (persistenceId, sequenceNumber, ser.message, ser.metadata)
+      }
+      .map {
+        case (persistenceId, sequenceNumber, message, metadata) =>
+          journalQueries.update(persistenceId, sequenceNumber, message, metadata)
+      }
+      .batch(migrationBatchSize, List(_))(_ :+ _)
+      .foldAsync(0L) { (cnt, actions) =>
+        val numOfEvents = actions.length
+        log.info(s"Updating $numOfEvents events...")
+        db.run(DBIO.sequence(actions).transactionally).map(_ => cnt + numOfEvents)
+      }
+
+    for {
+      _ <- ddl
+      cnt <- dml.runReduce(_ + _)
+    } yield {
+      log.info(s"Journal metadata extraction completed - $cnt events have been successfully updated")
+      Done
     }
+  }
 
-    val r = Future.sequence(updateRes)
-    r.flatMap(_ => system.terminate()).onComplete(_ => {
-      db.close()
-    })
+  def migrateSnapshots(db: JdbcBackend.Database, serialization: Serialization)(
+      implicit ec: ExecutionContext,
+      mat: Materializer): Future[Done] = {
+    val deserializer = new OldSnapshotDeserializer(serialization)
+    val serializer = new NewSnapshotSerializer(serialization)
 
-    Await.result(r, 1.minute)
+    val ddl = db.run(sqlu"ALTER TABLE snapshot ADD COLUMN metadata jsonb")
+
+    val eventsPublisher =
+      db.stream {
+        sql"select persistence_id, sequence_number, created, snapshot from snapshot"
+          .as[(String, Long, Long, Array[Byte])]
+      }
+
+    val dml = Source
+      .fromPublisher(eventsPublisher)
+      .mapAsync(8) {
+        case (persistenceId, sequenceNumber, created, snapshot) =>
+          Future.fromTry {
+            for {
+              oldSnapshotRow <- deserializer.deserialize(snapshot)
+              newSnapshotRow <- serializer.serialize(
+                SnapshotMetadata(persistenceId, sequenceNumber, created),
+                oldSnapshotRow)
+            } yield newSnapshotRow
+          }
+      }
+      .map(snapshotQueries.insertOrUpdate)
+      .batch(migrationBatchSize, List(_))(_ :+ _)
+      .foldAsync(0L) { (cnt, actions) =>
+        val numOfEvents = actions.length
+        log.info(s"Updating $numOfEvents events...")
+        db.run(DBIO.sequence(actions).transactionally).map(_ => cnt + numOfEvents)
+      }
+
+    for {
+      _ <- ddl
+      cnt <- dml.runReduce(_ + _)
+    } yield {
+      log.info(s"Snapshot metadata extraction completed - $cnt events have been successfully updated")
+      Done
+    }
   }
 
 }
+
+object DummyTagIdResolver extends TagIdResolver {
+  override def getOrAssignIdsFor(tags: Set[String]): Future[Map[String, Int]] = Future.successful(Map.empty)
+
+  override def lookupIdFor(name: String): Future[Option[Int]] = Future.successful(None)
+}
+
+// Test serializers below - TO BE REMOVED
 
 case object ResetCounter
 
