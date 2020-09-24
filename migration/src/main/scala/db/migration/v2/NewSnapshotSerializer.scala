@@ -1,14 +1,13 @@
 package db.migration.v2
 
 import akka.persistence.SnapshotMetadata
-import akka.persistence.postgres.serialization.SnapshotSerializer
 import akka.serialization.{ Serialization, Serializers }
 import db.migration.v2.NewSnapshotSerializer.Metadata
-import io.circe.{ Decoder, Encoder }
+import io.circe.Encoder
 
 import scala.util.Try
 
-class NewSnapshotSerializer(serialization: Serialization) extends SnapshotSerializer[NewSnapshotRow] {
+class NewSnapshotSerializer(serialization: Serialization) {
 
   def serialize(metadata: SnapshotMetadata, snapshot: Any): Try[NewSnapshotRow] = {
     import io.circe.syntax._
@@ -27,16 +26,6 @@ class NewSnapshotSerializer(serialization: Serialization) extends SnapshotSerial
     }
   }
 
-  def deserialize(snapshotRow: NewSnapshotRow): Try[(SnapshotMetadata, Any)] = {
-    for {
-      metadata <- snapshotRow.metadata.as[Metadata].toTry
-      snapshot <- serialization.deserialize(snapshotRow.snapshot, metadata.serId, metadata.serManifest)
-    } yield {
-      val snapshotMetadata =
-        SnapshotMetadata(snapshotRow.persistenceId, snapshotRow.sequenceNumber, snapshotRow.created)
-      (snapshotMetadata, snapshot)
-    }
-  }
 }
 
 object NewSnapshotSerializer {
@@ -44,7 +33,6 @@ object NewSnapshotSerializer {
 
   object Metadata {
     implicit val encoder: Encoder[Metadata] = Encoder.forProduct2("serId", "serManifest")(m => (m.serId, m.serManifest))
-    implicit val decoder: Decoder[Metadata] = Decoder.forProduct2("serId", "serManifest")(Metadata.apply)
   }
 
 }

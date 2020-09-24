@@ -4,8 +4,12 @@ lazy val `akka-persistence-postgres` = project
   .in(file("."))
   .enablePlugins(ScalaUnidocPlugin)
   .disablePlugins(MimaPlugin)
-  .aggregate(core)
-  .settings(publish / skip := true)
+  .aggregate(core, migration)
+  .settings(
+    publish / skip := true,
+    assembly := (migration / assembly).value,
+    aggregate in assembly := false
+  )
 
 lazy val core = project
   .in(file("core"))
@@ -13,7 +17,10 @@ lazy val core = project
   .settings(
     name := "akka-persistence-postgres",
     libraryDependencies ++= Dependencies.Libraries,
-    mimaBinaryIssueFilters ++= Seq())
+    mimaBinaryIssueFilters ++= Seq(),
+    aggregate in assembly := false,
+    test in assembly := {}
+  )
 
 lazy val migration = project
   .in(file("migration"))
@@ -22,7 +29,8 @@ lazy val migration = project
     name := "akka-persistence-postgres-migration",
     libraryDependencies ++= Dependencies.Migration,
     publish / skip := true,
-    Compile / managedResources ++= (core / Compile / managedResources).value)
+    Compile / managedResources ++= (core / Compile / managedResources).value,
+    assemblyJarName in assembly := s"akka-persistence-postgres-migration-${version.value}.jar")
   .dependsOn(core)
 
 TaskKey[Unit]("verifyCodeFmt") := {

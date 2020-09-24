@@ -3,25 +3,24 @@ package db.migration.v2
 import java.nio.charset.StandardCharsets
 
 import akka.Done
-import akka.actor.{ActorRef, ActorSystem, ExtendedActorSystem}
+import akka.actor.{ ActorRef, ActorSystem, ExtendedActorSystem }
 import akka.persistence.SnapshotMetadata
-import akka.persistence.postgres.config.{JournalConfig, SnapshotConfig}
-import akka.persistence.postgres.db.{ExtendedPostgresProfile, SlickExtension}
+import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
+import akka.persistence.postgres.db.{ ExtendedPostgresProfile, SlickExtension }
 import akka.persistence.postgres.journal.dao._
-import akka.persistence.postgres.tag.TagIdResolver
-import akka.serialization.{Serialization, SerializationExtension, SerializerWithStringManifest}
+import akka.serialization.{ Serialization, SerializationExtension, SerializerWithStringManifest }
 import akka.stream.scaladsl.Source
-import akka.stream.{Materializer, SystemMaterializer}
-import com.typesafe.config.{Config, ConfigFactory}
-import io.circe.{Json, Printer}
-import org.flywaydb.core.api.migration.{BaseJavaMigration, Context}
-import org.slf4j.{Logger, LoggerFactory}
-import slick.jdbc.{GetResult, JdbcBackend, SetParameter}
+import akka.stream.{ Materializer, SystemMaterializer }
+import com.typesafe.config.{ Config, ConfigFactory }
+import io.circe.{ Json, Printer }
+import org.flywaydb.core.api.migration.{ BaseJavaMigration, Context }
+import org.slf4j.{ Logger, LoggerFactory }
+import slick.jdbc.{ GetResult, JdbcBackend, SetParameter }
 import slick.lifted.TableQuery
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 class V2__Extract_journal_metadata extends BaseJavaMigration {
 
@@ -58,7 +57,10 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
   implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
   implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
 
-  val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
+  val migrationBatchSize: Long =
+    if (config.hasPath("akka-persistence-postgres.migration.v2.batchSize"))
+      migrationConf.getLong("akka-persistence-postgres.migration.v2.batchSize")
+    else 500L
 
   @throws[Exception]
   override def migrate(context: Context): Unit = {
@@ -66,7 +68,7 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
     import system.dispatcher
     implicit val met: Materializer = SystemMaterializer(system).materializer
 
-    val slickDb = SlickExtension(system).database(migrationConf.withFallback(config.getConfig("postgres-journal")))
+    val slickDb = SlickExtension(system).database(config.getConfig("postgres-journal"))
     val db = slickDb.database
 
     val serialization = SerializationExtension(system)
@@ -76,10 +78,11 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
       _ <- migrateSnapshots(db, serialization)
     } yield Done
 
-    migrationRes.onComplete(((r: Try[Done]) => r match {
-      case Failure(exception) => log.error(s"Metadata extraction has failed", exception)
-      case Success(_) => log.info(s"Metadata extraction is now completed")
-    }).andThen(_ => system.terminate().map(_ => db.close())))
+    migrationRes.onComplete(((r: Try[Done]) =>
+      r match {
+        case Failure(exception) => log.error(s"Metadata extraction has failed", exception)
+        case Success(_)         => log.info(s"Metadata extraction is now completed")
+      }).andThen(_ => system.terminate().map(_ => db.close())))
 
     Await.result(migrationRes, Duration.Inf)
   }
@@ -89,8 +92,9 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
       mat: Materializer): Future[Done] = {
     val deserializer = new OldDeserializer(serialization)
     // because we neither rely on nor touch tags column
-    val tagIdResolver = DummyTagIdResolver
-    val serializer = new ByteArrayJournalSerializer(serialization, tagIdResolver)
+    val serializer = new NewJournalSerializer(serialization)
+
+    log.info(s"Start migrating journal entries...")
 
     val ddl = db.run(sqlu"ALTER TABLE journal ADD COLUMN metadata jsonb")
 
@@ -103,8 +107,8 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
         case (persistenceId, sequenceNumber, message) =>
           for {
             pr <- Future.fromTry(deserializer.deserialize(message))
-            ser <- serializer.serialize(pr)
-          } yield (persistenceId, sequenceNumber, ser.message, ser.metadata)
+            (message, metadata) <- serializer.serialize(pr)
+          } yield (persistenceId, sequenceNumber, message, metadata)
       }
       .map {
         case (persistenceId, sequenceNumber, message, metadata) =>
@@ -131,6 +135,8 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
       mat: Materializer): Future[Done] = {
     val deserializer = new OldSnapshotDeserializer(serialization)
     val serializer = new NewSnapshotSerializer(serialization)
+
+    log.info(s"Start migrating snapshots...")
 
     val ddl = db.run(sqlu"ALTER TABLE snapshot ADD COLUMN metadata jsonb")
 
@@ -170,12 +176,6 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
     }
   }
 
-}
-
-object DummyTagIdResolver extends TagIdResolver {
-  override def getOrAssignIdsFor(tags: Set[String]): Future[Map[String, Int]] = Future.successful(Map.empty)
-
-  override def lookupIdFor(name: String): Future[Option[Int]] = Future.successful(None)
 }
 
 // Test serializers below - TO BE REMOVED

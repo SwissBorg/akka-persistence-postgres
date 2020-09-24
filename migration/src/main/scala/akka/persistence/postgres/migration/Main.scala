@@ -4,18 +4,16 @@
  */
 package akka.persistence.postgres.migration
 
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.{Config, ConfigFactory}
 import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.Location
 
 object Main {
 
-  val config = ConfigFactory.load().getConfig("akka-persistence-postgres.migration")
-
   def run(config: Config): Unit = {
-    val url = config.getString("url")
-    val user = config.getString("user")
-    val password = config.getString("password")
+    val migrationConf = config.getConfig("akka-persistence-postgres.migration")
+    val url = migrationConf.getString("url")
+    val user = migrationConf.getString("user")
+    val password = migrationConf.getString("password")
 
     val flywayConfig = Flyway.configure
       .dataSource(url, user, password)
@@ -29,6 +27,6 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    run(config)
+    run(ConfigFactory.load())
   }
 }
