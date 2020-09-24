@@ -26,7 +26,7 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
 
   val log: Logger = LoggerFactory.getLogger(this.getClass)
 
-  val config: Config = ConfigFactory.load("general.conf")
+  val config: Config = ConfigFactory.load()
 
   val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
   val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
@@ -58,8 +58,8 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
   implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
 
   val migrationBatchSize: Long =
-    if (config.hasPath("akka-persistence-postgres.migration.v2.batchSize"))
-      migrationConf.getLong("akka-persistence-postgres.migration.v2.batchSize")
+    if (config.hasPath("v2.batchSize"))
+      migrationConf.getLong("v2.batchSize")
     else 500L
 
   @throws[Exception]
@@ -68,7 +68,7 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
     import system.dispatcher
     implicit val met: Materializer = SystemMaterializer(system).materializer
 
-    val slickDb = SlickExtension(system).database(config.getConfig("postgres-journal"))
+    val slickDb = SlickExtension(system).database(migrationConf)
     val db = slickDb.database
 
     val serialization = SerializationExtension(system)
