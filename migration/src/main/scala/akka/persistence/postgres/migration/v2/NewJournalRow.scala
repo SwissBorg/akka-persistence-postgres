@@ -1,8 +1,8 @@
-package db.migration.v2
+package akka.persistence.postgres.migration.v2
 
 import io.circe.Json
 
-final case class NewJournalRow(
+private[v2] final case class NewJournalRow(
     ordering: Long,
     deleted: Boolean,
     persistenceId: String,

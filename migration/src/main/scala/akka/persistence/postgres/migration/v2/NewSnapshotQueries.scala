@@ -1,9 +1,9 @@
-package db.migration.v2
+package akka.persistence.postgres.migration.v2
 
 import akka.persistence.postgres.config.SnapshotTableConfiguration
 import io.circe.Json
 
-trait NewSnapshotTables {
+private[v2] trait NewSnapshotTables {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
   def snapshotTableCfg: SnapshotTableConfiguration
@@ -27,7 +27,7 @@ trait NewSnapshotTables {
   lazy val SnapshotTable = new TableQuery(tag => new Snapshot(tag))
 }
 
-class NewSnapshotQueries(override val snapshotTableCfg: SnapshotTableConfiguration) extends NewSnapshotTables {
+private[v2] class NewSnapshotQueries(override val snapshotTableCfg: SnapshotTableConfiguration) extends NewSnapshotTables {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
   private val SnapshotTableC = Compiled(SnapshotTable)

@@ -1,17 +1,17 @@
-package db.migration.v2
+package akka.persistence.postgres.migration.v2
 
 import java.nio.charset.StandardCharsets
 
 import akka.Done
-import akka.actor.{ ActorRef, ActorSystem, ExtendedActorSystem }
+import akka.actor.{ ActorRef, ExtendedActorSystem }
 import akka.persistence.SnapshotMetadata
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
-import akka.persistence.postgres.db.{ ExtendedPostgresProfile, SlickExtension }
+import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
-import akka.serialization.{ Serialization, SerializationExtension, SerializerWithStringManifest }
+import akka.serialization.{ Serialization, SerializerWithStringManifest }
+import akka.stream.Materializer
 import akka.stream.scaladsl.Source
-import akka.stream.{ Materializer, SystemMaterializer }
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.Config
 import io.circe.{ Json, Printer }
 import org.flywaydb.core.api.migration.{ BaseJavaMigration, Context }
 import org.slf4j.{ Logger, LoggerFactory }
@@ -20,19 +20,29 @@ import slick.lifted.TableQuery
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.util.Failure
 
-class V2__Extract_journal_metadata extends BaseJavaMigration {
+abstract class SlickMigration()(implicit ec: ExecutionContext, mat: Materializer)
+    extends BaseJavaMigration
+    with ExtendedPostgresProfile.API {
 
-  val log: Logger = LoggerFactory.getLogger(this.getClass)
+  lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
 
-  val config: Config = ConfigFactory.load()
+  implicit val GetByteArr: GetResult[Array[Byte]] = GetResult(_.nextBytes())
+  implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
+  implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
 
-  val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
+  def db: JdbcBackend.Database
+
+}
+
+// Class name must obey FlyWay naming rules (https://flywaydb.org/documentation/migrations#naming-1)
+class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database, serialization: Serialization)(
+    implicit ec: ExecutionContext,
+    mat: Materializer)
+    extends SlickMigration {
+
   val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
-
-  val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
-
   lazy val journalQueries: NewJournalQueries = {
     val daoFqcn = journalConfig.pluginConfig.dao
 
@@ -49,40 +59,26 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
     new NewJournalQueries(table)
   }
 
+  val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
   lazy val snapshotQueries = new NewSnapshotQueries(snapshotConfig.snapshotTableConfiguration)
 
-  import ExtendedPostgresProfile.api._
-
-  implicit val GetByteArr: GetResult[Array[Byte]] = GetResult(_.nextBytes())
-  implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
-  implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
-
+  val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
   val migrationBatchSize: Long =
-    if (config.hasPath("v2.batchSize"))
+    if (migrationConf.hasPath("v2.batchSize"))
       migrationConf.getLong("v2.batchSize")
     else 500L
 
   @throws[Exception]
   override def migrate(context: Context): Unit = {
-    val system = ActorSystem("migration-tool-AS", config)
-    import system.dispatcher
-    implicit val met: Materializer = SystemMaterializer(system).materializer
-
-    val slickDb = SlickExtension(system).database(migrationConf)
-    val db = slickDb.database
-
-    val serialization = SerializationExtension(system)
-
     val migrationRes = for {
       _ <- migrateJournal(db, serialization)
       _ <- migrateSnapshots(db, serialization)
     } yield Done
 
-    migrationRes.onComplete(((r: Try[Done]) =>
-      r match {
-        case Failure(exception) => log.error(s"Metadata extraction has failed", exception)
-        case Success(_)         => log.info(s"Metadata extraction is now completed")
-      }).andThen(_ => system.terminate().map(_ => db.close())))
+    migrationRes.onComplete {
+      case Failure(exception) => log.error(s"Metadata extraction has failed", exception)
+      case _                  => log.info(s"Metadata extraction is now completed")
+    }
 
     Await.result(migrationRes, Duration.Inf)
   }
@@ -91,15 +87,16 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
       implicit ec: ExecutionContext,
       mat: Materializer): Future[Done] = {
     val deserializer = new OldDeserializer(serialization)
-    // because we neither rely on nor touch tags column
     val serializer = new NewJournalSerializer(serialization)
 
     log.info(s"Start migrating journal entries...")
 
-    val ddl = db.run(sqlu"ALTER TABLE journal ADD COLUMN metadata jsonb")
+    val ddl = db.run(sqlu"ALTER TABLE journal ADD COLUMN IF NOT EXISTS metadata jsonb")
 
     val eventsPublisher =
-      db.stream(sql"select persistence_id, sequence_number, message from journal".as[(String, Long, Array[Byte])])
+      db.stream(
+        sql"select persistence_id, sequence_number, message from journal where metadata is null"
+          .as[(String, Long, Array[Byte])])
 
     val dml = Source
       .fromPublisher(eventsPublisher)
@@ -138,11 +135,11 @@ class V2__Extract_journal_metadata extends BaseJavaMigration {
 
     log.info(s"Start migrating snapshots...")
 
-    val ddl = db.run(sqlu"ALTER TABLE snapshot ADD COLUMN metadata jsonb")
+    val ddl = db.run(sqlu"ALTER TABLE snapshot ADD COLUMN IF NOT EXISTS metadata jsonb")
 
     val eventsPublisher =
       db.stream {
-        sql"select persistence_id, sequence_number, created, snapshot from snapshot"
+        sql"select persistence_id, sequence_number, created, snapshot from snapshot where metadata is null"
           .as[(String, Long, Long, Array[Byte])]
       }
 

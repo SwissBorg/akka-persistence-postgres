@@ -1,4 +1,4 @@
-package db.migration.v2
+package akka.persistence.postgres.migration.v2
 
 import akka.persistence.postgres.config.JournalTableConfiguration
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -6,7 +6,7 @@ import io.circe.Json
 import slick.lifted.TableQuery
 import slick.sql.FixedSqlAction
 
-class NewJournalQueries(journalTable: TableQuery[NewJournalTable]) {
+private[v2] class NewJournalQueries(journalTable: TableQuery[NewJournalTable]) {
 
   /**
    * Updates (!) a payload stored in a specific events row.
@@ -24,7 +24,7 @@ class NewJournalQueries(journalTable: TableQuery[NewJournalTable]) {
 
 }
 
-trait NewJournalTable extends Table[NewJournalRow] {
+private[v2] trait NewJournalTable extends Table[NewJournalRow] {
   def ordering: Rep[Long]
   def persistenceId: Rep[String]
   def sequenceNumber: Rep[Long]
@@ -34,14 +34,14 @@ trait NewJournalTable extends Table[NewJournalRow] {
   def metadata: Rep[Json]
 }
 
-abstract class NewBaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+private[v2] abstract class NewBaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends Table[NewJournalRow](
       _tableTag,
       _schemaName = journalTableCfg.schemaName,
       _tableName = journalTableCfg.tableName)
     with NewJournalTable
 
-class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+private[v2] class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends NewBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
     (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
@@ -60,12 +60,12 @@ class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: JournalTable
   val tagsIdx = index(s"${tableName}_tags_idx", tags)
 }
 
-object NewFlatJournalTable {
+private[v2] object NewFlatJournalTable {
   def apply(journalTableCfg: JournalTableConfiguration): TableQuery[NewJournalTable] =
     TableQuery(tag => new NewFlatJournalTable(tag, journalTableCfg))
 }
 
-class NewPartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+private[v2] class NewPartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends NewBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
     (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
@@ -83,12 +83,12 @@ class NewPartitionedJournalTable private (_tableTag: Tag, journalTableCfg: Journ
   val tagsIdx = index(s"${tableName}_tags_idx", tags)
 }
 
-object NewPartitionedJournalTable {
+private[v2] object NewPartitionedJournalTable {
   def apply(journalTableCfg: JournalTableConfiguration): TableQuery[NewJournalTable] =
     TableQuery(tag => new NewPartitionedJournalTable(tag, journalTableCfg))
 }
 
-object NewNestedPartitionsJournalTable {
+private[v2] object NewNestedPartitionsJournalTable {
   def apply(journalTableCfg: JournalTableConfiguration): TableQuery[NewJournalTable] =
     NewFlatJournalTable.apply(journalTableCfg)
 }
