@@ -8,6 +8,6 @@ private[v2] final case class TempJournalRow(
     persistenceId: String,
     sequenceNumber: Long,
     oldMessage: Array[Byte],
-    newMessage: Array[Byte],
+    tempMessage: Array[Byte],
     tags: List[Int],
     metadata: Json)

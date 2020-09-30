@@ -36,10 +36,5 @@ object Dependencies {
       "org.flywaydb" % "flyway-core" % "6.5.6",
       "com.typesafe" % "config" % "1.4.0",
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
-//      "com.typesafe.slick" %% "slick" % SlickVersion,
-//      "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
-//      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
-//      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
-//      "org.testcontainers" % "postgresql" % "1.14.3" % Test,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers //.map(_ % Provided)
+      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers
 }

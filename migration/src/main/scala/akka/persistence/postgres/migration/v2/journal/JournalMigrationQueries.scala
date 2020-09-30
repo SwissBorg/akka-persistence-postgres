@@ -32,7 +32,7 @@ private[v2] abstract class TempBaseJournalTable(_tableTag: Tag, journalTableCfg:
       _tableName = journalTableCfg.tableName)
     with TempJournalTable
 
-private[v2] class TempFlatJournalTable private(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+private[v2] class TempFlatJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends TempBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
     (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tempMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
@@ -57,7 +57,7 @@ private[v2] object TempFlatJournalTable {
     TableQuery(tag => new TempFlatJournalTable(tag, journalTableCfg))
 }
 
-private[v2] class TempPartitionedJournalTable private(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+private[v2] class TempPartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends TempBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
     (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tempMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)

@@ -7,5 +7,5 @@ private[v2] case class TempSnapshotRow(
     sequenceNumber: Long,
     created: Long,
     oldSnapshot: Array[Byte],
-    newSnapshot: Array[Byte],
+    tempSnapshot: Array[Byte],
     metadata: Json)

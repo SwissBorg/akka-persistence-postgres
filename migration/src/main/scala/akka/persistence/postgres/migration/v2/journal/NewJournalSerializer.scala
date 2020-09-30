@@ -1,32 +1,28 @@
 package akka.persistence.postgres.migration.v2.journal
 
 import akka.persistence.PersistentRepr
-import akka.serialization.{Serialization, Serializers}
-import io.circe.{Encoder, Json}
+import akka.serialization.{ Serialization, Serializers }
+import io.circe.{ Encoder, Json }
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-private[v2] class NewJournalSerializer(serialization: Serialization)(
-    implicit val executionContext: ExecutionContext) {
+private[v2] class NewJournalSerializer(serialization: Serialization) {
 
   import NewJournalSerializer._
   import io.circe.syntax._
 
-  def serialize(persistentRepr: PersistentRepr): Future[(Array[Byte], Json)] = {
+  def serialize(persistentRepr: PersistentRepr): Try[(Array[Byte], Json)] = {
     val payload: AnyRef = persistentRepr.payload.asInstanceOf[AnyRef]
-    val serializedEventFut: Future[Array[Byte]] = Future.fromTry(serialization.serialize(payload))
+    val serializedEventFut: Try[Array[Byte]] = serialization.serialize(payload)
     for {
-      serializer <- Future.fromTry(Try(serialization.findSerializerFor(payload)))
+      serializer <- Try(serialization.findSerializerFor(payload))
       serializedEvent <- serializedEventFut
     } yield {
       val serId = serializer.identifier
       val serManifest = Serializers.manifestFor(serializer, payload)
       val meta =
         Metadata(serId, serManifest, persistentRepr.manifest, persistentRepr.writerUuid, persistentRepr.timestamp)
-      (
-        serializedEvent,
-        meta.asJson)
+      (serializedEvent, meta.asJson)
     }
   }
 }

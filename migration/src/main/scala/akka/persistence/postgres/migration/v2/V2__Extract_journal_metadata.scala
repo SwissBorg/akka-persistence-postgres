@@ -7,9 +7,14 @@ import akka.actor.{ ActorRef, ExtendedActorSystem }
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
-import akka.persistence.postgres.migration.v2.journal.{JournalMigrationQueries, NewJournalSerializer, NewNestedPartitionsJournalTable, OldJournalDeserializer, TempFlatJournalTable, TempJournalRow, TempJournalTable, TempPartitionedJournalTable}
-import akka.persistence.postgres.migration.v2.snapshot.{NewSnapshotSerializer, OldSnapshotDeserializer, SnapshotMigrationQueries, TempSnapshotRow}
-import akka.serialization.{Serialization, SerializerWithStringManifest}
+import akka.persistence.postgres.migration.v2.journal._
+import akka.persistence.postgres.migration.v2.snapshot.{
+  NewSnapshotSerializer,
+  OldSnapshotDeserializer,
+  SnapshotMigrationQueries,
+  TempSnapshotRow
+}
+import akka.serialization.{ Serialization, SerializerWithStringManifest }
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
@@ -111,18 +116,20 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
       .fromPublisher(eventsPublisher)
       .mapAsync(8) {
         case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
-          for {
-            pr <- Future.fromTry(deserializer.deserialize(oldMessage))
-            (newMessage, metadata) <- serializer.serialize(pr)
-          } yield TempJournalRow(
-            ordering,
-            deleted,
-            persistenceId,
-            sequenceNumber,
-            oldMessage,
-            newMessage,
-            tags,
-            metadata)
+          Future.fromTry {
+            for {
+              pr <- deserializer.deserialize(oldMessage)
+              (newMessage, metadata) <- serializer.serialize(pr)
+            } yield TempJournalRow(
+              ordering,
+              deleted,
+              persistenceId,
+              sequenceNumber,
+              oldMessage,
+              newMessage,
+              tags,
+              metadata)
+          }
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
       .map(journalQueries.updateAll)
