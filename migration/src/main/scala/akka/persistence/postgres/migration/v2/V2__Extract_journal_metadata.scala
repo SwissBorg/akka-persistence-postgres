@@ -5,8 +5,8 @@ import java.nio.charset.StandardCharsets
 import akka.Done
 import akka.actor.{ ActorRef, ExtendedActorSystem }
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
-import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
+import akka.persistence.postgres.migration.SlickMigration
 import akka.persistence.postgres.migration.v2.journal._
 import akka.persistence.postgres.migration.v2.snapshot.{
   NewSnapshotSerializer,
@@ -18,35 +18,18 @@ import akka.serialization.{ Serialization, SerializerWithStringManifest }
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
-import io.circe.{ Json, Printer }
-import org.flywaydb.core.api.migration.{ BaseJavaMigration, Context }
-import org.slf4j.{ Logger, LoggerFactory }
-import slick.jdbc.{ GetResult, JdbcBackend, SetParameter }
+import org.flywaydb.core.api.migration.Context
+import slick.jdbc.JdbcBackend
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.util.Failure
 
-abstract class SlickMigration()(implicit ec: ExecutionContext, mat: Materializer)
-    extends BaseJavaMigration
-    with ExtendedPostgresProfile.MyAPI {
-
-  lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
-
-  implicit val GetIntList: GetResult[List[Int]] = GetResult(_.nextArray[Int]().toList)
-  implicit val GetByteArr: GetResult[Array[Byte]] = GetResult(_.nextBytes())
-  implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
-  implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
-
-  def db: JdbcBackend.Database
-
-}
-
 // Class name must obey FlyWay naming rules (https://flywaydb.org/documentation/migrations#naming-1)
 class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database, serialization: Serialization)(
     implicit ec: ExecutionContext,
     mat: Materializer)
-    extends SlickMigration {
+    extends SlickMigration(db) {
 
   private val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
   private val journalTableConfig = journalConfig.journalTableConfiguration
@@ -70,7 +53,8 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
   private val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
   private val snapshotTableConfig = snapshotConfig.snapshotTableConfiguration
   private lazy val snapshotQueries = new SnapshotMigrationQueries(snapshotTableConfig)
-  private val snapshotTableName = snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
+  private val snapshotTableName =
+    snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
 
   private val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
@@ -180,7 +164,13 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
             for {
               oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
               (newSnapshot, metadata) <- serializer.serialize(oldSnapshot)
-            } yield TempSnapshotRow(persistenceId, sequenceNumber, created, serializedOldSnapshot, newSnapshot, metadata)
+            } yield TempSnapshotRow(
+              persistenceId,
+              sequenceNumber,
+              created,
+              serializedOldSnapshot,
+              newSnapshot,
+              metadata)
           }
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
@@ -225,8 +215,56 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     }
 
     for {
-     _ <- db.run(DBIO.sequence(List(finishJournalMigration, finishSnapshotMigration)).transactionally)
+      _ <- db.run(DBIO.sequence(List(finishJournalMigration, finishSnapshotMigration)).transactionally)
     } yield Done
   }
 
+}
+
+// Test serializers below - TO BE REMOVED
+
+case object ResetCounter
+
+case class Cmd(mode: String, payload: Int)
+
+class CmdSerializer extends SerializerWithStringManifest {
+  override def identifier: Int = 293562
+
+  override def manifest(o: AnyRef): String = ""
+
+  override def toBinary(o: AnyRef): Array[Byte] =
+    o match {
+      case Cmd(mode, payload) =>
+        s"$mode|$payload".getBytes(StandardCharsets.UTF_8)
+      case _ =>
+        throw new IllegalArgumentException(s"Can't serialize object of type ${o.getClass} in [${getClass.getName}]")
+    }
+
+  override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
+    val str = new String(bytes, StandardCharsets.UTF_8)
+    val i = str.indexOf('|')
+    Cmd(str.substring(0, i), str.substring(i + 1).toInt)
+  }
+}
+
+final case class TestPayload(ref: ActorRef)
+
+class TestSerializer(system: ExtendedActorSystem) extends SerializerWithStringManifest {
+  def identifier: Int = 666
+  def manifest(o: AnyRef): String = o match {
+    case _: TestPayload => "A"
+  }
+  def toBinary(o: AnyRef): Array[Byte] = o match {
+    case TestPayload(ref) =>
+      val refStr = Serialization.serializedActorPath(ref)
+      refStr.getBytes(StandardCharsets.UTF_8)
+  }
+  def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
+    manifest match {
+      case "A" =>
+        val refStr = new String(bytes, StandardCharsets.UTF_8)
+        val ref = system.provider.resolveActorRef(refStr)
+        TestPayload(ref)
+    }
+  }
 }
