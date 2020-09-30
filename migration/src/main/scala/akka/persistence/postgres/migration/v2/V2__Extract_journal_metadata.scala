@@ -7,7 +7,9 @@ import akka.actor.{ ActorRef, ExtendedActorSystem }
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
-import akka.serialization.{ Serialization, SerializerWithStringManifest }
+import akka.persistence.postgres.migration.v2.journal.{JournalMigrationQueries, NewJournalSerializer, NewNestedPartitionsJournalTable, OldJournalDeserializer, TempFlatJournalTable, TempJournalRow, TempJournalTable, TempPartitionedJournalTable}
+import akka.persistence.postgres.migration.v2.snapshot.{NewSnapshotSerializer, OldSnapshotDeserializer, SnapshotMigrationQueries, TempSnapshotRow}
+import akka.serialization.{Serialization, SerializerWithStringManifest}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
@@ -87,7 +89,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
   def migrateJournal(db: JdbcBackend.Database, serialization: Serialization)(
       implicit ec: ExecutionContext,
       mat: Materializer): Future[Done] = {
-    val deserializer = new OldDeserializer(serialization)
+    val deserializer = new OldJournalDeserializer(serialization)
     val serializer = new NewJournalSerializer(serialization)
 
     log.info(s"Start migrating journal entries...")
@@ -95,7 +97,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     val ddl = for {
       _ <- db.run(
         sqlu"ALTER TABLE #$journalTableName ADD COLUMN IF NOT EXISTS #${journalTableConfig.columnNames.metadata} jsonb")
-      _ <- db.run(sqlu"ALTER TABLE #$journalTableName ADD COLUMN IF NOT EXISTS message_raw bytea")
+      _ <- db.run(sqlu"ALTER TABLE #$journalTableName ADD COLUMN IF NOT EXISTS temp_message bytea")
     } yield Done
 
     val eventsPublisher = {
@@ -152,7 +154,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     val ddl = for {
       _ <- db.run(
         sqlu"ALTER TABLE #$snapshotTableName ADD COLUMN IF NOT EXISTS #${snapshotTableConfig.columnNames.metadata} jsonb")
-      _ <- db.run(sqlu"ALTER TABLE #$snapshotTableName ADD COLUMN IF NOT EXISTS snapshot_raw bytea")
+      _ <- db.run(sqlu"ALTER TABLE #$snapshotTableName ADD COLUMN IF NOT EXISTS temp_snapshot bytea")
     } yield Done
 
     val eventsPublisher = {
@@ -198,20 +200,20 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     val finishJournalMigration: DBIO[Done] = {
       import journalTableConfig.columnNames._
       for {
-        _ <- sqlu"ALTER TABLE #$journalTableName ALTER COLUMN message_raw SET NOT NULL"
+        _ <- sqlu"ALTER TABLE #$journalTableName ALTER COLUMN temp_message SET NOT NULL"
         _ <- sqlu"ALTER TABLE #$journalTableName ALTER COLUMN #$metadata SET NOT NULL"
         _ <- sqlu"ALTER TABLE #$journalTableName DROP COLUMN #$message"
-        _ <- sqlu"ALTER TABLE #$journalTableName RENAME COLUMN message_raw TO #$message"
+        _ <- sqlu"ALTER TABLE #$journalTableName RENAME COLUMN temp_message TO #$message"
       } yield Done
     }
 
     val finishSnapshotMigration: DBIO[Done] = {
       import snapshotTableConfig.columnNames._
       for {
-        _ <- sqlu"ALTER TABLE #$snapshotTableName ALTER COLUMN snapshot_raw SET NOT NULL"
+        _ <- sqlu"ALTER TABLE #$snapshotTableName ALTER COLUMN temp_snapshot SET NOT NULL"
         _ <- sqlu"ALTER TABLE #$snapshotTableName ALTER COLUMN #$metadata SET NOT NULL"
         _ <- sqlu"ALTER TABLE #$snapshotTableName DROP COLUMN #$snapshot"
-        _ <- sqlu"ALTER TABLE #$snapshotTableName RENAME COLUMN snapshot_raw TO #$snapshot"
+        _ <- sqlu"ALTER TABLE #$snapshotTableName RENAME COLUMN temp_snapshot TO #$snapshot"
       } yield Done
     }
 

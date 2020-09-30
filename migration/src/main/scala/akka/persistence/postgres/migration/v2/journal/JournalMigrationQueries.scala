@@ -1,4 +1,4 @@
-package akka.persistence.postgres.migration.v2
+package akka.persistence.postgres.migration.v2.journal
 
 import akka.persistence.postgres.config.JournalTableConfiguration
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -21,7 +21,7 @@ private[v2] trait TempJournalTable extends Table[TempJournalRow] {
   def deleted: Rep[Boolean]
   def tags: Rep[List[Int]]
   def oldMessage: Rep[Array[Byte]]
-  def newMessage: Rep[Array[Byte]]
+  def tempMessage: Rep[Array[Byte]]
   def metadata: Rep[Json]
 }
 
@@ -35,7 +35,7 @@ private[v2] abstract class TempBaseJournalTable(_tableTag: Tag, journalTableCfg:
 private[v2] class TempFlatJournalTable private(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends TempBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, oldMessage, newMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
+    (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tempMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering, O.AutoInc)
   val persistenceId: Rep[String] =
@@ -44,7 +44,7 @@ private[v2] class TempFlatJournalTable private(_tableTag: Tag, journalTableCfg: 
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
   val oldMessage: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
-  val newMessage: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
+  val tempMessage: Rep[Array[Byte]] = column[Array[Byte]]("temp_message")
   val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
 
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
@@ -60,7 +60,7 @@ private[v2] object TempFlatJournalTable {
 private[v2] class TempPartitionedJournalTable private(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends TempBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, oldMessage, newMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
+    (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tempMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
   val persistenceId: Rep[String] =
@@ -69,7 +69,7 @@ private[v2] class TempPartitionedJournalTable private(_tableTag: Tag, journalTab
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
   val oldMessage: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
-  val newMessage: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
+  val tempMessage: Rep[Array[Byte]] = column[Array[Byte]]("temp_message")
   val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
 
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber, ordering))

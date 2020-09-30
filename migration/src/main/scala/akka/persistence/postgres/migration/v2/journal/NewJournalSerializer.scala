@@ -1,10 +1,8 @@
-package akka.persistence.postgres.migration.v2
+package akka.persistence.postgres.migration.v2.journal
 
 import akka.persistence.PersistentRepr
-import akka.persistence.postgres.migration.v2.NewJournalSerializer.Metadata
 import akka.serialization.{Serialization, Serializers}
 import io.circe.{Encoder, Json}
-import io.circe.syntax._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try

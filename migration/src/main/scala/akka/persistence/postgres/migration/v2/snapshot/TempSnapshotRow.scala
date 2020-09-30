@@ -1,4 +1,4 @@
-package akka.persistence.postgres.migration.v2
+package akka.persistence.postgres.migration.v2.snapshot
 
 import io.circe.Json
 

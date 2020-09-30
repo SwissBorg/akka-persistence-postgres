@@ -1,4 +1,4 @@
-package akka.persistence.postgres.migration.v2
+package akka.persistence.postgres.migration.v2.snapshot
 
 import akka.persistence.postgres.config.SnapshotTableConfiguration
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -24,14 +24,14 @@ private[v2] trait TempSnapshotTables {
         _schemaName = snapshotTableCfg.schemaName,
         _tableName = snapshotTableCfg.tableName) {
     def * =
-      (persistenceId, sequenceNumber, created, oldSnapshot, newSnapshot, metadata) <> (TempSnapshotRow.tupled, TempSnapshotRow.unapply)
+      (persistenceId, sequenceNumber, created, oldSnapshot, tempSnapshot, metadata) <> (TempSnapshotRow.tupled, TempSnapshotRow.unapply)
 
     val persistenceId: Rep[String] =
       column[String](snapshotTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
     val sequenceNumber: Rep[Long] = column[Long](snapshotTableCfg.columnNames.sequenceNumber)
     val created: Rep[Long] = column[Long](snapshotTableCfg.columnNames.created)
     val oldSnapshot: Rep[Array[Byte]] = column[Array[Byte]](snapshotTableCfg.columnNames.snapshot)
-    val newSnapshot: Rep[Array[Byte]] = column[Array[Byte]]("snapshot_raw")
+    val tempSnapshot: Rep[Array[Byte]] = column[Array[Byte]]("temp_snapshot")
     val metadata: Rep[Json] = column[Json](snapshotTableCfg.columnNames.metadata)
     val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
   }

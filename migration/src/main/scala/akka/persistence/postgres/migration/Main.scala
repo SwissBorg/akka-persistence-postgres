@@ -1,7 +1,3 @@
-/*
- * Copyright (C) 2014 - 2019 Dennis Vriend <https://github.com/dnvriend>
- * Copyright (C) 2019 - 2020 Lightbend Inc. <https://www.lightbend.com>
- */
 package akka.persistence.postgres.migration
 
 import java.io.File
@@ -10,10 +6,10 @@ import akka.actor.ActorSystem
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.migration.v2.V2__Extract_journal_metadata
 import akka.serialization.SerializationExtension
-import akka.stream.{Materializer, SystemMaterializer}
-import com.typesafe.config.{Config, ConfigFactory}
+import akka.stream.{ Materializer, SystemMaterializer }
+import com.typesafe.config.{ Config, ConfigFactory }
 import org.flywaydb.core.Flyway
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.{ Logger, LoggerFactory }
 
 object Main {
 

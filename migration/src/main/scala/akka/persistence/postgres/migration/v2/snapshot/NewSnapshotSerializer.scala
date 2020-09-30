@@ -1,7 +1,7 @@
-package akka.persistence.postgres.migration.v2
+package akka.persistence.postgres.migration.v2.snapshot
 
-import akka.serialization.{ Serialization, Serializers }
-import io.circe.{ Encoder, Json }
+import akka.serialization.{Serialization, Serializers}
+import io.circe.{Encoder, Json}
 
 import scala.util.Try
 

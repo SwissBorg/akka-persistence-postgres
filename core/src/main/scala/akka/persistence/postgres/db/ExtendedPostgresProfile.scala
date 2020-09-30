@@ -1,7 +1,6 @@
 package akka.persistence.postgres.db
 
 import com.github.tminglei.slickpg._
-import org.postgresql.jdbc.PgBlob
 import slick.basic.Capability
 import slick.jdbc.JdbcCapabilities
 
