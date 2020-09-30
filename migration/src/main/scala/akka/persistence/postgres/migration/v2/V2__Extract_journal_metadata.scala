@@ -1,10 +1,13 @@
 package akka.persistence.postgres.migration.v2
 
+import java.nio.charset.StandardCharsets
+
 import akka.Done
+import akka.actor.{ ActorRef, ExtendedActorSystem }
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
-import akka.serialization.Serialization
+import akka.serialization.{ Serialization, SerializerWithStringManifest }
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
@@ -40,28 +43,27 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
 
   private val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
   private val journalTableConfig = journalConfig.journalTableConfiguration
-  private lazy val journalQueries: NewJournalQueries = {
+  private lazy val journalQueries: JournalMigrationQueries = {
     val daoFqcn = journalConfig.pluginConfig.dao
 
     import akka.persistence.postgres.journal.dao.FlatJournalDao
 
-    val table: TableQuery[NewJournalTable] =
-      if (daoFqcn == classOf[FlatJournalDao].getName) NewFlatJournalTable(journalTableConfig)
+    val table: TableQuery[TempJournalTable] =
+      if (daoFqcn == classOf[FlatJournalDao].getName) TempFlatJournalTable(journalTableConfig)
       else if (daoFqcn == classOf[PartitionedJournalDao].getName)
-        NewPartitionedJournalTable(journalTableConfig)
+        TempPartitionedJournalTable(journalTableConfig)
       else if (daoFqcn == classOf[NestedPartitionsJournalDao].getName)
         NewNestedPartitionsJournalTable(journalTableConfig)
       else throw new IllegalStateException(s"Unsupported DAO class - '$daoFqcn'")
 
-    new NewJournalQueries(table)
+    new JournalMigrationQueries(table)
   }
   private val journalTableName = journalTableConfig.schemaName.map(_ + ".").getOrElse("") + journalTableConfig.tableName
 
   private val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
   private val snapshotTableConfig = snapshotConfig.snapshotTableConfiguration
-  private lazy val snapshotQueries = new NewSnapshotQueries(snapshotTableConfig)
-  private val snapshotTableName =
-    snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
+  private lazy val snapshotQueries = new SnapshotMigrationQueries(snapshotTableConfig)
+  private val snapshotTableName = snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
 
   private val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
@@ -110,7 +112,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
           for {
             pr <- Future.fromTry(deserializer.deserialize(oldMessage))
             (newMessage, metadata) <- serializer.serialize(pr)
-          } yield NewJournalRow(
+          } yield TempJournalRow(
             ordering,
             deleted,
             persistenceId,
@@ -169,7 +171,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
             for {
               oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
               (newSnapshot, metadata) <- serializer.serialize(oldSnapshot)
-            } yield NewSnapshotRow(persistenceId, sequenceNumber, created, serializedOldSnapshot, newSnapshot, metadata)
+            } yield TempSnapshotRow(persistenceId, sequenceNumber, created, serializedOldSnapshot, newSnapshot, metadata)
           }
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
@@ -192,6 +194,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
   }
 
   def finishMigration(): Future[Done] = {
+    log.info(s"Cleaning up temporary migration columns...")
     val finishJournalMigration: DBIO[Done] = {
       import journalTableConfig.columnNames._
       for {
@@ -211,7 +214,10 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
         _ <- sqlu"ALTER TABLE #$snapshotTableName RENAME COLUMN snapshot_raw TO #$snapshot"
       } yield Done
     }
-    db.run(DBIO.sequence(List(finishJournalMigration, finishSnapshotMigration)).transactionally).map(_ => Done)
+
+    for {
+     _ <- db.run(DBIO.sequence(List(finishJournalMigration, finishSnapshotMigration)).transactionally)
+    } yield Done
   }
 
 }

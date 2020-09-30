@@ -7,34 +7,35 @@ import slick.lifted.TableQuery
 
 import scala.concurrent.ExecutionContext
 
-private[v2] class NewJournalQueries(journalTable: TableQuery[NewJournalTable]) {
+private[v2] class JournalMigrationQueries(journalTable: TableQuery[TempJournalTable]) {
 
-  def updateAll(rows: List[NewJournalRow])(implicit ec: ExecutionContext): DBIOAction[Int, NoStream, Effect.Write] =
+  def updateAll(rows: List[TempJournalRow])(implicit ec: ExecutionContext): DBIOAction[Int, NoStream, Effect.Write] =
     journalTable.insertOrUpdateAll(rows).map(_ => rows.size)
 
 }
 
-private[v2] trait NewJournalTable extends Table[NewJournalRow] {
+private[v2] trait TempJournalTable extends Table[TempJournalRow] {
   def ordering: Rep[Long]
   def persistenceId: Rep[String]
   def sequenceNumber: Rep[Long]
   def deleted: Rep[Boolean]
   def tags: Rep[List[Int]]
-  def messageRaw: Rep[Array[Byte]]
+  def oldMessage: Rep[Array[Byte]]
+  def newMessage: Rep[Array[Byte]]
   def metadata: Rep[Json]
 }
 
-private[v2] abstract class NewBaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
-    extends Table[NewJournalRow](
+private[v2] abstract class TempBaseJournalTable(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+    extends Table[TempJournalRow](
       _tableTag,
       _schemaName = journalTableCfg.schemaName,
       _tableName = journalTableCfg.tableName)
-    with NewJournalTable
+    with TempJournalTable
 
-private[v2] class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
-    extends NewBaseJournalTable(_tableTag, journalTableCfg) {
+private[v2] class TempFlatJournalTable private(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+    extends TempBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, message, messageRaw, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
+    (ordering, deleted, persistenceId, sequenceNumber, oldMessage, newMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering, O.AutoInc)
   val persistenceId: Rep[String] =
@@ -42,8 +43,8 @@ private[v2] class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: 
   val sequenceNumber: Rep[Long] = column[Long](journalTableCfg.columnNames.sequenceNumber)
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
-  val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
-  val messageRaw: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
+  val oldMessage: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val newMessage: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
   val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
 
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
@@ -51,15 +52,15 @@ private[v2] class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: 
   val tagsIdx = index(s"${tableName}_tags_idx", tags)
 }
 
-private[v2] object NewFlatJournalTable {
-  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[NewJournalTable] =
-    TableQuery(tag => new NewFlatJournalTable(tag, journalTableCfg))
+private[v2] object TempFlatJournalTable {
+  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[TempJournalTable] =
+    TableQuery(tag => new TempFlatJournalTable(tag, journalTableCfg))
 }
 
-private[v2] class NewPartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
-    extends NewBaseJournalTable(_tableTag, journalTableCfg) {
+private[v2] class TempPartitionedJournalTable private(_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
+    extends TempBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, message, messageRaw, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
+    (ordering, deleted, persistenceId, sequenceNumber, oldMessage, newMessage, tags, metadata) <> (TempJournalRow.tupled, TempJournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
   val persistenceId: Rep[String] =
@@ -67,20 +68,20 @@ private[v2] class NewPartitionedJournalTable private (_tableTag: Tag, journalTab
   val sequenceNumber: Rep[Long] = column[Long](journalTableCfg.columnNames.sequenceNumber)
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
-  val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
-  val messageRaw: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
+  val oldMessage: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val newMessage: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
   val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
 
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber, ordering))
   val tagsIdx = index(s"${tableName}_tags_idx", tags)
 }
 
-private[v2] object NewPartitionedJournalTable {
-  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[NewJournalTable] =
-    TableQuery(tag => new NewPartitionedJournalTable(tag, journalTableCfg))
+private[v2] object TempPartitionedJournalTable {
+  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[TempJournalTable] =
+    TableQuery(tag => new TempPartitionedJournalTable(tag, journalTableCfg))
 }
 
 private[v2] object NewNestedPartitionsJournalTable {
-  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[NewJournalTable] =
-    NewFlatJournalTable.apply(journalTableCfg)
+  def apply(journalTableCfg: JournalTableConfiguration): TableQuery[TempJournalTable] =
+    TempFlatJournalTable.apply(journalTableCfg)
 }

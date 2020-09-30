@@ -2,7 +2,7 @@ package akka.persistence.postgres.migration.v2
 
 import io.circe.Json
 
-private[v2] case class NewSnapshotRow(
+private[v2] case class TempSnapshotRow(
     persistenceId: String,
     sequenceNumber: Long,
     created: Long,
