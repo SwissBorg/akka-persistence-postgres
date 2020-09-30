@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets
 
 import akka.Done
 import akka.actor.{ ActorRef, ExtendedActorSystem }
-import akka.persistence.SnapshotMetadata
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
@@ -16,7 +15,6 @@ import io.circe.{ Json, Printer }
 import org.flywaydb.core.api.migration.{ BaseJavaMigration, Context }
 import org.slf4j.{ Logger, LoggerFactory }
 import slick.jdbc.{ GetResult, JdbcBackend, SetParameter }
-import slick.lifted.TableQuery
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, ExecutionContext, Future }
@@ -24,10 +22,11 @@ import scala.util.Failure
 
 abstract class SlickMigration()(implicit ec: ExecutionContext, mat: Materializer)
     extends BaseJavaMigration
-    with ExtendedPostgresProfile.API {
+    with ExtendedPostgresProfile.MyAPI {
 
   lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
 
+  implicit val GetIntList: GetResult[List[Int]] = GetResult(_.nextArray[Int]().toList)
   implicit val GetByteArr: GetResult[Array[Byte]] = GetResult(_.nextBytes())
   implicit val SetByteArr: SetParameter[Array[Byte]] = SetParameter((arr, pp) => pp.setBytes(arr))
   implicit val SetJson: SetParameter[Json] = SetParameter((json, pp) => pp.setString(json.printWith(Printer.noSpaces)))
@@ -42,37 +41,39 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     mat: Materializer)
     extends SlickMigration {
 
-  val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
-  lazy val journalQueries: NewJournalQueries = {
+  private val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
+  private val journalTableConfig = journalConfig.journalTableConfiguration
+  private lazy val journalQueries: NewJournalQueries = {
     val daoFqcn = journalConfig.pluginConfig.dao
 
     import akka.persistence.postgres.journal.dao.FlatJournalDao
 
     val table: TableQuery[NewJournalTable] =
-      if (daoFqcn == classOf[FlatJournalDao].getName) NewFlatJournalTable(journalConfig.journalTableConfiguration)
+      if (daoFqcn == classOf[FlatJournalDao].getName) NewFlatJournalTable(journalTableConfig)
       else if (daoFqcn == classOf[PartitionedJournalDao].getName)
-        NewPartitionedJournalTable(journalConfig.journalTableConfiguration)
+        NewPartitionedJournalTable(journalTableConfig)
       else if (daoFqcn == classOf[NestedPartitionsJournalDao].getName)
-        NewNestedPartitionsJournalTable(journalConfig.journalTableConfiguration)
+        NewNestedPartitionsJournalTable(journalTableConfig)
       else throw new IllegalStateException(s"Unsupported DAO class - '$daoFqcn'")
 
     new NewJournalQueries(table)
   }
+  private val journalTableName = journalTableConfig.schemaName.map(_ + ".").getOrElse("") + journalTableConfig.tableName
 
-  val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
-  lazy val snapshotQueries = new NewSnapshotQueries(snapshotConfig.snapshotTableConfiguration)
+  private val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+  private val snapshotTableConfig = snapshotConfig.snapshotTableConfiguration
+  private lazy val snapshotQueries = new NewSnapshotQueries(snapshotTableConfig)
+  private val snapshotTableName = snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
 
-  val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
-  val migrationBatchSize: Long =
-    if (migrationConf.hasPath("v2.batchSize"))
-      migrationConf.getLong("v2.batchSize")
-    else 500L
+  private val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
+  private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
 
   @throws[Exception]
   override def migrate(context: Context): Unit = {
     val migrationRes = for {
       _ <- migrateJournal(db, serialization)
       _ <- migrateSnapshots(db, serialization)
+      _ <- finishMigration()
     } yield Done
 
     migrationRes.onComplete {
@@ -91,31 +92,44 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
 
     log.info(s"Start migrating journal entries...")
 
-    val ddl = db.run(sqlu"ALTER TABLE journal ADD COLUMN IF NOT EXISTS metadata jsonb")
+    val ddl = for {
+      _ <- db.run(
+        sqlu"ALTER TABLE #$journalTableName ADD COLUMN IF NOT EXISTS #${journalTableConfig.columnNames.metadata} jsonb")
+      _ <- db.run(sqlu"ALTER TABLE #$journalTableName ADD COLUMN IF NOT EXISTS message_raw bytea")
+    } yield Done
 
-    val eventsPublisher =
+    val eventsPublisher = {
+      import journalTableConfig.columnNames._
       db.stream(
-        sql"select persistence_id, sequence_number, message from journal where metadata is null"
-          .as[(String, Long, Array[Byte])])
+        sql"SELECT #$ordering, #$deleted, #$persistenceId, #$sequenceNumber, #$message, #$tags FROM #$journalTableName WHERE #$metadata IS NULL"
+          .as[(Long, Boolean, String, Long, Array[Byte], List[Int])])
+    }
 
     val dml = Source
       .fromPublisher(eventsPublisher)
       .mapAsync(8) {
-        case (persistenceId, sequenceNumber, message) =>
+        case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
           for {
-            pr <- Future.fromTry(deserializer.deserialize(message))
-            (message, metadata) <- serializer.serialize(pr)
-          } yield (persistenceId, sequenceNumber, message, metadata)
-      }
-      .map {
-        case (persistenceId, sequenceNumber, message, metadata) =>
-          journalQueries.update(persistenceId, sequenceNumber, message, metadata)
+            pr <- Future.fromTry(deserializer.deserialize(oldMessage))
+            (newMessage, metadata) <- serializer.serialize(pr)
+          } yield NewJournalRow(
+            ordering,
+            deleted,
+            persistenceId,
+            sequenceNumber,
+            oldMessage,
+            newMessage,
+            tags,
+            metadata)
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
-      .foldAsync(0L) { (cnt, actions) =>
-        val numOfEvents = actions.length
-        log.info(s"Updating $numOfEvents events...")
-        db.run(DBIO.sequence(actions).transactionally).map(_ => cnt + numOfEvents)
+      .map(journalQueries.updateAll)
+      .foldAsync(0L) { (cnt, bulkUpdate) =>
+        db.run(bulkUpdate).map { numOfEvents =>
+          val total = cnt + numOfEvents
+          log.info(s"Updated a batch of $numOfEvents events ($total total)...")
+          total
+        }
       }
 
     for {
@@ -135,33 +149,39 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
 
     log.info(s"Start migrating snapshots...")
 
-    val ddl = db.run(sqlu"ALTER TABLE snapshot ADD COLUMN IF NOT EXISTS metadata jsonb")
+    val ddl = for {
+      _ <- db.run(
+        sqlu"ALTER TABLE #$snapshotTableName ADD COLUMN IF NOT EXISTS #${snapshotTableConfig.columnNames.metadata} jsonb")
+      _ <- db.run(sqlu"ALTER TABLE #$snapshotTableName ADD COLUMN IF NOT EXISTS snapshot_raw bytea")
+    } yield Done
 
-    val eventsPublisher =
+    val eventsPublisher = {
+      import snapshotTableConfig.columnNames._
       db.stream {
-        sql"select persistence_id, sequence_number, created, snapshot from snapshot where metadata is null"
+        sql"SELECT #$persistenceId, #$sequenceNumber, #$created, #$snapshot FROM #$snapshotTableName WHERE #$metadata IS NULL"
           .as[(String, Long, Long, Array[Byte])]
       }
+    }
 
     val dml = Source
       .fromPublisher(eventsPublisher)
       .mapAsync(8) {
-        case (persistenceId, sequenceNumber, created, snapshot) =>
+        case (persistenceId, sequenceNumber, created, serializedOldSnapshot) =>
           Future.fromTry {
             for {
-              oldSnapshotRow <- deserializer.deserialize(snapshot)
-              newSnapshotRow <- serializer.serialize(
-                SnapshotMetadata(persistenceId, sequenceNumber, created),
-                oldSnapshotRow)
-            } yield newSnapshotRow
+              oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
+              (newSnapshot, metadata) <- serializer.serialize(oldSnapshot)
+            } yield NewSnapshotRow(persistenceId, sequenceNumber, created, serializedOldSnapshot, newSnapshot, metadata)
           }
       }
-      .map(snapshotQueries.insertOrUpdate)
       .batch(migrationBatchSize, List(_))(_ :+ _)
-      .foldAsync(0L) { (cnt, actions) =>
-        val numOfEvents = actions.length
-        log.info(s"Updating $numOfEvents events...")
-        db.run(DBIO.sequence(actions).transactionally).map(_ => cnt + numOfEvents)
+      .map(snapshotQueries.insertOrUpdate)
+      .foldAsync(0L) { (cnt, bulkUpdate) =>
+        db.run(bulkUpdate).map { numOfEvents =>
+          val total = cnt + numOfEvents
+          log.info(s"Updated $numOfEvents events ($total total)...")
+          total
+        }
       }
 
     for {
@@ -171,6 +191,29 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
       log.info(s"Snapshot metadata extraction completed - $cnt events have been successfully updated")
       Done
     }
+  }
+
+  def finishMigration(): Future[Done] = {
+    val finishJournalMigration: DBIO[Done] = {
+      import journalTableConfig.columnNames._
+      for {
+        _ <- sqlu"ALTER TABLE #$journalTableName ALTER COLUMN message_raw SET NOT NULL"
+        _ <- sqlu"ALTER TABLE #$journalTableName ALTER COLUMN #$metadata SET NOT NULL"
+        _ <- sqlu"ALTER TABLE #$journalTableName DROP COLUMN #$message"
+        _ <- sqlu"ALTER TABLE #$journalTableName RENAME COLUMN message_raw TO #$message"
+      } yield Done
+    }
+
+    val finishSnapshotMigration: DBIO[Done] = {
+      import snapshotTableConfig.columnNames._
+      for {
+        _ <- sqlu"ALTER TABLE #$snapshotTableName ALTER COLUMN snapshot_raw SET NOT NULL"
+        _ <- sqlu"ALTER TABLE #$snapshotTableName ALTER COLUMN #$metadata SET NOT NULL"
+        _ <- sqlu"ALTER TABLE #$snapshotTableName DROP COLUMN #$snapshot"
+        _ <- sqlu"ALTER TABLE #$snapshotTableName RENAME COLUMN snapshot_raw TO #$snapshot"
+      } yield Done
+    }
+    db.run(DBIO.sequence(List(finishJournalMigration, finishSnapshotMigration)).transactionally).map(_ => Done)
   }
 
 }

@@ -6,5 +6,6 @@ private[v2] case class NewSnapshotRow(
     persistenceId: String,
     sequenceNumber: Long,
     created: Long,
-    snapshot: Array[Byte],
+    oldSnapshot: Array[Byte],
+    newSnapshot: Array[Byte],
     metadata: Json)

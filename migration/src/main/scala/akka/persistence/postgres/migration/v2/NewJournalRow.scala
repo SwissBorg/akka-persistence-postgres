@@ -7,6 +7,7 @@ private[v2] final case class NewJournalRow(
     deleted: Boolean,
     persistenceId: String,
     sequenceNumber: Long,
-    message: Array[Byte],
+    oldMessage: Array[Byte],
+    newMessage: Array[Byte],
     tags: List[Int],
     metadata: Json)

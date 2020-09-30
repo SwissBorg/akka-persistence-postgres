@@ -4,23 +4,13 @@ import akka.persistence.postgres.config.JournalTableConfiguration
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 import io.circe.Json
 import slick.lifted.TableQuery
-import slick.sql.FixedSqlAction
+
+import scala.concurrent.ExecutionContext
 
 private[v2] class NewJournalQueries(journalTable: TableQuery[NewJournalTable]) {
 
-  /**
-   * Updates (!) a payload stored in a specific events row.
-   * Intended to be used sparingly, e.g. moving all events to their encrypted counterparts.
-   */
-  def update(
-      persistenceId: String,
-      seqNr: Long,
-      replacement: Array[Byte],
-      metadata: Json): FixedSqlAction[Int, NoStream, Effect.Write] = {
-    val baseQuery = journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber === seqNr)
-
-    baseQuery.map(r => (r.message, r.metadata)).update((replacement, metadata))
-  }
+  def updateAll(rows: List[NewJournalRow])(implicit ec: ExecutionContext): DBIOAction[Int, NoStream, Effect.Write] =
+    journalTable.insertOrUpdateAll(rows).map(_ => rows.size)
 
 }
 
@@ -30,7 +20,7 @@ private[v2] trait NewJournalTable extends Table[NewJournalRow] {
   def sequenceNumber: Rep[Long]
   def deleted: Rep[Boolean]
   def tags: Rep[List[Int]]
-  def message: Rep[Array[Byte]]
+  def messageRaw: Rep[Array[Byte]]
   def metadata: Rep[Json]
 }
 
@@ -44,7 +34,7 @@ private[v2] abstract class NewBaseJournalTable(_tableTag: Tag, journalTableCfg: 
 private[v2] class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends NewBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
+    (ordering, deleted, persistenceId, sequenceNumber, message, messageRaw, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering, O.AutoInc)
   val persistenceId: Rep[String] =
@@ -53,6 +43,7 @@ private[v2] class NewFlatJournalTable private (_tableTag: Tag, journalTableCfg: 
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
   val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val messageRaw: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
   val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
 
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
@@ -68,7 +59,7 @@ private[v2] object NewFlatJournalTable {
 private[v2] class NewPartitionedJournalTable private (_tableTag: Tag, journalTableCfg: JournalTableConfiguration)
     extends NewBaseJournalTable(_tableTag, journalTableCfg) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
+    (ordering, deleted, persistenceId, sequenceNumber, message, messageRaw, tags, metadata) <> (NewJournalRow.tupled, NewJournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
   val persistenceId: Rep[String] =
@@ -77,6 +68,7 @@ private[v2] class NewPartitionedJournalTable private (_tableTag: Tag, journalTab
   val deleted: Rep[Boolean] = column[Boolean](journalTableCfg.columnNames.deleted, O.Default(false))
   val tags: Rep[List[Int]] = column[List[Int]](journalTableCfg.columnNames.tags)
   val message: Rep[Array[Byte]] = column[Array[Byte]](journalTableCfg.columnNames.message)
+  val messageRaw: Rep[Array[Byte]] = column[Array[Byte]]("message_raw")
   val metadata: Rep[Json] = column[Json](journalTableCfg.columnNames.metadata)
 
   val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber, ordering))
