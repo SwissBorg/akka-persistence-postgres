@@ -1,13 +1,10 @@
 package akka.persistence.postgres.migration.v2
 
-import java.nio.charset.StandardCharsets
-
 import akka.Done
-import akka.actor.{ ActorRef, ExtendedActorSystem }
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.journal.dao._
-import akka.serialization.{ Serialization, SerializerWithStringManifest }
+import akka.serialization.Serialization
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
@@ -63,7 +60,8 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
   private val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
   private val snapshotTableConfig = snapshotConfig.snapshotTableConfiguration
   private lazy val snapshotQueries = new NewSnapshotQueries(snapshotTableConfig)
-  private val snapshotTableName = snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
+  private val snapshotTableName =
+    snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
 
   private val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
@@ -216,52 +214,4 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     db.run(DBIO.sequence(List(finishJournalMigration, finishSnapshotMigration)).transactionally).map(_ => Done)
   }
 
-}
-
-// Test serializers below - TO BE REMOVED
-
-case object ResetCounter
-
-case class Cmd(mode: String, payload: Int)
-
-class CmdSerializer extends SerializerWithStringManifest {
-  override def identifier: Int = 293562
-
-  override def manifest(o: AnyRef): String = ""
-
-  override def toBinary(o: AnyRef): Array[Byte] =
-    o match {
-      case Cmd(mode, payload) =>
-        s"$mode|$payload".getBytes(StandardCharsets.UTF_8)
-      case _ =>
-        throw new IllegalArgumentException(s"Can't serialize object of type ${o.getClass} in [${getClass.getName}]")
-    }
-
-  override def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
-    val str = new String(bytes, StandardCharsets.UTF_8)
-    val i = str.indexOf('|')
-    Cmd(str.substring(0, i), str.substring(i + 1).toInt)
-  }
-}
-
-final case class TestPayload(ref: ActorRef)
-
-class TestSerializer(system: ExtendedActorSystem) extends SerializerWithStringManifest {
-  def identifier: Int = 666
-  def manifest(o: AnyRef): String = o match {
-    case _: TestPayload => "A"
-  }
-  def toBinary(o: AnyRef): Array[Byte] = o match {
-    case TestPayload(ref) =>
-      val refStr = Serialization.serializedActorPath(ref)
-      refStr.getBytes(StandardCharsets.UTF_8)
-  }
-  def fromBinary(bytes: Array[Byte], manifest: String): AnyRef = {
-    manifest match {
-      case "A" =>
-        val refStr = new String(bytes, StandardCharsets.UTF_8)
-        val ref = system.provider.resolveActorRef(refStr)
-        TestPayload(ref)
-    }
-  }
 }
