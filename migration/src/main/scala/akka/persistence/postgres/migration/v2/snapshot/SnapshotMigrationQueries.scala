@@ -6,17 +6,11 @@ import io.circe.Json
 
 import scala.concurrent.ExecutionContext
 
-private[v2] class SnapshotMigrationQueries(override val snapshotTableCfg: SnapshotTableConfiguration)
-    extends TempSnapshotTables {
+private[v2] class SnapshotMigrationQueries(snapshotTableCfg: SnapshotTableConfiguration) {
 
   def insertOrUpdate(rows: List[TempSnapshotRow])(
       implicit ec: ExecutionContext): DBIOAction[Int, NoStream, Effect.Write] =
-    SnapshotTable.insertOrUpdateAll(rows).map(_ => rows.size)
-}
-
-private trait TempSnapshotTables {
-
-  def snapshotTableCfg: SnapshotTableConfiguration
+    TempSnapshotTable.insertOrUpdateAll(rows).map(_ => rows.size)
 
   class TempSnapshot(_tableTag: Tag)
       extends Table[TempSnapshotRow](
@@ -36,5 +30,5 @@ private trait TempSnapshotTables {
     val pk = primaryKey(s"${tableName}_pk", (persistenceId, sequenceNumber))
   }
 
-  lazy val SnapshotTable = new TableQuery(tag => new TempSnapshot(tag))
+  lazy val TempSnapshotTable = new TableQuery(tag => new TempSnapshot(tag))
 }
