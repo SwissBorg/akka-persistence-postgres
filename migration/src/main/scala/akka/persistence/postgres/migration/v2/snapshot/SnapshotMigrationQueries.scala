@@ -14,7 +14,7 @@ private[v2] class SnapshotMigrationQueries(override val snapshotTableCfg: Snapsh
     SnapshotTable.insertOrUpdateAll(rows).map(_ => rows.size)
 }
 
-private[v2] trait TempSnapshotTables {
+private trait TempSnapshotTables {
 
   def snapshotTableCfg: SnapshotTableConfiguration
 
