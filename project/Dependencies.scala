@@ -36,5 +36,5 @@ object Dependencies {
       "org.flywaydb" % "flyway-core" % "6.5.6",
       "com.typesafe" % "config" % "1.4.0",
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers
+      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion) ++ JdbcDrivers
 }

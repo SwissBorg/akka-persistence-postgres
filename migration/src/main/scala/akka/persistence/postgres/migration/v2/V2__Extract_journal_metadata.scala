@@ -1,6 +1,7 @@
 package akka.persistence.postgres.migration.v2
 
 import akka.Done
+import akka.actor.ActorSystem
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.journal.dao._
 import akka.persistence.postgres.migration.SlickMigration
@@ -11,7 +12,7 @@ import akka.persistence.postgres.migration.v2.snapshot.{
   SnapshotMigrationQueries,
   TempSnapshotRow
 }
-import akka.serialization.Serialization
+import akka.serialization.{ Serialization, SerializationExtension }
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
@@ -19,16 +20,20 @@ import org.flywaydb.core.api.migration.Context
 import slick.jdbc.JdbcBackend
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
 // Class name must obey FlyWay naming rules (https://flywaydb.org/documentation/migrations#naming-1)
-class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database, serialization: Serialization)(
-    implicit ec: ExecutionContext,
+private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: JdbcBackend.Database)(
+    implicit system: ActorSystem,
     mat: Materializer)
-    extends SlickMigration(db) {
+    extends SlickMigration {
 
-  private val journalConfig = new JournalConfig(config.getConfig("postgres-journal"))
+  import system.dispatcher
+
+  private lazy val serialization = SerializationExtension(system)
+
+  private val journalConfig = new JournalConfig(globalConfig.getConfig("postgres-journal"))
   private val journalTableConfig = journalConfig.journalTableConfiguration
   private lazy val journalQueries: JournalMigrationQueries = {
     val daoFqcn = journalConfig.pluginConfig.dao
@@ -47,13 +52,13 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
   }
   private val journalTableName = journalTableConfig.schemaName.map(_ + ".").getOrElse("") + journalTableConfig.tableName
 
-  private val snapshotConfig = new SnapshotConfig(config.getConfig("postgres-snapshot-store"))
+  private val snapshotConfig = new SnapshotConfig(globalConfig.getConfig("postgres-snapshot-store"))
   private val snapshotTableConfig = snapshotConfig.snapshotTableConfiguration
   private lazy val snapshotQueries = new SnapshotMigrationQueries(snapshotTableConfig)
   private val snapshotTableName =
     snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
 
-  private val migrationConf: Config = config.getConfig("akka-persistence-postgres.migration")
+  private val migrationConf: Config = globalConfig.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
 
   @throws[Exception]
@@ -72,9 +77,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     Await.result(migrationRes, Duration.Inf)
   }
 
-  def migrateJournal(db: JdbcBackend.Database, serialization: Serialization)(
-      implicit ec: ExecutionContext,
-      mat: Materializer): Future[Done] = {
+  def migrateJournal(db: JdbcBackend.Database, serialization: Serialization): Future[Done] = {
     val deserializer = new OldJournalDeserializer(serialization)
     val serializer = new NewJournalSerializer(serialization)
 
@@ -131,9 +134,7 @@ class V2__Extract_journal_metadata(config: Config, val db: JdbcBackend.Database,
     }
   }
 
-  def migrateSnapshots(db: JdbcBackend.Database, serialization: Serialization)(
-      implicit ec: ExecutionContext,
-      mat: Materializer): Future[Done] = {
+  def migrateSnapshots(db: JdbcBackend.Database, serialization: Serialization): Future[Done] = {
     val deserializer = new OldSnapshotDeserializer(serialization)
     val serializer = new NewSnapshotSerializer(serialization)
 
