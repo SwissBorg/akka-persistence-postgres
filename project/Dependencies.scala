@@ -34,7 +34,6 @@ object Dependencies {
 
   val Migration: Seq[ModuleID] = Seq(
       "org.flywaydb" % "flyway-core" % "6.5.6",
-      "com.typesafe" % "config" % "1.4.0",
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion) ++ JdbcDrivers
 }
