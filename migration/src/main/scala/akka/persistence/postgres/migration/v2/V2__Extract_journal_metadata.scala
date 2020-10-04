@@ -39,6 +39,7 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
     val fqcn = journalConfig.pluginConfig.dao
     val daoClass =
       system.asInstanceOf[ExtendedActorSystem].dynamicAccess.getClassFor[JournalDao](fqcn).fold(throw _, identity)
+    // DAO matters - different implementations might be using different schemas with different compound primary keys.
     val journalTable = if (classOf[PartitionedJournalDao].isAssignableFrom(daoClass)) {
       log.info(s"Using Partitioned journal schema (dao = '$fqcn')")
       TempPartitionedJournalTable(journalTableConfig)
