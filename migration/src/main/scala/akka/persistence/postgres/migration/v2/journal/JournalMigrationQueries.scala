@@ -81,7 +81,7 @@ private[v2] object TempPartitionedJournalTable {
     TableQuery(tag => new TempPartitionedJournalTable(tag, journalTableCfg))
 }
 
-private[v2] object NewNestedPartitionsJournalTable {
+private[v2] object TempNestedPartitionsJournalTable {
   def apply(journalTableCfg: JournalTableConfiguration): TableQuery[TempJournalTable] =
     TempFlatJournalTable.apply(journalTableCfg)
 }

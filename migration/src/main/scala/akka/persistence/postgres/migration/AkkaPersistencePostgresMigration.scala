@@ -50,7 +50,7 @@ object AkkaPersistencePostgresMigration {
       copy(flywayConfig = flywayConfig.table(tableName))
 
     def withMigrationLogTableSchema(schema: String): Builder =
-      copy(flywayConfig = flywayConfig.tablespace(schema))
+      copy(flywayConfig = flywayConfig.schemas(schema).defaultSchema(schema))
 
     def build(implicit system: ActorSystem): AkkaPersistencePostgresMigration = {
       implicit val met: Materializer = SystemMaterializer(system).materializer

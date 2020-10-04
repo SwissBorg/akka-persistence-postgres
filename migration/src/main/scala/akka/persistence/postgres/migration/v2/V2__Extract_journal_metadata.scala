@@ -1,7 +1,7 @@
 package akka.persistence.postgres.migration.v2
 
 import akka.Done
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, ExtendedActorSystem }
 import akka.persistence.postgres.config.{ JournalConfig, SnapshotConfig }
 import akka.persistence.postgres.journal.dao._
 import akka.persistence.postgres.migration.SlickMigration
@@ -35,20 +35,22 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
 
   private val journalConfig = new JournalConfig(globalConfig.getConfig("postgres-journal"))
   private val journalTableConfig = journalConfig.journalTableConfiguration
-  private lazy val journalQueries: JournalMigrationQueries = {
-    val daoFqcn = journalConfig.pluginConfig.dao
+  private lazy val journalQueries = {
+    val fqcn = journalConfig.pluginConfig.dao
+    val daoClass =
+      system.asInstanceOf[ExtendedActorSystem].dynamicAccess.getClassFor[JournalDao](fqcn).fold(throw _, identity)
+    val journalTable = if (classOf[PartitionedJournalDao].isAssignableFrom(daoClass)) {
+      log.info(s"Using Partitioned journal schema (dao = '$fqcn')")
+      TempPartitionedJournalTable(journalTableConfig)
+    } else if (classOf[NestedPartitionsJournalDao].isAssignableFrom(daoClass)) {
+      log.info(s"Using Nested Partitions journal schema (dao = '$fqcn')")
+      TempNestedPartitionsJournalTable(journalTableConfig)
+    } else {
+      log.info(s"Using default (flat) journal schema (dao = '$fqcn')")
+      TempFlatJournalTable(journalTableConfig)
+    }
 
-    import akka.persistence.postgres.journal.dao.FlatJournalDao
-
-    val table: TableQuery[TempJournalTable] =
-      if (daoFqcn == classOf[FlatJournalDao].getName) TempFlatJournalTable(journalTableConfig)
-      else if (daoFqcn == classOf[PartitionedJournalDao].getName)
-        TempPartitionedJournalTable(journalTableConfig)
-      else if (daoFqcn == classOf[NestedPartitionsJournalDao].getName)
-        NewNestedPartitionsJournalTable(journalTableConfig)
-      else throw new IllegalStateException(s"Unsupported DAO class - '$daoFqcn'")
-
-    new JournalMigrationQueries(table)
+    new JournalMigrationQueries(journalTable)
   }
   private val journalTableName = journalTableConfig.schemaName.map(_ + ".").getOrElse("") + journalTableConfig.tableName
 
