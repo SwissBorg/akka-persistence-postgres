@@ -35,14 +35,6 @@ object SlickDatabase {
   /**
    * INTERNAL API
    */
-  @deprecated(message = "Internal API, will be removed in 4.0.0", since = "3.4.0")
-  def forConfig(config: Config, slickConfiguration: SlickConfiguration): Database = {
-    database(config, slickConfiguration, "slick.db")
-  }
-
-  /**
-   * INTERNAL API
-   */
   private[postgres] def profile(config: Config, path: String): JdbcProfile =
     DatabaseConfig.forConfig[JdbcProfile](path, config).profile
 

@@ -25,7 +25,7 @@ trait ExtendedPostgresProfile
 
   override val api = MyAPI
 
-  object MyAPI
+  trait MyAPI
       extends API
       with ArrayImplicits
       with SimpleArrayPlainImplicits
@@ -39,6 +39,7 @@ trait ExtendedPostgresProfile
       with JsonImplicits {
     implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
   }
+  object MyAPI extends MyAPI
 }
 
 object ExtendedPostgresProfile extends ExtendedPostgresProfile
