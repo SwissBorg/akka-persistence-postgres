@@ -12,8 +12,10 @@ To tag events you'll need to create an [Event Adapter](https://doc.akka.io/docs/
 The persistence plugin will __not__ store the `Tagged` class in the journal. It will strip the `tags` and `payload` from the `Tagged` class, and use the class only as an instruction to tag the event with the given tags and store the `payload` in the `message` field of the journal table.
 
 ```scala
+package com.swissborg.example
+
 import akka.persistence.journal.{ Tagged, WriteEventAdapter }
-import com.github.dnvriend.Person.{ LastNameChanged, FirstNameChanged, PersonCreated }
+import com.swissborg.example.Person.{ LastNameChanged, FirstNameChanged, PersonCreated }
 
 class TaggingEventAdapter extends WriteEventAdapter {
   override def manifest(event: Any): String = ""
@@ -37,12 +39,12 @@ The `EventAdapter` must be registered by adding the following to the root of `ap
 ```bash
 postgres-journal {
   event-adapters {
-    tagging = "com.github.dnvriend.TaggingEventAdapter"
+    tagging = "com.swissborg.example.TaggingEventAdapter"
   }
   event-adapter-bindings {
-    "com.github.dnvriend.Person$PersonCreated" = tagging
-    "com.github.dnvriend.Person$FirstNameChanged" = tagging
-    "com.github.dnvriend.Person$LastNameChanged" = tagging
+    "com.swissborg.example.Person$PersonCreated" = tagging
+    "com.swissborg.example.Person$FirstNameChanged" = tagging
+    "com.swissborg.example.Person$LastNameChanged" = tagging
   }
 }
 ```
