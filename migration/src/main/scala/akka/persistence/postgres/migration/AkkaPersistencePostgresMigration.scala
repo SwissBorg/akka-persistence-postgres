@@ -41,17 +41,39 @@ class AkkaPersistencePostgresMigration private (flyway: Flyway, onComplete: Try[
 
 object AkkaPersistencePostgresMigration {
 
-  def configure(config: Config): Builder =
-    Builder(Flyway.configure.table("persistence_migration_log"), config)
+  def configure(config: Config): Builder = {
+    val flywayConfig =
+      Flyway.configure.table("persistence_schema_history")
+    Builder(flywayConfig, config)
+  }
 
   case class Builder private (flywayConfig: FluentConfiguration, config: Config) {
 
-    def withMigrationLogTableName(tableName: String): Builder =
+    /**
+     * Sets the name of the schema history table that will be used by Flyway.
+     *
+     * @param tableName The name of the schema history table that will be used by Flyway. (default: persistence_schema_history)
+     * @return a new Builder instance with customized table name
+     */
+    def withSchemaHistoryTableName(tableName: String): Builder =
       copy(flywayConfig = flywayConfig.table(tableName))
 
-    def withMigrationLogTableSchema(schema: String): Builder =
+    /**
+     * Sets the schema for the schema history table. This schema name is case-sensitive. If not specified, Flyway uses
+     * the default schema for the database connection.
+     *
+     * @param schema The schema managed by Flyway. May not be {@code null}.
+     * @return a new Builder instance with customized schema name
+     */
+    def withSchemaHistoryTableSchema(schema: String): Builder =
       copy(flywayConfig = flywayConfig.schemas(schema).defaultSchema(schema))
 
+    /**
+     * Builds and initializes migration tool instance
+     *
+     * @param system ActorSystem
+     * @return A configured, ready to use Migration Tool instance
+     */
     def build(implicit system: ActorSystem): AkkaPersistencePostgresMigration = {
       implicit val met: Materializer = SystemMaterializer(system).materializer
 
@@ -60,6 +82,7 @@ object AkkaPersistencePostgresMigration {
 
       val flyway = flywayConfig
         .dataSource(new DatasourceAdapter(db))
+        .locations("db/akka-persistence-postgres/migration")
         .javaMigrations(new V2__Extract_journal_metadata(config, db))
         .load()
 
