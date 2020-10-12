@@ -11,18 +11,19 @@ import com.typesafe.config.Config
 import javax.sql.DataSource
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.configuration.FluentConfiguration
+import org.flywaydb.core.api.output.MigrateResult
 import slick.jdbc.JdbcBackend
 
 import scala.concurrent.Future
 import scala.util.Try
 
-class AkkaPersistencePostgresMigration private (flyway: Flyway, onComplete: Try[Int] => Unit)(
+class AkkaPersistencePostgresMigration private (flyway: Flyway, onComplete: Try[MigrateResult] => Unit)(
     implicit system: ActorSystem) {
 
   /**
    * Perform journal & snapshot store migrations.
    *
-   * @return Future containing a number of successfully applied migrations.
+   * @return Future containing a number of executed migrations.
    */
   def run: Future[Int] = {
     import system.dispatcher
@@ -35,7 +36,7 @@ class AkkaPersistencePostgresMigration private (flyway: Flyway, onComplete: Try[
 
     migrationFut.onComplete(onComplete)
 
-    migrationFut
+    migrationFut.map(_.migrationsExecuted)
   }
 }
 
