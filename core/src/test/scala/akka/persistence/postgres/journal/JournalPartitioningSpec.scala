@@ -103,7 +103,7 @@ abstract class JournalPartitioningSpec(schemaType: SchemaType)
     probe.expectMsg(WriteMessagesSuccessful)
     (fromSnr to toSnr).foreach { i =>
       probe.expectMsgPF() {
-        case WriteMessageSuccess(PersistentImpl(payload, `i`, `pid`, _, _, `sender`, `writerUuid`, _), _) =>
+        case WriteMessageSuccess(PersistentImpl(payload, `i`, `pid`, _, _, `sender`, `writerUuid`, _, None), _) =>
           payload should be(s"a-$i")
       }
     }
@@ -150,7 +150,7 @@ abstract class JournalPartitioningSpec(schemaType: SchemaType)
       pid: String,
       writerUuid: String,
       deleted: Boolean = false): ReplayedMessage =
-    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
+    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L, None))
 
 }
 

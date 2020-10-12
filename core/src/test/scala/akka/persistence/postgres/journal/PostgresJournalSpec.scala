@@ -101,7 +101,7 @@ trait PartitionedJournalSpecTestCases {
   }
 
   def replayedPostgresMessage(snr: Long, pid: String, deleted: Boolean = false): ReplayedMessage =
-    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L))
+    ReplayedMessage(PersistentImpl(s"a-$snr", snr, pid, "", deleted, Actor.noSender, writerUuid, 0L, None))
 }
 
 class NestedPartitionsJournalSpec extends PostgresJournalSpec("nested-partitions-application.conf", NestedPartitions)
