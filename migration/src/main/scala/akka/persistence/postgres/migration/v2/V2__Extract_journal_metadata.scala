@@ -63,6 +63,7 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
 
   private val migrationConf: Config = globalConfig.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
+  private val conversionParallelism: Int = migrationConf.getInt("v2.parallelism")
 
   @throws[Exception]
   override def migrate(context: Context): Unit = {
@@ -101,7 +102,7 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
 
     val dml = Source
       .fromPublisher(eventsPublisher)
-      .mapAsync(8) {
+      .mapAsync(conversionParallelism) {
         case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
           Future.fromTry {
             for {
@@ -159,7 +160,7 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
 
     val dml = Source
       .fromPublisher(eventsPublisher)
-      .mapAsync(8) {
+      .mapAsync(conversionParallelism) {
         case (persistenceId, sequenceNumber, created, serializedOldSnapshot) =>
           Future.fromTry {
             for {
