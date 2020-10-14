@@ -28,6 +28,7 @@ object Dependencies {
       "ch.qos.logback" % "logback-classic" % LogbackVersion % Test,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-persistence-tck" % AkkaVersion % Test,
+      "com.typesafe.akka" %% "akka-stream" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)

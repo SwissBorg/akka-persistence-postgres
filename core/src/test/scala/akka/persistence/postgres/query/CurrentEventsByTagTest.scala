@@ -8,10 +8,10 @@ package akka.persistence.postgres.query
 import akka.Done
 import akka.pattern.ask
 import akka.persistence.postgres.query.CurrentEventsByTagTest._
-import akka.persistence.postgres.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
-import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValue, ConfigValueFactory }
+import akka.persistence.postgres.query.EventAdapterTest.{Event, SimpleEvent, TaggedAsyncEvent}
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
+import akka.persistence.query.{EventEnvelope, NoOffset, Sequence}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValue, ConfigValueFactory}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -185,7 +185,7 @@ abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
             actor <- Seq(actor1, actor2, actor3)
             i <- 1 to numberOfMessagesPerActor
           } yield {
-            actor ? TaggedAsyncEvent(Event(i.toString), tag)
+            actor ? TaggedAsyncEvent(SimpleEvent(i.toString), tag)
           }
           Future.sequence(futures).map(_ => Done)
         }
@@ -224,7 +224,7 @@ abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
             actor <- Seq(actor1, actor2, actor3)
             i <- 1 to numberOfMessagesPerActor
           } yield {
-            actor ? TaggedAsyncEvent(Event(i.toString), tag)
+            actor ? TaggedAsyncEvent(SimpleEvent(i.toString), tag)
           }
           Future.sequence(futures).map(_ => Done)
         }

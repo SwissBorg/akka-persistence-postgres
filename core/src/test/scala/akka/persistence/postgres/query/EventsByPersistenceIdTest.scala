@@ -7,9 +7,9 @@ package akka.persistence.postgres.query
 
 import akka.Done
 import akka.pattern.ask
-import akka.persistence.postgres.query.EventAdapterTest.{ Event, TaggedAsyncEvent }
-import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
-import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
+import akka.persistence.postgres.query.EventAdapterTest.{Event, SimpleEvent, TaggedAsyncEvent}
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
+import akka.persistence.query.{EventEnvelope, Offset, Sequence}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -312,7 +312,7 @@ abstract class EventsByPersistenceIdTest(val schemaType: SchemaType)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
       def sendMessagesWithTag(tag: String, numberOfMessages: Int): Future[Done] = {
         val futures = for (i <- 1 to numberOfMessages) yield {
-          actor1 ? TaggedAsyncEvent(Event(i.toString), tag)
+          actor1 ? TaggedAsyncEvent(SimpleEvent(i.toString), tag)
         }
         Future.sequence(futures).map(_ => Done)
       }

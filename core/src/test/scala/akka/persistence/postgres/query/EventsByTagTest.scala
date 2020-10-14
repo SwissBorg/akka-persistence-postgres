@@ -7,7 +7,7 @@ package akka.persistence.postgres.query
 
 import akka.Done
 import akka.pattern.ask
-import akka.persistence.postgres.query.EventAdapterTest.{ Event, EventRestored, TaggedAsyncEvent, TaggedEvent }
+import akka.persistence.postgres.query.EventAdapterTest.{ EventRestored, SimpleEvent, TaggedAsyncEvent, TaggedEvent }
 import akka.persistence.postgres.query.EventsByTagTest._
 import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
@@ -207,7 +207,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
         for {
           messageNumber <- 0 until msgCountPerActor
           (actor, actorIdx) <- actorsWithIndexes
-        } actor ! TaggedEvent(Event(s"$actorIdx-$messageNumber"), "myEvent")
+        } actor ! TaggedEvent(SimpleEvent(s"$actorIdx-$messageNumber"), "myEvent")
 
         journalOps.withEventsByTag()("myEvent", NoOffset) { tp =>
           tp.request(Int.MaxValue)
@@ -379,7 +379,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       def sendMessagesWithTag(tag: String, numberOfMessagesPerActor: Int): Future[Done] = {
         val futures = for (actor <- Seq(actor1, actor2, actor3); i <- 1 to numberOfMessagesPerActor) yield {
-          actor ? TaggedAsyncEvent(Event(i.toString), tag)
+          actor ? TaggedAsyncEvent(SimpleEvent(i.toString), tag)
         }
         Future.sequence(futures).map(_ => Done)
       }
@@ -417,8 +417,8 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
   }
 }
 
-class NestedPartitionsScalaEventsByTagTest extends EventsByTagTest(NestedPartitions) //with BaseDbCleaner
+class NestedPartitionsScalaEventsByTagTest extends EventsByTagTest(NestedPartitions)
 
-class PartitionedScalaEventsByTagTest extends EventsByTagTest(Partitioned) //with BaseDbCleaner
+class PartitionedScalaEventsByTagTest extends EventsByTagTest(Partitioned)
 
-class PlainScalaEventsByTagTest extends EventsByTagTest(Plain) //with BaseDbCleaner
+class PlainScalaEventsByTagTest extends EventsByTagTest(Plain)

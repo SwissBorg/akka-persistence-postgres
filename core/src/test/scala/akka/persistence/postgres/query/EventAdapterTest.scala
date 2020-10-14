@@ -5,21 +5,29 @@
 
 package akka.persistence.postgres.query
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.pattern.ask
-import akka.persistence.journal.{ EventSeq, ReadEventAdapter, Tagged, WriteEventAdapter }
-import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
+import akka.persistence.journal.{EventSeq, ReadEventAdapter, Tagged, WriteEventAdapter}
+import akka.persistence.postgres.query.EventAdapterTest.TestFailingEventAdapter.NumberOfFailures
+import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
+import akka.persistence.query.{EventEnvelope, NoOffset, Sequence}
 
 import scala.concurrent.duration._
 
 object EventAdapterTest {
-  case class Event(value: String) {
+  trait Event {
+    def value: String
     def adapted = EventAdapted(value)
   }
+
+  case class SimpleEvent(value: String) extends Event
 
   case class TaggedEvent(event: Event, tag: String)
 
   case class TaggedAsyncEvent(event: Event, tag: String)
+
+  case class BrokenEvent(value: String) extends Event
 
   case class EventAdapted(value: String) {
     def restored = EventRestored(value)
@@ -43,6 +51,21 @@ object EventAdapterTest {
       case _                               => event
     }
   }
+
+  class TestFailingEventAdapter extends ReadEventAdapter {
+    private val errorCountDownLatch = new AtomicInteger(NumberOfFailures)
+
+    override def fromJournal(event: Any, manifest: String): EventSeq = {
+      val count = errorCountDownLatch.getAndDecrement()
+      if (count <= 0)
+        EventSeq.single(event)
+      else throw new IllegalStateException(s"Fake adapter exception [$count]")
+    }
+  }
+
+  object TestFailingEventAdapter {
+    val NumberOfFailures = 2
+  }
 }
 
 /**
@@ -61,11 +84,11 @@ abstract class EventAdapterTest(val schemaType: SchemaType)
         tp.request(10)
         tp.expectNoMessage(100.millis)
 
-        actor1 ! Event("1")
+        actor1 ! SimpleEvent("1")
         tp.expectNext(ExpectNextTimeout, EventEnvelope(Sequence(1), "my-1", 1, EventRestored("1")))
         tp.expectNoMessage(100.millis)
 
-        actor1 ! Event("2")
+        actor1 ! SimpleEvent("2")
         tp.expectNext(ExpectNextTimeout, EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2")))
         tp.expectNoMessage(100.millis)
         tp.cancel()
@@ -76,9 +99,9 @@ abstract class EventAdapterTest(val schemaType: SchemaType)
   it should "apply event adapters when querying events by tag from an offset" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
-      (actor1 ? TaggedEvent(Event("1"), "event")).futureValue
-      (actor2 ? TaggedEvent(Event("2"), "event")).futureValue
-      (actor3 ? TaggedEvent(Event("3"), "event")).futureValue
+      (actor1 ? TaggedEvent(SimpleEvent("1"), "event")).futureValue
+      (actor2 ? TaggedEvent(SimpleEvent("2"), "event")).futureValue
+      (actor3 ? TaggedEvent(SimpleEvent("3"), "event")).futureValue
 
       eventually {
         journalOps.countJournal.futureValue shouldBe 3
@@ -90,7 +113,7 @@ abstract class EventAdapterTest(val schemaType: SchemaType)
         tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, EventRestored("3")))
         tp.expectNoMessage(NoMsgTime)
 
-        actor1 ? TaggedEvent(Event("1"), "event")
+        actor1 ? TaggedEvent(SimpleEvent("1"), "event")
         tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, EventRestored("1")))
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
@@ -101,9 +124,9 @@ abstract class EventAdapterTest(val schemaType: SchemaType)
   it should "apply event adapters when querying current events for actors" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors() { (actor1, actor2, actor3) =>
-      actor1 ! Event("1")
-      actor1 ! Event("2")
-      actor1 ! Event("3")
+      actor1 ! SimpleEvent("1")
+      actor1 ! SimpleEvent("2")
+      actor1 ! SimpleEvent("3")
 
       eventually {
         journalOps.countJournal.futureValue shouldBe 3
@@ -133,9 +156,9 @@ abstract class EventAdapterTest(val schemaType: SchemaType)
   it should "apply event adapters when querying all current events by tag" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
-      (actor1 ? TaggedEvent(Event("1"), "event")).futureValue
-      (actor2 ? TaggedEvent(Event("2"), "event")).futureValue
-      (actor3 ? TaggedEvent(Event("3"), "event")).futureValue
+      (actor1 ? TaggedEvent(SimpleEvent("1"), "event")).futureValue
+      (actor2 ? TaggedEvent(SimpleEvent("2"), "event")).futureValue
+      (actor3 ? TaggedEvent(SimpleEvent("3"), "event")).futureValue
 
       eventually {
         journalOps.countJournal.futureValue shouldBe 3

@@ -261,6 +261,10 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
           updateState(payload)
           if (replyToMessages) sender() ! akka.actor.Status.Success((payload, tags))
         }
+      case event @ Tagged(payload: Any, tags) =>
+        persist(event) { (event: Tagged) =>
+          if (replyToMessages) sender() ! akka.actor.Status.Success((payload, tags))
+        }
       case event: Event =>
         persist(event) { evt =>
           if (replyToMessages) sender() ! akka.actor.Status.Success(evt)
