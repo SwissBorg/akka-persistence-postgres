@@ -13,10 +13,11 @@ import akka.persistence.postgres.query.EventsByTagTest._
 import akka.persistence.postgres.query.scaladsl.PostgresReadJournal
 import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.query.{ EventEnvelope, NoOffset, PersistenceQuery, Sequence }
-import akka.stream.RestartSettings
-import akka.stream.scaladsl.RestartSource
+import akka.stream.{ OverflowStrategy, RestartSettings }
+import akka.stream.scaladsl.{ RestartSource, Source, SourceQueueWithComplete }
 import com.typesafe.config.{ ConfigValue, ConfigValueFactory }
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object EventsByTagFailureTest {
@@ -60,6 +61,42 @@ abstract class EventsByTagFailureTest(val schemaType: SchemaType)
       EventEnvelope(Sequence(1), "my-1", 1, 1),
       EventEnvelope(Sequence(2), "my-2", 1, BrokenEvent("2")),
       EventEnvelope(Sequence(3), "my-3", 1, 3))
+
+  }
+
+  it should "reproduce 'Cannot subscribe to shut-down Publisher' exception" in withActorSystem { implicit system =>
+    import system.dispatcher
+    val readJournal = PersistenceQuery(system).readJournalFor[PostgresReadJournal](PostgresReadJournal.Identifier)
+
+    withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
+      (actor1 ? withTags(1, "one", "1", "prime")).futureValue
+      (actor2 ? withTags(BrokenEvent("2"), "two", "2", "prime")).futureValue
+      (actor3 ? withTags(3, "three", "3", "prime")).futureValue
+    }
+
+    eventually {
+      readJournal.persistenceIds().take(3).runFold(0L) { (acc, _) => acc + 1 }.futureValue shouldBe 3
+    }
+
+    val externalQueue: Source[EventEnvelope, SourceQueueWithComplete[EventEnvelope]] =
+      Source.queue[EventEnvelope](1, OverflowStrategy.dropNew)
+    val (_, queueSource) = externalQueue.preMaterialize()
+
+    // This will fail after 5 unsuccessful retries.
+    RestartSource
+      .withBackoff(minBackoff = 10.milliseconds, maxBackoff = 100.milliseconds, randomFactor = 0.1, maxRestarts = 5) { () =>
+        Source
+          .futureSource {
+            Future.successful(0L).map { _ =>
+              println("Reruning eventsByTag")
+              readJournal.eventsByTag("prime", NoOffset)
+            }
+          }
+          .merge(queueSource)
+      }
+      .take(3)
+      .run()
+      .futureValue
 
   }
 
