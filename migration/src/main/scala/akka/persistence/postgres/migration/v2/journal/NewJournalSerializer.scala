@@ -23,8 +23,8 @@ private[v2] class NewJournalSerializer(serialization: Serialization) {
       val meta =
         Metadata(
           serId,
-          Option(serManifest).filterNot(_.isBlank),
-          Option(persistentRepr.manifest).filterNot(_.isBlank),
+          Option(serManifest).filterNot(_.trim.isEmpty),
+          Option(persistentRepr.manifest).filterNot(_.trim.isEmpty),
           persistentRepr.writerUuid,
           persistentRepr.timestamp)
       (serializedEvent, meta.asJson)

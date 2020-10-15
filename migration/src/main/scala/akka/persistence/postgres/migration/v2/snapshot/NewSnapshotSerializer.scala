@@ -16,7 +16,7 @@ private[v2] class NewSnapshotSerializer(serialization: Serialization) {
       ser <- Try(serialization.findSerializerFor(payload))
       serializedSnapshot <- serialization.serialize(payload)
     } yield {
-      val metadataJson = Metadata(ser.identifier, Option(Serializers.manifestFor(ser, payload)).filterNot(_.isBlank))
+      val metadataJson = Metadata(ser.identifier, Option(Serializers.manifestFor(ser, payload)).filterNot(_.trim.isEmpty))
       (serializedSnapshot, metadataJson.asJson)
     }
   }

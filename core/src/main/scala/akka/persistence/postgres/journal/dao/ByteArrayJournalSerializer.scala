@@ -39,8 +39,8 @@ class ByteArrayJournalSerializer(serialization: Serialization, tagConverter: Tag
       val meta =
         Metadata(
           serId,
-          Option(serManifest).filterNot(_.isBlank),
-          Option(persistentRepr.manifest).filterNot(_.isBlank),
+          Option(serManifest).filterNot(_.trim.isEmpty),
+          Option(persistentRepr.manifest).filterNot(_.trim.isEmpty),
           persistentRepr.writerUuid,
           persistentRepr.timestamp)
       JournalRow(

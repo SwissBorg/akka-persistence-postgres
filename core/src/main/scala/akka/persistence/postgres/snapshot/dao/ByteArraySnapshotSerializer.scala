@@ -23,7 +23,7 @@ class ByteArraySnapshotSerializer(serialization: Serialization) extends Snapshot
       ser <- Try(serialization.findSerializerFor(payload))
       serializedSnapshot <- serialization.serialize(payload)
     } yield {
-      val metadataJson = Metadata(ser.identifier, Option(Serializers.manifestFor(ser, payload)).filterNot(_.isBlank))
+      val metadataJson = Metadata(ser.identifier, Option(Serializers.manifestFor(ser, payload)).filterNot(_.trim.isEmpty))
       SnapshotRow(
         metadata.persistenceId,
         metadata.sequenceNr,
