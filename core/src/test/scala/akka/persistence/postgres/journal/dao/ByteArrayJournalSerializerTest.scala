@@ -11,20 +11,18 @@ import java.time.{ LocalDateTime, ZoneOffset }
 import java.util.UUID
 
 import akka.persistence.journal.Tagged
-import akka.persistence.postgres.journal.dao.ByteArrayJournalSerializer.Metadata
 import akka.persistence.postgres.journal.dao.FakeTagIdResolver.unwanted1
 import akka.persistence.postgres.tag.TagIdResolver
 import akka.persistence.{ AtomicWrite, PersistentRepr }
-import akka.serialization.Serializers
+import akka.serialization.{ Serializer, Serializers }
 import io.circe.Json
-import org.scalatest.EitherValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 
 import scala.collection.immutable._
 import scala.concurrent.Future
 
-class ByteArrayJournalSerializerTest extends SharedActorSystemTestSpec with ScalaFutures with EitherValues {
+class ByteArrayJournalSerializerTest extends SharedActorSystemTestSpec with ScalaFutures {
   it should "serialize a serializable message and indicate whether or not the serialization succeeded" in {
     val serializer = new ByteArrayJournalSerializer(serialization, new FakeTagIdResolver())
     val result = serializer.serialize(Seq(AtomicWrite(PersistentRepr("foo"))))
@@ -67,54 +65,156 @@ class ByteArrayJournalSerializerTest extends SharedActorSystemTestSpec with Scal
     result.head.failed.futureValue shouldBe a[Throwable]
   }
 
-  it should "serialize metadata" in {
-    val serializer = new ByteArrayJournalSerializer(serialization, new FakeTagIdResolver())
-    val payload = "foo"
-    val repr = PersistentRepr(payload)
-    val result = serializer.serialize(Seq(AtomicWrite(repr)))
-    val serializedRows = result.head.futureValue
-    serializedRows should have size 1
+  {
 
-    val meta = serializedRows.head.metadata.as[Metadata].right.value
-    val payloadSer = serialization.serializerFor(payload.getClass)
-    meta should equal {
-      Metadata(
-        serId = payloadSer.identifier,
-        serManifest = Serializers.manifestFor(payloadSer, payload),
-        eventManifest = repr.manifest,
-        writerUuid = repr.writerUuid,
-        timestamp = repr.timestamp)
+    def serialized(repr: PersistentRepr): (Serializer, Json) = {
+      val serializer = new ByteArrayJournalSerializer(serialization, new FakeTagIdResolver())
+      val result = serializer.serialize(Seq(AtomicWrite(repr)))
+      val serializedRows = result.head.futureValue
+      serializedRows should have size 1
+
+      val payloadSer = serialization.serializerFor(repr.payload.getClass)
+      val metaJson = serializedRows.head.metadata
+      (payloadSer, metaJson)
+    }
+
+    it should "serialize metadata" in {
+      val repr = PersistentRepr("foo", manifest = "customManifest")
+      val (payloadSer, metaJson) = serialized(repr)
+      metaJson should equal {
+        Json.obj(
+          "sid" -> Json.fromInt(payloadSer.identifier),
+          "wid" -> Json.fromString(repr.writerUuid),
+          "t" -> Json.fromLong(repr.timestamp),
+          "em" -> Json.fromString("customManifest"))
+      }
+    }
+
+    it should "serialize metadata and skip empty fields" in {
+      val repr = PersistentRepr("foo")
+      val (payloadSer, metaJson) = serialized(repr)
+      metaJson should equal {
+        Json.obj(
+          "sid" -> Json.fromInt(payloadSer.identifier),
+          "wid" -> Json.fromString(repr.writerUuid),
+          "t" -> Json.fromLong(repr.timestamp))
+      }
+    }
+
+    it should "serialize metadata and skip blank fields" in {
+      val repr = PersistentRepr("foo", manifest = "")
+      val (payloadSer, metaJson) = serialized(repr)
+
+      metaJson should equal {
+        Json.obj(
+          "sid" -> Json.fromInt(payloadSer.identifier),
+          "wid" -> Json.fromString(repr.writerUuid),
+          "t" -> Json.fromLong(repr.timestamp))
+      }
     }
   }
 
-  it should "deserialize metadata" in {
-    val serializer = new ByteArrayJournalSerializer(serialization, new FakeTagIdResolver())
-
+  {
     val payload = "foo"
     val payloadSer = serialization.serializerFor(payload.getClass)
     val serId = payloadSer.identifier
     val serManifest = Serializers.manifestFor(payloadSer, payload)
-    val eventManifest = "event manifest"
-    val writerUuid = UUID.randomUUID().toString
-    val timestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
 
-    val meta = Json.fromFields(
-      List(
-        "serId" -> Json.fromLong(serId),
-        "serManifest" -> Json.fromString(serManifest),
-        "eventManifest" -> Json.fromString(eventManifest),
-        "writerUuid" -> Json.fromString(writerUuid),
-        "timestamp" -> Json.fromLong(timestamp)))
-    val row = JournalRow(1L, false, "my-7", 2137L, payload.getBytes(Charset.forName("UTF-8")), Nil, meta)
+    def deserialized(meta: Json): PersistentRepr = {
+      val serializer = new ByteArrayJournalSerializer(serialization, new FakeTagIdResolver())
+      val row = JournalRow(1L, false, "my-7", 2137L, payload.getBytes(Charset.forName("UTF-8")), Nil, meta)
 
-    val result = serializer.deserialize(row)
+      val result = serializer.deserialize(row)
 
-    val (repr, ordering) = result.success.value
+      val (repr, ordering) = result.success.value
 
-    ordering should equal(1L)
-    repr should equal {
-      PersistentRepr(payload, 2137L, "my-7", eventManifest, false, null, writerUuid)
+      ordering should equal(1L)
+      repr
     }
+
+    it should "deserialize metadata with long keys" in {
+      val eventManifest = "event manifest"
+      val writerUuid = UUID.randomUUID().toString
+      val timestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+
+      val meta = Json.fromFields(
+        List(
+          "serId" -> Json.fromLong(serId),
+          "serManifest" -> Json.fromString(serManifest),
+          "eventManifest" -> Json.fromString(eventManifest),
+          "writerUuid" -> Json.fromString(writerUuid),
+          "timestamp" -> Json.fromLong(timestamp)))
+      val repr = deserialized(meta)
+      repr should equal {
+        PersistentRepr(payload, 2137L, "my-7", eventManifest, false, null, writerUuid)
+      }
+    }
+
+    it should "deserialize metadata with short keys" in {
+      val eventManifest = "event manifest"
+      val writerUuid = UUID.randomUUID().toString
+      val timestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+
+      val meta = Json.fromFields(
+        List(
+          "sid" -> Json.fromLong(serId),
+          "sm" -> Json.fromString(serManifest),
+          "em" -> Json.fromString(eventManifest),
+          "wid" -> Json.fromString(writerUuid),
+          "t" -> Json.fromLong(timestamp)))
+      val repr = deserialized(meta)
+      repr should equal {
+        PersistentRepr(payload, 2137L, "my-7", eventManifest, false, null, writerUuid)
+      }
+    }
+
+    it should "deserialize metadata with missing keys" in {
+      val writerUuid = UUID.randomUUID().toString
+      val timestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+
+      val meta = Json.fromFields(
+        List("sid" -> Json.fromLong(serId), "wid" -> Json.fromString(writerUuid), "t" -> Json.fromLong(timestamp)))
+      val repr = deserialized(meta)
+      repr should equal {
+        PersistentRepr(payload, 2137L, "my-7", "", false, null, writerUuid)
+      }
+    }
+
+    it should "deserialize metadata with empty keys" in {
+      val writerUuid = UUID.randomUUID().toString
+      val timestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+
+      val meta = Json.fromFields(
+        List(
+          "sid" -> Json.fromLong(serId),
+          "wid" -> Json.fromString(writerUuid),
+          "em" -> Json.fromString(""),
+          "t" -> Json.fromLong(timestamp)))
+      val repr = deserialized(meta)
+      repr should equal {
+        PersistentRepr(payload, 2137L, "my-7", "", false, null, writerUuid)
+      }
+    }
+
+    it should "deserialize metadata with mixed legacy long and new short keys - short ones taking precedence" in {
+      val writerUuid = UUID.randomUUID().toString
+      val timestamp = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+
+      val meta = Json.fromFields(
+        List(
+          "sid" -> Json.fromLong(serId),
+          "serId" -> Json.fromLong(-1),
+          "sm" -> Json.fromString(serManifest),
+          "serManifest" -> Json.fromString("broken"),
+          "eventManifest" -> Json.fromString("this should be skipped"),
+          "wid" -> Json.fromString(writerUuid),
+          "t" -> Json.fromLong(timestamp)))
+      val repr = deserialized(meta)
+      repr should equal {
+        PersistentRepr(payload, 2137L, "my-7", "", false, null, writerUuid)
+      }
+    }
+
   }
 
 }

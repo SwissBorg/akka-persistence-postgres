@@ -23,7 +23,7 @@ class ByteArraySnapshotSerializer(serialization: Serialization) extends Snapshot
       ser <- Try(serialization.findSerializerFor(payload))
       serializedSnapshot <- serialization.serialize(payload)
     } yield {
-      val metadataJson = Metadata(ser.identifier, Serializers.manifestFor(ser, payload))
+      val metadataJson = Metadata(ser.identifier, Option(Serializers.manifestFor(ser, payload)).filterNot(_.isBlank))
       SnapshotRow(
         metadata.persistenceId,
         metadata.sequenceNr,
@@ -36,7 +36,7 @@ class ByteArraySnapshotSerializer(serialization: Serialization) extends Snapshot
   def deserialize(snapshotRow: SnapshotRow): Try[(SnapshotMetadata, Any)] = {
     for {
       metadata <- snapshotRow.metadata.as[Metadata].toTry
-      snapshot <- serialization.deserialize(snapshotRow.snapshot, metadata.serId, metadata.serManifest)
+      snapshot <- serialization.deserialize(snapshotRow.snapshot, metadata.serId, metadata.serManifest.getOrElse(""))
     } yield {
       val snapshotMetadata =
         SnapshotMetadata(snapshotRow.persistenceId, snapshotRow.sequenceNumber, snapshotRow.created)
@@ -46,10 +46,13 @@ class ByteArraySnapshotSerializer(serialization: Serialization) extends Snapshot
 }
 
 object ByteArraySnapshotSerializer {
-  case class Metadata(serId: Int, serManifest: String)
+  case class Metadata(serId: Int, serManifest: Option[String])
 
   object Metadata {
-    implicit val encoder: Encoder[Metadata] = Encoder.forProduct2("serId", "serManifest")(m => (m.serId, m.serManifest))
-    implicit val decoder: Decoder[Metadata] = Decoder.forProduct2("serId", "serManifest")(Metadata.apply)
+    implicit val encoder: Encoder[Metadata] = Encoder
+      .forProduct2[Metadata, Int, Option[String]]("sid", "sm")(m => (m.serId, m.serManifest))
+      .mapJson(_.dropNullValues)
+    implicit val decoder: Decoder[Metadata] =
+      Decoder.forProduct2("sid", "sm")(Metadata.apply).or(Decoder.forProduct2("serId", "serManifest")(Metadata.apply))
   }
 }
