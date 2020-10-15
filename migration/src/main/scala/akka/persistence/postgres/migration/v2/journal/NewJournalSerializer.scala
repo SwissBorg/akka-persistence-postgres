@@ -21,18 +21,30 @@ private[v2] class NewJournalSerializer(serialization: Serialization) {
       val serId = serializer.identifier
       val serManifest = Serializers.manifestFor(serializer, payload)
       val meta =
-        Metadata(serId, serManifest, persistentRepr.manifest, persistentRepr.writerUuid, persistentRepr.timestamp)
+        Metadata(
+          serId,
+          Option(serManifest).filterNot(_.trim.isEmpty),
+          Option(persistentRepr.manifest).filterNot(_.trim.isEmpty),
+          persistentRepr.writerUuid,
+          persistentRepr.timestamp)
       (serializedEvent, meta.asJson)
     }
   }
 }
 
 private object NewJournalSerializer {
-  case class Metadata(serId: Int, serManifest: String, eventManifest: String, writerUuid: String, timestamp: Long)
+  case class Metadata(
+      serId: Int,
+      serManifest: Option[String],
+      eventManifest: Option[String],
+      writerUuid: String,
+      timestamp: Long)
 
   object Metadata {
-    implicit val encoder: Encoder[Metadata] =
-      Encoder.forProduct5("serId", "serManifest", "eventManifest", "writerUuid", "timestamp")(e =>
-        (e.serId, e.serManifest, e.eventManifest, e.writerUuid, e.timestamp))
+    implicit val encoder: Encoder[Metadata] = Encoder
+      .forProduct5[Metadata, Int, Option[String], Option[String], String, Long]("sid", "sm", "em", "wid", "t") { e =>
+        (e.serId, e.serManifest, e.eventManifest, e.writerUuid, e.timestamp)
+      }
+      .mapJson(_.dropNullValues)
   }
 }

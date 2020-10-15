@@ -16,7 +16,7 @@ private[v2] class NewSnapshotSerializer(serialization: Serialization) {
       ser <- Try(serialization.findSerializerFor(payload))
       serializedSnapshot <- serialization.serialize(payload)
     } yield {
-      val metadataJson = Metadata(ser.identifier, Serializers.manifestFor(ser, payload))
+      val metadataJson = Metadata(ser.identifier, Option(Serializers.manifestFor(ser, payload)).filterNot(_.trim.isEmpty))
       (serializedSnapshot, metadataJson.asJson)
     }
   }
@@ -24,10 +24,12 @@ private[v2] class NewSnapshotSerializer(serialization: Serialization) {
 }
 
 private object NewSnapshotSerializer {
-  case class Metadata(serId: Int, serManifest: String)
+  case class Metadata(serId: Int, serManifest: Option[String])
 
   object Metadata {
-    implicit val encoder: Encoder[Metadata] = Encoder.forProduct2("serId", "serManifest")(m => (m.serId, m.serManifest))
+    implicit val encoder: Encoder[Metadata] = Encoder
+      .forProduct2[Metadata, Int, Option[String]]("sid", "sm")(m => (m.serId, m.serManifest))
+      .mapJson(_.dropNullValues)
   }
 
 }
