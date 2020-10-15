@@ -3,8 +3,8 @@ package akka.persistence.postgres.tag
 import akka.persistence.postgres.config.TagsConfig
 import com.github.blemale.scaffeine.{ AsyncLoadingCache, Scaffeine }
 
-import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Success
 
 trait TagIdResolver {
   def getOrAssignIdsFor(tags: Set[String]): Future[Map[String, Int]]
@@ -31,7 +31,14 @@ class CachedTagIdResolver(dao: TagDao, config: TagsConfig)(implicit ctx: Executi
     cache.getAll(tags)
 
   override def lookupIdFor(tagName: String): Future[Option[Int]] =
-    cache.getFuture(tagName, dao.find(_).map(_.get)).map(Some(_)).recover {
-      case _: NoSuchElementException => None
+    Future.sequence(cache.getIfPresent(tagName).toList).map(_.headOption).flatMap {
+      case Some(tagId) => Future.successful(Some(tagId))
+      case _ =>
+        val findRes = dao.find(tagName)
+        findRes.onComplete {
+          case Success(Some(tagId)) => cache.put(tagName, Future.successful(tagId))
+          case _                    => // do nothing
+        }
+        findRes
     }
 }

@@ -1,7 +1,7 @@
 package akka.persistence.postgres.tag
 
 import java.util.concurrent.ThreadLocalRandom
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong }
 
 import akka.persistence.postgres.config.TagsConfig
 import com.typesafe.config.ConfigFactory
@@ -62,6 +62,34 @@ class CachedTagIdResolverSpec
         returnedTagIds should contain theSameElementsAs Map(fakeTagName -> fakeTagId)
       }
 
+      "assign ids if they do not exist" in {
+        // given
+        val (existingTagName, existingTagId) = ("existing-tag", 1)
+        val (tagName, tagId) = ("tag", 2)
+        val (anotherTagName, anotherTagId) = ("another-tag", 3)
+
+        val dao = new FakeTagDao(findF = {
+          case n if n == existingTagName => Future.successful(Some(existingTagId))
+          case _                         => Future.successful(None)
+        }, insertF = name => {
+          if (name == tagName) Future.successful(tagId)
+          else if (name == anotherTagName) Future.successful(anotherTagId)
+          else
+            fail(
+              s"Unwanted interaction with DAO (insert) for tagName = '$name' ($tagName, $anotherTagName, $existingTagName)")
+        })
+        val resolver = new CachedTagIdResolver(dao, config)
+
+        // when
+        val returnedTagIds = resolver.getOrAssignIdsFor(Set(tagName, anotherTagName, existingTagName)).futureValue
+
+        // then
+        returnedTagIds should contain theSameElementsAs Map(
+          tagName -> tagId,
+          anotherTagName -> anotherTagId,
+          existingTagName -> existingTagId)
+      }
+
       "hit the DAO only once and then read from cache" in {
         // given
         val fakeTagName = generateTagName()
@@ -108,7 +136,7 @@ class CachedTagIdResolverSpec
           findF = _ => fail("Unwanted interaction with DAO (find)"),
           insertF = _ => fail("Unwanted interaction with DAO (insert)"))
         val resolver = new CachedTagIdResolver(dao, config)
-        resolver.cache.put(fakeTagName, Future.successful(fakeTagId))
+        resolver.cache.synchronous().put(fakeTagName, fakeTagId)
 
         // when
         val returnedTagIds = resolver.getOrAssignIdsFor(Set(fakeTagName)).futureValue
@@ -163,7 +191,7 @@ class CachedTagIdResolverSpec
           findF = _ => fail("Unwanted interaction with DAO (find)"),
           insertF = _ => fail("Unwanted interaction with DAO (insert)"))
         val resolver = new CachedTagIdResolver(dao, config)
-        resolver.cache.put(fakeTagName, Future.successful(fakeTagId))
+        resolver.cache.synchronous().put(fakeTagName, fakeTagId)
 
         // when
         val returnedTagId = resolver.lookupIdFor(fakeTagName).futureValue
@@ -187,6 +215,30 @@ class CachedTagIdResolverSpec
         returnedTagId should not be defined
       }
 
+      "eventually discover newly inserted tag id mapping and update cache" in {
+        // given
+        val fakeTagName = generateTagName()
+        val fakeTagId = Random.nextInt()
+
+        val lookupMissHappened = new AtomicBoolean(false)
+
+        val dao = new FakeTagDao(
+          findF = name =>
+            if (name == fakeTagName && lookupMissHappened.getAndSet(true))
+              Future.successful(Some(fakeTagId))
+            else Future.successful(None),
+          insertF = _ => fail("Unwanted interaction with DAO (insert)"))
+
+        val resolver = new CachedTagIdResolver(dao, config)
+
+        // when
+        resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
+        resolver.lookupIdFor(fakeTagName).futureValue should not be defined
+        resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
+        resolver.lookupIdFor(fakeTagName).futureValue.value should equal(fakeTagId)
+        resolver.cache.synchronous().getIfPresent(fakeTagName).value should equal(fakeTagId)
+      }
+
       "update cache" in {
         // given
         val fakeTagName = generateTagName()
@@ -198,8 +250,9 @@ class CachedTagIdResolverSpec
 
         // then
         resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
-        resolver.lookupIdFor(fakeTagName).futureValue
+        resolver.lookupIdFor(fakeTagName).futureValue.value should equal(fakeTagId)
         resolver.cache.synchronous().getIfPresent(fakeTagName).value should equal(fakeTagId)
+        resolver.lookupIdFor(fakeTagName).futureValue.value should equal(fakeTagId)
       }
 
       "not update cache" in {
@@ -212,8 +265,9 @@ class CachedTagIdResolverSpec
 
         // then
         resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
-        resolver.lookupIdFor(fakeTagName).futureValue
+        resolver.lookupIdFor(fakeTagName).futureValue should not be defined
         resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
+        resolver.lookupIdFor(fakeTagName).futureValue should not be defined
       }
     }
   }
