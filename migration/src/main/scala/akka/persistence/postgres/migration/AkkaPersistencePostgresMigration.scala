@@ -1,12 +1,13 @@
 package akka.persistence.postgres.migration
 
 import java.io.PrintWriter
-import java.sql.{ Connection, DriverManager }
+import java.sql.{Connection, DriverManager}
 
 import akka.actor.ActorSystem
+import akka.persistence.postgres.config.{JournalConfig, SnapshotConfig}
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.migration.v2.V2__Extract_journal_metadata
-import akka.stream.{ Materializer, SystemMaterializer }
+import akka.stream.{Materializer, SystemMaterializer}
 import com.typesafe.config.Config
 import javax.sql.DataSource
 import org.flywaydb.core.Flyway
@@ -78,13 +79,19 @@ object AkkaPersistencePostgresMigration {
     def build(implicit system: ActorSystem): AkkaPersistencePostgresMigration = {
       implicit val met: Materializer = SystemMaterializer(system).materializer
 
-      val slickDb = SlickExtension(system).database(config.getConfig("postgres-journal"))
+      val journalConfigPath = config.getString("akka.persistence.journal.plugin")
+      val snapshotStoreConfigPath = config.getString("akka.persistence.snapshot-store.plugin")
+
+      val slickDb = SlickExtension(system).database(config.getConfig(journalConfigPath))
       val db = slickDb.database
+
+      val snapshotConfig = new SnapshotConfig(config.getConfig(snapshotStoreConfigPath))
+      val journalConfig = new JournalConfig(config.getConfig(journalConfigPath))
 
       val flyway = flywayConfig
         .dataSource(new DatasourceAdapter(db))
         .locations("db/akka-persistence-postgres/migration")
-        .javaMigrations(new V2__Extract_journal_metadata(config, db))
+        .javaMigrations(new V2__Extract_journal_metadata(config, journalConfig, snapshotConfig, db))
         .load()
 
       new AkkaPersistencePostgresMigration(flyway, _ => db.close())
