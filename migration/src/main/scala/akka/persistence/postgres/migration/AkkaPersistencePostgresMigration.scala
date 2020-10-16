@@ -18,8 +18,8 @@ import slick.jdbc.JdbcBackend
 import scala.concurrent.Future
 import scala.util.Try
 
-class AkkaPersistencePostgresMigration private (flyway: Flyway, onComplete: Try[MigrateResult] => Unit)(
-    implicit system: ActorSystem) {
+class AkkaPersistencePostgresMigration private (flyway: Flyway, onComplete: Try[MigrateResult] => Unit)(implicit
+    system: ActorSystem) {
 
   /**
    * Perform journal & snapshot store migrations.
@@ -46,7 +46,13 @@ object AkkaPersistencePostgresMigration {
   def configure(config: Config): Builder = {
     val flywayConfig =
       Flyway.configure.table("persistence_schema_history")
-    Builder(flywayConfig, config)
+    val journalConfigPath = config.getString("akka.persistence.journal.plugin")
+    val schema = {
+      val journalSchemaCfgKey = s"$journalConfigPath.tables.journal.schemaName"
+      if (config.hasPath(journalSchemaCfgKey)) config.getString(journalSchemaCfgKey)
+      else "public"
+    }
+    Builder(flywayConfig, config).withSchemaHistoryTableSchema(schema)
   }
 
   case class Builder private (flywayConfig: FluentConfiguration, config: Config) {
