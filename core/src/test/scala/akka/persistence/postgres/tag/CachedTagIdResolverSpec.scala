@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong }
 
 import akka.persistence.postgres.config.TagsConfig
 import com.typesafe.config.ConfigFactory
+import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.{ IntegrationPatience, ScalaFutures }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -32,10 +33,12 @@ class CachedTagIdResolverSpec
         // given
         val fakeTagName = generateTagName()
         val fakeTagId = Random.nextInt()
-        val dao = new FakeTagDao(findF = tagName => {
-          tagName should equal(fakeTagName)
-          Future.successful(Some(fakeTagId))
-        }, insertF = _ => fail("Unwanted interaction with DAO (insert)"))
+        val dao = new FakeTagDao(
+          findF = tagName => {
+            tagName should equal(fakeTagName)
+            Future.successful(Some(fakeTagId))
+          },
+          insertF = _ => fail("Unwanted interaction with DAO (insert)"))
         val resolver = new CachedTagIdResolver(dao, config)
 
         // when
@@ -49,10 +52,12 @@ class CachedTagIdResolverSpec
         // given
         val fakeTagName = generateTagName()
         val fakeTagId = Random.nextInt()
-        val dao = new FakeTagDao(findF = _ => Future.successful(None), insertF = tagName => {
-          tagName should equal(fakeTagName)
-          Future.successful(fakeTagId)
-        })
+        val dao = new FakeTagDao(
+          findF = _ => Future.successful(None),
+          insertF = tagName => {
+            tagName should equal(fakeTagName)
+            Future.successful(fakeTagId)
+          })
         val resolver = new CachedTagIdResolver(dao, config)
 
         // when
@@ -68,16 +73,18 @@ class CachedTagIdResolverSpec
         val (tagName, tagId) = ("tag", 2)
         val (anotherTagName, anotherTagId) = ("another-tag", 3)
 
-        val dao = new FakeTagDao(findF = {
-          case n if n == existingTagName => Future.successful(Some(existingTagId))
-          case _                         => Future.successful(None)
-        }, insertF = name => {
-          if (name == tagName) Future.successful(tagId)
-          else if (name == anotherTagName) Future.successful(anotherTagId)
-          else
-            fail(
-              s"Unwanted interaction with DAO (insert) for tagName = '$name' ($tagName, $anotherTagName, $existingTagName)")
-        })
+        val dao = new FakeTagDao(
+          findF = {
+            case n if n == existingTagName => Future.successful(Some(existingTagId))
+            case _                         => Future.successful(None)
+          },
+          insertF = name => {
+            if (name == tagName) Future.successful(tagId)
+            else if (name == anotherTagName) Future.successful(anotherTagId)
+            else
+              fail(
+                s"Unwanted interaction with DAO (insert) for tagName = '$name' ($tagName, $anotherTagName, $existingTagName)")
+          })
         val resolver = new CachedTagIdResolver(dao, config)
 
         // when
@@ -96,10 +103,12 @@ class CachedTagIdResolverSpec
         val fakeTagId = Random.nextInt()
         val responses =
           mutable.Stack(() => Future.successful(None), () => fail("Unwanted 2nd interaction with DAO (find)"))
-        val dao = new FakeTagDao(findF = _ => responses.pop()(), insertF = tagName => {
-          tagName should equal(fakeTagName)
-          Future.successful(fakeTagId)
-        })
+        val dao = new FakeTagDao(
+          findF = _ => responses.pop()(),
+          insertF = tagName => {
+            tagName should equal(fakeTagName)
+            Future.successful(fakeTagId)
+          })
         val resolver = new CachedTagIdResolver(dao, config)
 
         // when
@@ -115,10 +124,12 @@ class CachedTagIdResolverSpec
         val expectedNumOfRetry = 1
         val fakeTagName = generateTagName()
         val attemptsCount = new AtomicLong(0L)
-        val dao = new FakeTagDao(findF = _ => Future.successful(None), insertF = _ => {
-          attemptsCount.incrementAndGet()
-          Future.failed(FakeException)
-        })
+        val dao = new FakeTagDao(
+          findF = _ => Future.successful(None),
+          insertF = _ => {
+            attemptsCount.incrementAndGet()
+            Future.failed(FakeException)
+          })
         val resolver = new CachedTagIdResolver(dao, config)
 
         // when
@@ -170,10 +181,12 @@ class CachedTagIdResolverSpec
         // given
         val fakeTagName = generateTagName()
         val fakeTagId = Random.nextInt()
-        val dao = new FakeTagDao(findF = tagName => {
-          tagName should equal(fakeTagName)
-          Future.successful(Some(fakeTagId))
-        }, insertF = _ => fail("Unwanted interaction with DAO (insert)"))
+        val dao = new FakeTagDao(
+          findF = tagName => {
+            tagName should equal(fakeTagName)
+            Future.successful(Some(fakeTagId))
+          },
+          insertF = _ => fail("Unwanted interaction with DAO (insert)"))
         val resolver = new CachedTagIdResolver(dao, config)
 
         // when
@@ -236,7 +249,9 @@ class CachedTagIdResolverSpec
         resolver.lookupIdFor(fakeTagName).futureValue should not be defined
         resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
         resolver.lookupIdFor(fakeTagName).futureValue.value should equal(fakeTagId)
-        resolver.cache.synchronous().getIfPresent(fakeTagName).value should equal(fakeTagId)
+        eventually {
+          resolver.cache.synchronous().getIfPresent(fakeTagName).value should equal(fakeTagId)
+        }
       }
 
       "update cache" in {
@@ -251,7 +266,9 @@ class CachedTagIdResolverSpec
         // then
         resolver.cache.synchronous().getIfPresent(fakeTagName) should not be defined
         resolver.lookupIdFor(fakeTagName).futureValue.value should equal(fakeTagId)
-        resolver.cache.synchronous().getIfPresent(fakeTagName).value should equal(fakeTagId)
+        eventually {
+          resolver.cache.synchronous().getIfPresent(fakeTagName).value should equal(fakeTagId)
+        }
         resolver.lookupIdFor(fakeTagName).futureValue.value should equal(fakeTagId)
       }
 
