@@ -24,7 +24,7 @@ import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
 // Class name must obey FlyWay naming rules (https://flywaydb.org/documentation/migrations#naming-1)
-private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: JdbcBackend.Database)(
+private[migration] class V2__Extract_journal_metadata(globalConfig: Config, journalConfig: JournalConfig, snapshotConfig: SnapshotConfig, db: JdbcBackend.Database)(
     implicit system: ActorSystem,
     mat: Materializer)
     extends SlickMigration {
@@ -33,7 +33,6 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
 
   private lazy val serialization = SerializationExtension(system)
 
-  private val journalConfig = new JournalConfig(globalConfig.getConfig("postgres-journal"))
   private val journalTableConfig = journalConfig.journalTableConfiguration
   private lazy val journalQueries = {
     val fqcn = journalConfig.pluginConfig.dao
@@ -55,7 +54,6 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, db: 
   }
   private val journalTableName = journalTableConfig.schemaName.map(_ + ".").getOrElse("") + journalTableConfig.tableName
 
-  private val snapshotConfig = new SnapshotConfig(globalConfig.getConfig("postgres-snapshot-store"))
   private val snapshotTableConfig = snapshotConfig.snapshotTableConfiguration
   private lazy val snapshotQueries = new SnapshotMigrationQueries(snapshotTableConfig)
   private val snapshotTableName =
