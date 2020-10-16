@@ -33,7 +33,7 @@ object Dependencies {
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)
 
   val Migration: Seq[ModuleID] = Seq(
-      "org.flywaydb" % "flyway-core" % "7.0.2",
+      "org.flywaydb" % "flyway-core" % "7.0.3",
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion) ++ JdbcDrivers
 }
