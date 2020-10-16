@@ -9,7 +9,7 @@ object Dependencies {
   val AkkaBinaryVersion = "2.6"
 
   val SlickVersion = "3.3.3"
-  val ScalaTestVersion = "3.2.0"
+  val ScalaTestVersion = "3.2.2"
   val SlickPgVersion = "0.19.3"
 
   val ScaffeineVersion = "4.0.2"
@@ -33,7 +33,7 @@ object Dependencies {
       "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)
 
   val Migration: Seq[ModuleID] = Seq(
-      "org.flywaydb" % "flyway-core" % "7.0.2",
+      "org.flywaydb" % "flyway-core" % "7.0.3",
       "ch.qos.logback" % "logback-classic" % LogbackVersion,
       "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion) ++ JdbcDrivers
 }
