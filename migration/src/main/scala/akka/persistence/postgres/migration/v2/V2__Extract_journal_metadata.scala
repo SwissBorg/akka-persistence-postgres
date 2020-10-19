@@ -62,7 +62,7 @@ private[migration] class V2__Extract_journal_metadata(
     snapshotTableConfig.schemaName.map(_ + ".").getOrElse("") + snapshotTableConfig.tableName
 
   private val migrationConf: Config = globalConfig.getConfig("akka-persistence-postgres.migration")
-  private val migrationBatchSize: Long = migrationConf.getLong("v2.batchSize")
+  private val migrationBatchSize: Int = migrationConf.getInt("v2.batchSize")
   private val conversionParallelism: Int = migrationConf.getInt("v2.parallelism")
 
   @throws[Exception]
@@ -101,7 +101,7 @@ private[migration] class V2__Extract_journal_metadata(
           .withStatementParameters(
             rsType = ResultSetType.ForwardOnly,
             rsConcurrency = ResultSetConcurrency.ReadOnly,
-            fetchSize = migrationBatchSize.max(Int.MaxValue).toInt)
+            fetchSize = migrationBatchSize)
           .transactionally)
     }
 
@@ -162,7 +162,7 @@ private[migration] class V2__Extract_journal_metadata(
           .withStatementParameters(
             rsType = ResultSetType.ForwardOnly,
             rsConcurrency = ResultSetConcurrency.ReadOnly,
-            fetchSize = migrationBatchSize.max(Int.MaxValue).toInt)
+            fetchSize = migrationBatchSize)
           .transactionally
       }
     }
