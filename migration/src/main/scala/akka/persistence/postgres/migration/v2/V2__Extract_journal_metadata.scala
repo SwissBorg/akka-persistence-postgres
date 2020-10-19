@@ -17,16 +17,18 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.config.Config
 import org.flywaydb.core.api.migration.Context
-import slick.jdbc.JdbcBackend
+import slick.jdbc.{ JdbcBackend, ResultSetConcurrency, ResultSetType }
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
 // Class name must obey FlyWay naming rules (https://flywaydb.org/documentation/migrations#naming-1)
-private[migration] class V2__Extract_journal_metadata(globalConfig: Config, journalConfig: JournalConfig, snapshotConfig: SnapshotConfig, db: JdbcBackend.Database)(
-    implicit system: ActorSystem,
-    mat: Materializer)
+private[migration] class V2__Extract_journal_metadata(
+    globalConfig: Config,
+    journalConfig: JournalConfig,
+    snapshotConfig: SnapshotConfig,
+    db: JdbcBackend.Database)(implicit system: ActorSystem, mat: Materializer)
     extends SlickMigration {
 
   import system.dispatcher
@@ -95,27 +97,31 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, jour
       import journalTableConfig.columnNames._
       db.stream(
         sql"SELECT #$ordering, #$deleted, #$persistenceId, #$sequenceNumber, #$message, #$tags FROM #$journalTableName WHERE #$metadata IS NULL"
-          .as[(Long, Boolean, String, Long, Array[Byte], List[Int])])
+          .as[(Long, Boolean, String, Long, Array[Byte], List[Int])]
+          .withStatementParameters(
+            rsType = ResultSetType.ForwardOnly,
+            rsConcurrency = ResultSetConcurrency.ReadOnly,
+            fetchSize = migrationBatchSize.max(Int.MaxValue).toInt)
+          .transactionally)
     }
 
     val dml = Source
       .fromPublisher(eventsPublisher)
-      .mapAsync(conversionParallelism) {
-        case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
-          Future.fromTry {
-            for {
-              pr <- deserializer.deserialize(oldMessage)
-              (newMessage, metadata) <- serializer.serialize(pr)
-            } yield TempJournalRow(
-              ordering,
-              deleted,
-              persistenceId,
-              sequenceNumber,
-              oldMessage,
-              newMessage,
-              tags,
-              metadata)
-          }
+      .mapAsync(conversionParallelism) { case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
+        Future.fromTry {
+          for {
+            pr <- deserializer.deserialize(oldMessage)
+            (newMessage, metadata) <- serializer.serialize(pr)
+          } yield TempJournalRow(
+            ordering,
+            deleted,
+            persistenceId,
+            sequenceNumber,
+            oldMessage,
+            newMessage,
+            tags,
+            metadata)
+        }
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
       .map(journalQueries.updateAll)
@@ -153,25 +159,23 @@ private[migration] class V2__Extract_journal_metadata(globalConfig: Config, jour
       db.stream {
         sql"SELECT #$persistenceId, #$sequenceNumber, #$created, #$snapshot FROM #$snapshotTableName WHERE #$metadata IS NULL"
           .as[(String, Long, Long, Array[Byte])]
+          .withStatementParameters(
+            rsType = ResultSetType.ForwardOnly,
+            rsConcurrency = ResultSetConcurrency.ReadOnly,
+            fetchSize = migrationBatchSize.max(Int.MaxValue).toInt)
+          .transactionally
       }
     }
 
     val dml = Source
       .fromPublisher(eventsPublisher)
-      .mapAsync(conversionParallelism) {
-        case (persistenceId, sequenceNumber, created, serializedOldSnapshot) =>
-          Future.fromTry {
-            for {
-              oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
-              (newSnapshot, metadata) <- serializer.serialize(oldSnapshot)
-            } yield TempSnapshotRow(
-              persistenceId,
-              sequenceNumber,
-              created,
-              serializedOldSnapshot,
-              newSnapshot,
-              metadata)
-          }
+      .mapAsync(conversionParallelism) { case (persistenceId, sequenceNumber, created, serializedOldSnapshot) =>
+        Future.fromTry {
+          for {
+            oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
+            (newSnapshot, metadata) <- serializer.serialize(oldSnapshot)
+          } yield TempSnapshotRow(persistenceId, sequenceNumber, created, serializedOldSnapshot, newSnapshot, metadata)
+        }
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
       .map(snapshotQueries.insertOrUpdate)
