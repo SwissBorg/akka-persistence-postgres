@@ -115,7 +115,8 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
           knownIds += id
           xs
         }
-        id => next(id)
+        id =>
+          next(id)
       }
 
   private def adaptEvents(repr: PersistentRepr): Seq[PersistentRepr] = {
@@ -266,6 +267,10 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
                    * then we should not move the query window forward. Otherwise we might miss (skip) some events.
                    * By setting nextStartingOffset to `from` we wait for either maxOrdering to be discovered or first
                    * event to be persisted in the journal. */
+                  from
+                case (Nil, maxOrdering) if maxOrdering < from =>
+                  /* In case of either `maxOrdering` is staled or journal didn't reach the offset - we should wait
+                   * for either maxOrdering to be discovered or journal to reach the requested offset */
                   from
                 case (Nil, maxOrdering) =>
                   /* If no events matched the tag between `from` and `to` (`from + batchSize`) and `maxOrdering` then
