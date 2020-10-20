@@ -120,31 +120,6 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
     }
   }
 
-  it should "find all events by tag starting from an offset" in withActorSystem { implicit system =>
-    val testJournalSize = 200
-    val journalOps = new ScalaPostgresReadJournalOperations(system)
-    withTestActors(replyToMessages = true) { (actor1, _, _) =>
-      for {
-        n <- (1 to testJournalSize).inclusive
-      } (actor1 ? withTags(n, "number")).futureValue
-
-      journalOps.withEventsByTag()("number", Sequence(testJournalSize / 2)) { tp =>
-        tp.request(Int.MaxValue)
-        for {
-          n <- ((testJournalSize / 2) + 1 to testJournalSize).inclusive
-        } tp.expectNext(EventEnvelope(Sequence(n), "my-1", n, n))
-
-        tp.cancel()
-      }
-
-      journalOps.withEventsByTag()("number", Sequence(testJournalSize)) { tp =>
-        tp.request(Int.MaxValue)
-        tp.expectNoMessage(NoMsgTime)
-        tp.cancel()
-      }
-    }
-  }
-
   it should "deliver EventEnvelopes non-zero timestamps" in withActorSystem { implicit system =>
 
     val journalOps = new ScalaPostgresReadJournalOperations(system)
@@ -272,6 +247,53 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
         tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, 1))
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
+      }
+    }
+  }
+
+  it should "not find any events by tag from an offset == maximum ordering" in withActorSystem { implicit system =>
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
+    withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
+      (actor1 ? withTags(1, "number")).futureValue
+      (actor2 ? withTags(2, "number")).futureValue
+      (actor3 ? withTags(3, "number")).futureValue
+
+      eventually {
+        journalOps.countJournal.futureValue shouldBe 3
+      }
+
+      journalOps.withEventsByTag()("number", Sequence(3)) { tp =>
+        tp.request(Int.MaxValue)
+        tp.expectNoMessage(1.second)
+
+        actor1 ? withTags(1, "number")
+        tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, 1))
+        tp.expectNoMessage(1.second)
+
+        tp.cancel()
+      }
+    }
+  }
+
+  it should "not find any events by tag from an offset > maximum ordering" in withActorSystem { implicit system =>
+    val journalOps = new ScalaPostgresReadJournalOperations(system)
+    withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
+      (actor1 ? withTags(1, "number")).futureValue
+      (actor2 ? withTags(2, "number")).futureValue
+      (actor3 ? withTags(3, "number")).futureValue
+
+      eventually {
+        journalOps.countJournal.futureValue shouldBe 3
+      }
+
+      journalOps.withEventsByTag()("number", Sequence(500)) { tp =>
+        tp.request(Int.MaxValue)
+        tp.expectNoMessage(1.second)
+
+        actor1 ? withTags(1, "number")
+        tp.expectNoMessage(1.second)
+
+        tp.cancel()
       }
     }
   }
@@ -442,8 +464,8 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
   }
 }
 
-class NestedPartitionsScalaEventsByTagTest extends EventsByTagTest(NestedPartitions) //with BaseDbCleaner
+class NestedPartitionsScalaEventsByTagTest extends EventsByTagTest(NestedPartitions)
 
-class PartitionedScalaEventsByTagTest extends EventsByTagTest(Partitioned) //with BaseDbCleaner
+class PartitionedScalaEventsByTagTest extends EventsByTagTest(Partitioned)
 
-class PlainScalaEventsByTagTest extends EventsByTagTest(Plain) //with BaseDbCleaner
+class PlainScalaEventsByTagTest extends EventsByTagTest(Plain)
