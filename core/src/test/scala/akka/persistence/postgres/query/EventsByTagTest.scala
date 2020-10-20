@@ -251,7 +251,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
     }
   }
 
-  it should "not find any events by tag from an offset == maximum ordering" in withActorSystem { implicit system =>
+  it should "find newly stored event only when offset == maximum ordering" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "number")).futureValue
@@ -275,7 +275,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
     }
   }
 
-  it should "not find any events by tag from an offset > maximum ordering" in withActorSystem { implicit system =>
+  it should "not find any events when offset >> maximum ordering" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "number")).futureValue
