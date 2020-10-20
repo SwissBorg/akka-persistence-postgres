@@ -121,20 +121,25 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
   }
 
   it should "find all events by tag starting from an offset" in withActorSystem { implicit system =>
+    val testJournalSize = 200
     val journalOps = new ScalaPostgresReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, _, _) =>
-      (actor1 ? withTags(1, "number")).futureValue
-      (actor1 ? withTags(2, "number")).futureValue
-      (actor1 ? withTags(3, "number")).futureValue
-      (actor1 ? withTags(4, "number")).futureValue
-      (actor1 ? withTags(5, "number")).futureValue
-      (actor1 ? withTags(6, "number")).futureValue
+      for {
+        n <- (1 to testJournalSize).inclusive
+      } (actor1 ? withTags(n, "number")).futureValue
 
-      journalOps.withEventsByTag()("number", Sequence(3L)) { tp =>
+      journalOps.withEventsByTag()("number", Sequence(testJournalSize / 2)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(4), "my-1", 4, 4))
-        tp.expectNext(EventEnvelope(Sequence(5), "my-1", 5, 5))
-        tp.expectNext(EventEnvelope(Sequence(6), "my-1", 6, 6))
+        for {
+          n <- ((testJournalSize / 2) + 1 to testJournalSize).inclusive
+        } tp.expectNext(EventEnvelope(Sequence(n), "my-1", n, n))
+
+        tp.cancel()
+      }
+
+      journalOps.withEventsByTag()("number", Sequence(testJournalSize)) { tp =>
+        tp.request(Int.MaxValue)
+        tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
     }
