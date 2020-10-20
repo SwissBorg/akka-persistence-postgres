@@ -269,8 +269,9 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
                    * event to be persisted in the journal. */
                   from
                 case (Nil, maxOrdering) if maxOrdering < from =>
-                  /* In case of either `maxOrdering` is staled or journal didn't reach the offset - we should wait
-                   * for either maxOrdering to be discovered or journal to reach the requested offset */
+                  /* In case of either `maxOrdering` is not yet discovered or journal didn't reach the offset - we should
+                   * wait for either maximum ordering value to be eventually discovered or journal to reach
+                   * the requested offset */
                   from
                 case (Nil, maxOrdering) =>
                   /* If no events matched the tag between `from` and `to` (`from + batchSize`) and `maxOrdering` then
