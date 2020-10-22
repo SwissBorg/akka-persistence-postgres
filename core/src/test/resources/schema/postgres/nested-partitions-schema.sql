@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.journal
     persistence_id  TEXT                  NOT NULL,
     message         BYTEA                 NOT NULL,
     tags            int[],
-    metadata        jsonb,
+    metadata        jsonb                 NOT NULL,
     PRIMARY KEY (persistence_id, sequence_number)
 ) PARTITION BY LIST (persistence_id);
 
@@ -61,6 +61,6 @@ CREATE TABLE IF NOT EXISTS public.snapshot
     sequence_number BIGINT NOT NULL,
     created         BIGINT NOT NULL,
     snapshot        BYTEA  NOT NULL,
-    metadata        jsonb,
+    metadata        jsonb  NOT NULL,
     PRIMARY KEY (persistence_id, sequence_number)
 );
