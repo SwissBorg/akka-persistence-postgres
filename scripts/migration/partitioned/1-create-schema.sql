@@ -14,7 +14,7 @@ BEGIN
         persistence_id  TEXT                  NOT NULL,
         message         BYTEA                 NOT NULL,
         tags            int[],
-        PRIMARY KEY (persistence_id, sequence_number, ordering)
+        PRIMARY KEY (ordering)
     ) PARTITION BY RANGE (ordering);';
 
     EXECUTE 'CREATE SEQUENCE ' || destination_journal || '_ordering_seq OWNED BY ' || destination_journal || '.ordering;';

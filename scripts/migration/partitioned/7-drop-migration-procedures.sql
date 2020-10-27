@@ -5,4 +5,3 @@ DROP PROCEDURE IF EXISTS copy_data;
 DROP PROCEDURE IF EXISTS copy_piece_of_data;
 DROP PROCEDURE IF EXISTS move_sequence;
 DROP PROCEDURE IF EXISTS create_indexes;
-

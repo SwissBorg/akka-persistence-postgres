@@ -7,5 +7,6 @@ BEGIN
 
     EXECUTE 'CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA ' || destination_schema || ';';
     EXECUTE 'CREATE INDEX ' || destination_journal_table || '_tags_idx ON ' || destination_journal || ' USING GIN (tags gin__int_ops);';
+    EXECUTE 'CREATE INDEX ' || destination_journal_table || '_persistence_sequence_idx ON ' || destination_journal || ' USING BTREE (persistence_id, sequence_number);';
 END ;
 $$ LANGUAGE plpgsql;
