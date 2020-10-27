@@ -1,4 +1,4 @@
-# Akka Persistence Postgres
+![Akka Persistence Postgres](./docs/assets/project-logo.png)
 
 [![License](https://img.shields.io/:license-Apache%202-red.svg)](https://www.apache.org/licenses/LICENSE-2.0.txt)
 [![Actions Status](https://github.com/SwissBorg/akka-persistence-postgres/workflows/Scala%20CI/badge.svg)](https://github.com/SwissBorg/akka-persistence-postgres/actions)
