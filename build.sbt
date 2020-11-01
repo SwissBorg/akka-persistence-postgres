@@ -23,7 +23,9 @@ lazy val migration = project
   .disablePlugins(MimaPlugin)
   .settings(
     name := "akka-persistence-postgres-migration",
-    libraryDependencies ++= Dependencies.Migration)
+    libraryDependencies ++= Dependencies.Migration,
+    parallelExecution in Test := false
+  )
   .dependsOn(core)
 
 TaskKey[Unit]("verifyCodeFmt") := {
