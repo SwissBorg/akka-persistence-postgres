@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS public.journal
 ) PARTITION BY LIST (persistence_id);
 
 CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
-CREATE INDEX journal_tags_idx ON public.journal USING GIN (tags gin__int_ops);
+CREATE INDEX journal_tags_idx ON public.journal USING GIN (tags public.gin__int_ops);
 CREATE INDEX journal_ordering_idx ON public.journal USING BRIN (ordering);
 
 DROP TABLE IF EXISTS public.tags;

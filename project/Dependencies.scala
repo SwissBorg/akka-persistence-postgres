@@ -19,21 +19,24 @@ object Dependencies {
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.17")
 
   val Libraries: Seq[ModuleID] = Seq(
-      "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
-      "com.typesafe.slick" %% "slick" % SlickVersion,
-      "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
-      "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
-      "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
-      "com.github.blemale" %% "scaffeine" % ScaffeineVersion,
-      "ch.qos.logback" % "logback-classic" % LogbackVersion % Test,
-      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Test,
-      "com.typesafe.akka" %% "akka-persistence-tck" % AkkaVersion % Test,
-      "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test,
-      "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
-      "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)
+    "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
+    "com.typesafe.slick" %% "slick" % SlickVersion,
+    "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
+    "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
+    "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
+    "com.github.blemale" %% "scaffeine" % ScaffeineVersion,
+    "ch.qos.logback" % "logback-classic" % LogbackVersion % Test,
+    "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-persistence-tck" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
+    "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)
 
-  val Migration: Seq[ModuleID] = Seq(
-      "org.flywaydb" % "flyway-core" % "7.0.3",
-      "ch.qos.logback" % "logback-classic" % LogbackVersion,
-      "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion) ++ JdbcDrivers
+  val Migration: Seq[ModuleID] = (Seq(
+    "org.scalatest" %% "scalatest" % ScalaTestVersion,
+    "com.typesafe.akka" %% "akka-testkit" % AkkaVersion,
+    "ch.qos.logback" % "logback-classic" % LogbackVersion,
+    "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
+    "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
+    "org.flywaydb" % "flyway-core" % "7.0.3") ++ JdbcDrivers).map(_ % Test)
 }
