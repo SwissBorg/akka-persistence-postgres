@@ -18,7 +18,7 @@ The main goal is to keep index size and memory consumption on a moderate level w
 To use `akka-persistence-postgres` in your SBT project, add the following to your `build.sbt`:
 
 ```scala
-libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "0.3.5"
+libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "0.4.0"
 ```
 
 For a maven project add:
@@ -26,7 +26,7 @@ For a maven project add:
 <dependency>
     <groupId>com.swisborg</groupId>
     <artifactId>akka-persistence-postgres_2.12</artifactId>
-    <version>0.3.5</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 to your `pom.xml`.
