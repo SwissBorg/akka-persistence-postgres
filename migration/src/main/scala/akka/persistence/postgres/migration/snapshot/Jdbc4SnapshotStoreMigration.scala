@@ -18,7 +18,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(
+class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(
     implicit
     system: ActorSystem,
     mat: Materializer)
