@@ -18,7 +18,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(
+class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(
     implicit
     system: ActorSystem,
     mat: Materializer)
@@ -41,7 +41,7 @@ class SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_
   private val migrationConf: Config = globalConfig.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Int = migrationConf.getInt("batchSize")
 
-  def run(): Unit = {
+  def run(): Future[Done] = {
     val migrationRes = migrateSnapshots(db, serialization)
 
     migrationRes.onComplete {
@@ -49,7 +49,7 @@ class SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_
       case _                  => log.info(s"Metadata extraction completed")
     }
 
-    Await.result(migrationRes, Duration.Inf)
+    migrationRes
   }
 
   def migrateSnapshots(db: JdbcBackend.Database, serialization: Serialization): Future[Done] = {

@@ -18,7 +18,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journal")(
+class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journal")(
     implicit system: ActorSystem,
     mat: Materializer)
     extends PgSlickSupport {
@@ -48,7 +48,7 @@ class JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journa
   private val migrationConf: Config = globalConfig.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Int = migrationConf.getInt("batchSize")
 
-  def run(): Unit = {
+  def run(): Future[Done] = {
     val migrationRes = migrateJournal(db, serialization)
 
     migrationRes.onComplete {
@@ -56,7 +56,7 @@ class JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journa
       case _                  => log.info(s"Metadata extraction completed")
     }
 
-    Await.result(migrationRes, Duration.Inf)
+    migrationRes
   }
 
   def migrateJournal(db: JdbcBackend.Database, serialization: Serialization): Future[Done] = {
