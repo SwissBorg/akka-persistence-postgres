@@ -41,7 +41,7 @@ class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = 
   private val migrationConf: Config = globalConfig.getConfig("akka-persistence-postgres.migration")
   private val migrationBatchSize: Int = migrationConf.getInt("batchSize")
 
-  def run(): Unit = {
+  def run(): Future[Done] = {
     val migrationRes = migrateSnapshots(db, serialization)
 
     migrationRes.onComplete {
@@ -49,7 +49,7 @@ class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = 
       case _                  => log.info(s"Metadata extraction completed")
     }
 
-    Await.result(migrationRes, Duration.Inf)
+    migrationRes
   }
 
   def migrateSnapshots(db: JdbcBackend.Database, serialization: Serialization): Future[Done] = {

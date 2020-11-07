@@ -19,7 +19,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, Suite }
 import slick.jdbc.{ ResultSetConcurrency, ResultSetType }
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
+import scala.concurrent.{ Await, ExecutionContext }
 
 class FlatMigrationTest extends BaseMigrationTest("flat-migration")
 class PartitionedMigrationTest extends BaseMigrationTest("partitioned-migration")
@@ -100,14 +101,16 @@ abstract class BaseMigrationTest(configBasename: String)
 class V2_0__MigrateJournal(config: Config, tmpTableName: String)(implicit system: ActorSystem)
     extends BaseJavaMigration {
   override def migrate(context: Context): Unit = {
-    new Jdbc4JournalMigration(config, tmpTableName).run()
+    val migration = new Jdbc4JournalMigration(config, tmpTableName)
+    Await.ready(migration.run(), Duration.Inf)
   }
 }
 
 class V2_1__MigrateSnapshots(config: Config, tmpTableName: String)(implicit system: ActorSystem)
     extends BaseJavaMigration {
   override def migrate(context: Context): Unit = {
-    new Jdbc4SnapshotStoreMigration(config, tmpTableName).run()
+    val migration = new Jdbc4SnapshotStoreMigration(config, tmpTableName)
+    Await.ready(migration.run(), Duration.Inf)
   }
 }
 
