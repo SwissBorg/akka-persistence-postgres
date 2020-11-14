@@ -16,7 +16,7 @@ object Dependencies {
 
   val LogbackVersion = "1.2.3"
 
-  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.17")
+  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.18")
 
   val Libraries: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
