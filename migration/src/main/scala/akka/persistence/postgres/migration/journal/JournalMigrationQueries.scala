@@ -38,7 +38,14 @@ private[journal] class TempFlatJournalTable private (
     tempTableName: String)
     extends TempBaseJournalTable(_tableTag, journalTableCfg, tempTableName) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (JournalRow.tupled, JournalRow.unapply)
+    (
+      ordering,
+      deleted,
+      persistenceId,
+      sequenceNumber,
+      message,
+      tags,
+      metadata) <> (JournalRow.tupled, JournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
   val persistenceId: Rep[String] =
@@ -65,7 +72,14 @@ private[journal] class TempPartitionedJournalTable private (
     tempTableName: String)
     extends TempBaseJournalTable(_tableTag, journalTableCfg, tempTableName) {
   def * =
-    (ordering, deleted, persistenceId, sequenceNumber, message, tags, metadata) <> (JournalRow.tupled, JournalRow.unapply)
+    (
+      ordering,
+      deleted,
+      persistenceId,
+      sequenceNumber,
+      message,
+      tags,
+      metadata) <> (JournalRow.tupled, JournalRow.unapply)
 
   val ordering: Rep[Long] = column[Long](journalTableCfg.columnNames.ordering)
   val persistenceId: Rep[String] =

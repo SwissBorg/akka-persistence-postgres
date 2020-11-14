@@ -18,8 +18,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(
-    implicit
+class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(implicit
     system: ActorSystem,
     mat: Materializer)
     extends PgSlickSupport {
@@ -96,14 +95,13 @@ class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = 
 
     val dml = Source
       .fromPublisher(eventsPublisher)
-      .mapAsync(1) {
-        case (persistenceId, sequenceNumber, created, serializedOldSnapshot) =>
-          Future.fromTry {
-            for {
-              oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
-              sr <- serializer.serialize(SnapshotMetadata(persistenceId, sequenceNumber, created), oldSnapshot)
-            } yield SnapshotRow(persistenceId, sequenceNumber, created, sr.snapshot, sr.metadata)
-          }
+      .mapAsync(1) { case (persistenceId, sequenceNumber, created, serializedOldSnapshot) =>
+        Future.fromTry {
+          for {
+            oldSnapshot <- deserializer.deserialize(serializedOldSnapshot)
+            sr <- serializer.serialize(SnapshotMetadata(persistenceId, sequenceNumber, created), oldSnapshot)
+          } yield SnapshotRow(persistenceId, sequenceNumber, created, sr.snapshot, sr.metadata)
+        }
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
       .map(snapshotQueries.insertOrUpdate)

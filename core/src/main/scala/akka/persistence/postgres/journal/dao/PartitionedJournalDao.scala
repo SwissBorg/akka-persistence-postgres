@@ -12,8 +12,8 @@ import slick.jdbc.JdbcBackend.Database
 import scala.collection.immutable.{ Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
 
-class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
-    implicit ec: ExecutionContext,
+class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(implicit
+    ec: ExecutionContext,
     mat: Materializer)
     extends FlatJournalDao(db, journalConfig, serialization) {
   override val queries = new JournalQueries(PartitionedJournalTable(journalConfig.journalTableConfiguration))
@@ -34,10 +34,9 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
           _ <- attachJournalPartition(ordered)
           _ <- queries.writeJournalRows(ordered).transactionally
         } yield ()
-        db.run(actions).recoverWith {
-          case ex =>
-            logger.error(s"Cannot write journal rows.", ex)
-            Future.failed(ex)
+        db.run(actions).recoverWith { case ex =>
+          logger.error(s"Cannot write journal rows.", ex)
+          Future.failed(ex)
         }
 
     }
@@ -48,8 +47,8 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     for {
       orderingsSeq <- sql"""select nextval('#$seqName') from generate_series(1, #${xs.length}) n""".as[Long]
     } yield {
-      xs.sortBy(_.sequenceNumber).zip(orderingsSeq).map {
-        case (row, ord) => row.copy(ordering = ord)
+      xs.sortBy(_.sequenceNumber).zip(orderingsSeq).map { case (row, ord) =>
+        row.copy(ordering = ord)
       }
     }
   }

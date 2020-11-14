@@ -6,7 +6,7 @@
 package akka.persistence.postgres.query.dao
 
 import akka.persistence.postgres.TablesTestSpec
-import akka.persistence.postgres.journal.dao.{FlatJournalTable, NestedPartitionsJournalTable, PartitionedJournalTable}
+import akka.persistence.postgres.journal.dao.{ FlatJournalTable, NestedPartitionsJournalTable, PartitionedJournalTable }
 
 class ReadJournalTablesTest extends TablesTestSpec {
   val readJournalTableConfiguration = readJournalConfig.journalTableConfiguration

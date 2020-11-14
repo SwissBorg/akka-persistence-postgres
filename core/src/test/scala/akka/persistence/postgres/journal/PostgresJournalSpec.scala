@@ -70,11 +70,10 @@ trait PartitionedJournalSpecTestCases {
       //when
       Future
         .sequence {
-          senders.map {
-            case (sender, idx) =>
-              Future {
-                writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
-              }
+          senders.map { case (sender, idx) =>
+            Future {
+              writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
+            }
           }
         }
         .futureValue(Timeout(Span(1, Minute)))
@@ -87,8 +86,8 @@ trait PartitionedJournalSpecTestCases {
           tp.expectNext()
         }
         tp.expectComplete()
-        val orderings = replayedMessages.map(_.offset).collect {
-          case Sequence(value) => value
+        val orderings = replayedMessages.map(_.offset).collect { case Sequence(value) =>
+          value
         }
         orderings.size should equal(batchSize * numOfSenders)
         val minOrd = orderings.min

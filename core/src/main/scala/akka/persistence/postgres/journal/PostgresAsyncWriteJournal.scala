@@ -5,25 +5,25 @@
 
 package akka.persistence.postgres.journal
 
-import java.util.{HashMap => JHMap, Map => JMap}
+import java.util.{ HashMap => JHMap, Map => JMap }
 
 import akka.Done
-import akka.actor.{ActorSystem, ExtendedActorSystem}
+import akka.actor.{ ActorSystem, ExtendedActorSystem }
 import akka.pattern.pipe
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.db.{SlickDatabase, SlickExtension}
-import akka.persistence.postgres.journal.PostgresAsyncWriteJournal.{InPlaceUpdateEvent, WriteFinished}
-import akka.persistence.postgres.journal.dao.{JournalDao, JournalDaoWithUpdates}
+import akka.persistence.postgres.db.{ SlickDatabase, SlickExtension }
+import akka.persistence.postgres.journal.PostgresAsyncWriteJournal.{ InPlaceUpdateEvent, WriteFinished }
+import akka.persistence.postgres.journal.dao.{ JournalDao, JournalDaoWithUpdates }
 import akka.persistence.journal.AsyncWriteJournal
-import akka.persistence.{AtomicWrite, PersistentRepr}
-import akka.serialization.{Serialization, SerializationExtension}
-import akka.stream.{Materializer, SystemMaterializer}
+import akka.persistence.{ AtomicWrite, PersistentRepr }
+import akka.serialization.{ Serialization, SerializationExtension }
+import akka.stream.{ Materializer, SystemMaterializer }
 import com.typesafe.config.Config
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 object PostgresAsyncWriteJournal {
   private case class WriteFinished(pid: String, f: Future[_])
@@ -116,8 +116,8 @@ class PostgresAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
       .messagesWithBatch(persistenceId, fromSequenceNr, toSequenceNr, journalConfig.daoConfig.replayBatchSize, None)
       .take(max)
       .mapAsync(1)(reprAndOrdNr => Future.fromTry(reprAndOrdNr))
-      .runForeach {
-        case (repr, _) => recoveryCallback(repr)
+      .runForeach { case (repr, _) =>
+        recoveryCallback(repr)
       }
       .map(_ => ())
 

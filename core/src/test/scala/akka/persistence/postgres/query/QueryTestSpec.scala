@@ -44,8 +44,8 @@ trait ReadJournalOperations {
   def countJournal: Future[Long]
 }
 
-class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(
-    implicit system: ActorSystem,
+class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(implicit
+    system: ActorSystem,
     mat: Materializer)
     extends ReadJournalOperations {
   def this(system: ActorSystem) =
@@ -65,20 +65,18 @@ class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(
     tp.within(within)(f(tp))
   }
 
-  def withCurrentEventsByPersistenceId(within: FiniteDuration)(
-      persistenceId: String,
-      fromSequenceNr: Long = 0,
-      toSequenceNr: Long = Long.MaxValue)(f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
+  def withCurrentEventsByPersistenceId(
+      within: FiniteDuration)(persistenceId: String, fromSequenceNr: Long = 0, toSequenceNr: Long = Long.MaxValue)(
+      f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
     val tp = readJournal
       .currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr)
       .runWith(TestSink.probe[EventEnvelope])
     tp.within(within)(f(tp))
   }
 
-  def withEventsByPersistenceId(within: FiniteDuration)(
-      persistenceId: String,
-      fromSequenceNr: Long,
-      toSequenceNr: Long)(f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
+  def withEventsByPersistenceId(
+      within: FiniteDuration)(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long)(
+      f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
     val tp = readJournal
       .eventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr)
       .runWith(TestSink.probe[EventEnvelope])
@@ -108,8 +106,8 @@ class ScalaPostgresReadJournalOperations(readJournal: PostgresReadJournal)(
       .map(_.sum)
 }
 
-class JavaDslPostgresReadJournalOperations(readJournal: javadsl.PostgresReadJournal)(
-    implicit system: ActorSystem,
+class JavaDslPostgresReadJournalOperations(readJournal: javadsl.PostgresReadJournal)(implicit
+    system: ActorSystem,
     mat: Materializer)
     extends ReadJournalOperations {
   def this(system: ActorSystem) =
@@ -134,19 +132,17 @@ class JavaDslPostgresReadJournalOperations(readJournal: javadsl.PostgresReadJour
     tp.within(within)(f(tp))
   }
 
-  def withCurrentEventsByPersistenceId(within: FiniteDuration)(
-      persistenceId: String,
-      fromSequenceNr: Long = 0,
-      toSequenceNr: Long = Long.MaxValue)(f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
+  def withCurrentEventsByPersistenceId(
+      within: FiniteDuration)(persistenceId: String, fromSequenceNr: Long = 0, toSequenceNr: Long = Long.MaxValue)(
+      f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
     val sink: akka.stream.javadsl.Sink[EventEnvelope, TestSubscriber.Probe[EventEnvelope]] = JavaSink.probe(system)
     val tp = readJournal.currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr).runWith(sink, mat)
     tp.within(within)(f(tp))
   }
 
-  def withEventsByPersistenceId(within: FiniteDuration)(
-      persistenceId: String,
-      fromSequenceNr: Long,
-      toSequenceNr: Long)(f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
+  def withEventsByPersistenceId(
+      within: FiniteDuration)(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long)(
+      f: TestSubscriber.Probe[EventEnvelope] => Unit): Unit = {
     val sink: akka.stream.javadsl.Sink[EventEnvelope, TestSubscriber.Probe[EventEnvelope]] = JavaSink.probe(system)
     val tp = readJournal.eventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr).runWith(sink, mat)
     tp.within(within)(f(tp))
@@ -295,8 +291,8 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
       state = state + event
     }
 
-    override def receiveRecover: Receive = LoggingReceive {
-      case event: Int => updateState(event)
+    override def receiveRecover: Receive = LoggingReceive { case event: Int =>
+      updateState(event)
     }
   }
 
@@ -304,15 +300,15 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
     system.actorOf(Props(new TestActor(persistenceId, replyToMessages)))
   }
 
-  def withTestActors(seq: Int = 1, replyToMessages: Boolean = false)(f: (ActorRef, ActorRef, ActorRef) => Unit)(
-      implicit system: ActorSystem): Unit = {
+  def withTestActors(seq: Int = 1, replyToMessages: Boolean = false)(f: (ActorRef, ActorRef, ActorRef) => Unit)(implicit
+      system: ActorSystem): Unit = {
     val refs = (seq until seq + 3).map(setupEmpty(_, replyToMessages)).toList
     try f(refs.head, refs.drop(1).head, refs.drop(2).head)
     finally killActors(refs: _*)
   }
 
-  def withManyTestActors(amount: Int, seq: Int = 1, replyToMessages: Boolean = false)(f: Seq[ActorRef] => Unit)(
-      implicit system: ActorSystem): Unit = {
+  def withManyTestActors(amount: Int, seq: Int = 1, replyToMessages: Boolean = false)(f: Seq[ActorRef] => Unit)(implicit
+      system: ActorSystem): Unit = {
     val refs = (seq until seq + amount).map(setupEmpty(_, replyToMessages)).toList
     try f(refs)
     finally killActors(refs: _*)
@@ -321,4 +317,3 @@ abstract class QueryTestSpec(config: String, configOverrides: Map[String, Config
   def withTags(payload: Any, tags: String*) = Tagged(payload, Set(tags: _*))
 
 }
-

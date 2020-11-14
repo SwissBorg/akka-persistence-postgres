@@ -18,7 +18,7 @@ object InputStreamOps {
        * - https://stackoverflow.com/users/2619133/oliverkn
        */
       val bos: ByteArrayOutputStream = new ByteArrayOutputStream
-      val buffer: Array[Byte] = new Array[Byte](0xFFFF)
+      val buffer: Array[Byte] = new Array[Byte](0xffff)
       var len: Int = is.read(buffer)
       while (len != -1) {
         bos.write(buffer, 0, len)

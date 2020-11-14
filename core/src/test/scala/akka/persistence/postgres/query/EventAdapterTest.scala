@@ -48,8 +48,7 @@ object EventAdapterTest {
 /**
  * Tests that check persistence queries when event adapter is configured for persisted event.
  */
-abstract class EventAdapterTest(val schemaType: SchemaType)
-    extends QueryTestSpec(schemaType.configName) {
+abstract class EventAdapterTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   import EventAdapterTest._
 
   final val NoMsgTime: FiniteDuration = 100.millis
