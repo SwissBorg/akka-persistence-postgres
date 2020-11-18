@@ -17,8 +17,8 @@ import scala.collection.immutable.NumericRange
 import scala.concurrent.duration.FiniteDuration
 
 object JournalSequenceActor {
-  def props(readJournalDao: ReadJournalDao, config: JournalSequenceRetrievalConfig)(
-      implicit materializer: Materializer): Props = Props(new JournalSequenceActor(readJournalDao, config))
+  def props(readJournalDao: ReadJournalDao, config: JournalSequenceRetrievalConfig)(implicit
+      materializer: Materializer): Props = Props(new JournalSequenceActor(readJournalDao, config))
 
   private case object QueryOrderingIds
   private case class NewOrderingIds(originalOffset: Long, elements: Seq[OrderingId])
@@ -56,8 +56,8 @@ object JournalSequenceActor {
  * This is required to guarantee the EventByTag does not skip any rows in case rows with a higher (ordering) id are
  * visible in the database before rows with a lower (ordering) id.
  */
-class JournalSequenceActor(readJournalDao: ReadJournalDao, config: JournalSequenceRetrievalConfig)(
-    implicit materializer: Materializer)
+class JournalSequenceActor(readJournalDao: ReadJournalDao, config: JournalSequenceRetrievalConfig)(implicit
+    materializer: Materializer)
     extends Actor
     with ActorLogging
     with Timers {
@@ -143,23 +143,22 @@ class JournalSequenceActor(readJournalDao: ReadJournalDao, config: JournalSequen
       elements.foldLeft[(OrderingId, OrderingId, MissingElements)](
         currentMaxOrdering,
         currentMaxOrdering,
-        MissingElements.empty) {
-        case ((currentMax, previousElement, missing), currentElement) =>
-          // we must decide if we move the cursor forward
-          val newMax =
-            if ((currentMax + 1).until(currentElement).forall(givenUp.contains)) {
-              // we move the cursor forward when:
-              // 1) they have been detected as missing on previous iteration, it's time now to give up
-              // 2) current + 1 == currentElement (meaning no gap). Note that `forall` on an empty range always returns true
-              currentElement
-            } else currentMax
+        MissingElements.empty) { case ((currentMax, previousElement, missing), currentElement) =>
+        // we must decide if we move the cursor forward
+        val newMax =
+          if ((currentMax + 1).until(currentElement).forall(givenUp.contains)) {
+            // we move the cursor forward when:
+            // 1) they have been detected as missing on previous iteration, it's time now to give up
+            // 2) current + 1 == currentElement (meaning no gap). Note that `forall` on an empty range always returns true
+            currentElement
+          } else currentMax
 
-          // we accumulate in newMissing the gaps we detect on each iteration
-          val newMissing =
-            if (previousElement + 1 == currentElement || newMax == currentElement) missing
-            else missing.addRange(previousElement + 1, currentElement)
+        // we accumulate in newMissing the gaps we detect on each iteration
+        val newMissing =
+          if (previousElement + 1 == currentElement || newMax == currentElement) missing
+          else missing.addRange(previousElement + 1, currentElement)
 
-          (newMax, currentElement, newMissing)
+        (newMax, currentElement, newMissing)
       }
 
     val newMissingByCounter = missingByCounter + (moduloCounter -> missingElems)

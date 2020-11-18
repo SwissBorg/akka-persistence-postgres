@@ -17,8 +17,8 @@ import scala.collection.immutable._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
-class ByteArrayJournalSerializer(serialization: Serialization, tagConverter: TagIdResolver)(
-    implicit val executionContext: ExecutionContext)
+class ByteArrayJournalSerializer(serialization: Serialization, tagConverter: TagIdResolver)(implicit
+    val executionContext: ExecutionContext)
     extends FlowPersistentReprSerializer[JournalRow] {
 
   override def serialize(persistentRepr: PersistentRepr, tags: Set[String]): Future[JournalRow] = {

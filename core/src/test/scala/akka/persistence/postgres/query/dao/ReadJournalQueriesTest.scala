@@ -9,15 +9,24 @@ class ReadJournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for messagesQuery" in withReadJournalQueries { queries =>
-    queries.messagesQuery("p1", 1L, 4L, 5L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
+    queries.messagesQuery(
+      "p1",
+      1L,
+      4L,
+      5L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
   }
 
   it should "create SQL query for eventsByTag" in withReadJournalQueries { queries =>
-    queries.eventsByTag(List(11), 23L, 25L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ("tags" @> ?) and (("ordering" > ?) and ("ordering" <= ?)) order by "ordering""""
+    queries.eventsByTag(
+      List(11),
+      23L,
+      25L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ("tags" @> ?) and (("ordering" > ?) and ("ordering" <= ?)) order by "ordering""""
   }
 
   it should "create SQL query for journalSequenceQuery" in withReadJournalQueries { queries =>
-    queries.orderingByOrdering(11L, 23L) shouldBeSQL """select "ordering" from "journal" where "ordering" > ? order by "ordering" limit ?"""
+    queries.orderingByOrdering(
+      11L,
+      23L) shouldBeSQL """select "ordering" from "journal" where "ordering" > ? order by "ordering" limit ?"""
   }
 
   it should "create SQL query for maxJournalSequenceQuery" in withReadJournalQueries { queries =>

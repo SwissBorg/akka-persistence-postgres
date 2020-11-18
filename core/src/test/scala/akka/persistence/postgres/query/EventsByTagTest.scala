@@ -143,14 +143,14 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag()("number", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNextPF {
-          case ev @ EventEnvelope(Sequence(1), "my-1", 1, 1) => assertTimestamp(ev.timestamp, "my-1")
+        tp.expectNextPF { case ev @ EventEnvelope(Sequence(1), "my-1", 1, 1) =>
+          assertTimestamp(ev.timestamp, "my-1")
         }
-        tp.expectNextPF {
-          case ev @ EventEnvelope(Sequence(2), "my-2", 1, 2) => assertTimestamp(ev.timestamp, "my-2")
+        tp.expectNextPF { case ev @ EventEnvelope(Sequence(2), "my-2", 1, 2) =>
+          assertTimestamp(ev.timestamp, "my-2")
         }
-        tp.expectNextPF {
-          case ev @ EventEnvelope(Sequence(3), "my-3", 1, 3) => assertTimestamp(ev.timestamp, "my-3")
+        tp.expectNextPF { case ev @ EventEnvelope(Sequence(3), "my-3", 1, 3) =>
+          assertTimestamp(ev.timestamp, "my-3")
         }
         tp.cancel()
       }
@@ -202,7 +202,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
       val msgCountPerActor = 20
       val numberOfActors = 100
       val totalNumberOfMessages = msgCountPerActor * numberOfActors
-      withManyTestActors(numberOfActors) { (actors) =>
+      withManyTestActors(numberOfActors) { actors =>
         val actorsWithIndexes = actors.zipWithIndex
         for {
           messageNumber <- 0 until msgCountPerActor

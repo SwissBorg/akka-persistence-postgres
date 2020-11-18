@@ -5,20 +5,20 @@
 
 package akka.persistence.postgres.snapshot
 
-import akka.actor.{ActorSystem, ExtendedActorSystem}
+import akka.actor.{ ActorSystem, ExtendedActorSystem }
 import akka.persistence.postgres.config.SnapshotConfig
-import akka.persistence.postgres.db.{SlickDatabase, SlickExtension}
+import akka.persistence.postgres.db.{ SlickDatabase, SlickExtension }
 import akka.persistence.postgres.snapshot.dao.SnapshotDao
 import akka.persistence.snapshot.SnapshotStore
-import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
-import akka.serialization.{Serialization, SerializationExtension}
-import akka.stream.{Materializer, SystemMaterializer}
+import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
+import akka.serialization.{ Serialization, SerializationExtension }
+import akka.stream.{ Materializer, SystemMaterializer }
 import com.typesafe.config.Config
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 object PostgresSnapshotStore {
   def toSelectedSnapshot(tupled: (SnapshotMetadata, Any)): SelectedSnapshot = tupled match {

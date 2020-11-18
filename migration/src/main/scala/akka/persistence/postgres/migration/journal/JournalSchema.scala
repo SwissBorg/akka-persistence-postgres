@@ -41,26 +41,33 @@ private[journal] trait JournalSchema {
   def createIndexes: DBIOAction[Unit, NoStream, Effect.Write] =
     for {
       _ <- sqlu"CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public"
-      _ <- sqlu"CREATE INDEX #${tempTableName}_#${tags}_idx ON #$fullTmpTableName USING GIN (#$tags public.gin__int_ops)"
+      _ <-
+        sqlu"CREATE INDEX #${tempTableName}_#${tags}_idx ON #$fullTmpTableName USING GIN (#$tags public.gin__int_ops)"
       _ <- sqlu"CREATE INDEX #${tempTableName}_#${ordering}_idx ON #$fullTmpTableName USING BRIN (#$ordering)"
     } yield ()
 
   def createSequence: DBIOAction[Unit, NoStream, Effect.Write] =
     for {
       lastOrderingValue <- sql"SELECT last_value FROM #${fullSourceTableName}_#${ordering}_seq".as[Int].map(_.head)
-      _ <- sqlu"CREATE SEQUENCE #${fullTmpTableName}_#${ordering}_seq START WITH #$lastOrderingValue OWNED BY #$fullTmpTableName.#$ordering"
-      _ <- sqlu"ALTER TABLE #$fullTmpTableName ALTER COLUMN #$ordering SET DEFAULT nextval('#${fullTmpTableName}_#${ordering}_seq')"
+      _ <-
+        sqlu"CREATE SEQUENCE #${fullTmpTableName}_#${ordering}_seq START WITH #$lastOrderingValue OWNED BY #$fullTmpTableName.#$ordering"
+      _ <-
+        sqlu"ALTER TABLE #$fullTmpTableName ALTER COLUMN #$ordering SET DEFAULT nextval('#${fullTmpTableName}_#${ordering}_seq')"
     } yield ()
 
   def swapJournals: DBIOAction[Unit, NoStream, Effect.Write] =
     for {
       _ <- sqlu"""ALTER TABLE #$fullSourceTableName RENAME TO old_#${journalTableCfg.tableName}"""
-      _ <- sqlu"""ALTER SEQUENCE #${fullSourceTableName}_#${ordering}_seq RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_seq"""
+      _ <-
+        sqlu"""ALTER SEQUENCE #${fullSourceTableName}_#${ordering}_seq RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_seq"""
       _ <- sqlu"""ALTER INDEX #${fullSourceTableName}_pkey RENAME TO old_#${journalTableCfg.tableName}_pkey"""
-      _ <- sqlu"""ALTER INDEX #${fullSourceTableName}_#${ordering}_idx RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_idx"""
+      _ <-
+        sqlu"""ALTER INDEX #${fullSourceTableName}_#${ordering}_idx RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_idx"""
       _ <- sqlu"""ALTER TABLE #$fullTmpTableName RENAME TO #${journalTableCfg.tableName}"""
-      _ <- sqlu"""ALTER SEQUENCE #${fullTmpTableName}_#${ordering}_seq RENAME TO #${journalTableCfg.tableName}_#${ordering}_seq"""
-      _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_#${ordering}_idx RENAME TO #${journalTableCfg.tableName}_#${ordering}_idx"""
+      _ <-
+        sqlu"""ALTER SEQUENCE #${fullTmpTableName}_#${ordering}_seq RENAME TO #${journalTableCfg.tableName}_#${ordering}_seq"""
+      _ <-
+        sqlu"""ALTER INDEX #${fullTmpTableName}_#${ordering}_idx RENAME TO #${journalTableCfg.tableName}_#${ordering}_idx"""
       _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_#${tags}_idx RENAME TO #${journalTableCfg.tableName}_#${tags}_idx"""
       _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_pkey RENAME TO #${journalTableCfg.tableName}_pkey"""
     } yield ()
@@ -150,26 +157,34 @@ private[journal] object JournalSchema {
     override def createIndexes: DBIOAction[Unit, NoStream, Effect.Write] =
       for {
         _ <- sqlu"CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public"
-        _ <- sqlu"CREATE INDEX #${tempTableName}_#${tags}_idx ON #$fullTmpTableName USING GIN (#$tags public.gin__int_ops)"
-        _ <- sqlu"CREATE INDEX #${tempTableName}_#${persistenceId}_#${sequenceNumber}_idx ON #$fullTmpTableName USING BTREE (#$persistenceId, #$sequenceNumber)"
+        _ <-
+          sqlu"CREATE INDEX #${tempTableName}_#${tags}_idx ON #$fullTmpTableName USING GIN (#$tags public.gin__int_ops)"
+        _ <-
+          sqlu"CREATE INDEX #${tempTableName}_#${persistenceId}_#${sequenceNumber}_idx ON #$fullTmpTableName USING BTREE (#$persistenceId, #$sequenceNumber)"
       } yield ()
 
     override def createSequence: DBIOAction[Unit, NoStream, Effect.Write] =
       for {
         lastOrderingValue <- sql"SELECT last_value FROM #${fullSourceTableName}_#${ordering}_seq".as[Int].map(_.head)
-        _ <- sqlu"CREATE SEQUENCE #${fullTmpTableName}_#${ordering}_seq START WITH #$lastOrderingValue OWNED BY #$fullTmpTableName.#$ordering"
+        _ <-
+          sqlu"CREATE SEQUENCE #${fullTmpTableName}_#${ordering}_seq START WITH #$lastOrderingValue OWNED BY #$fullTmpTableName.#$ordering"
       } yield ()
 
     override def swapJournals: DBIOAction[Unit, NoStream, Effect.Write] =
       for {
         _ <- sqlu"""ALTER TABLE #$fullSourceTableName RENAME TO old_#${journalTableCfg.tableName}"""
-        _ <- sqlu"""ALTER SEQUENCE #${fullSourceTableName}_#${ordering}_seq RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_seq"""
+        _ <-
+          sqlu"""ALTER SEQUENCE #${fullSourceTableName}_#${ordering}_seq RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_seq"""
         _ <- sqlu"""ALTER INDEX #${fullSourceTableName}_pkey RENAME TO old_#${journalTableCfg.tableName}_pkey"""
-        _ <- sqlu"""ALTER INDEX #${fullSourceTableName}_#${ordering}_idx RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_idx"""
+        _ <-
+          sqlu"""ALTER INDEX #${fullSourceTableName}_#${ordering}_idx RENAME TO old_#${journalTableCfg.tableName}_#${ordering}_idx"""
         _ <- sqlu"""ALTER TABLE #$fullTmpTableName RENAME TO #${journalTableCfg.tableName}"""
-        _ <- sqlu"""ALTER SEQUENCE #${fullTmpTableName}_#${ordering}_seq RENAME TO #${journalTableCfg.tableName}_#${ordering}_seq"""
-        _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_#${persistenceId}_#${sequenceNumber}_idx RENAME TO #${journalTableCfg.tableName}_#${persistenceId}_#${sequenceNumber}_idx"""
-        _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_#${tags}_idx RENAME TO #${journalTableCfg.tableName}_#${tags}_idx"""
+        _ <-
+          sqlu"""ALTER SEQUENCE #${fullTmpTableName}_#${ordering}_seq RENAME TO #${journalTableCfg.tableName}_#${ordering}_seq"""
+        _ <-
+          sqlu"""ALTER INDEX #${fullTmpTableName}_#${persistenceId}_#${sequenceNumber}_idx RENAME TO #${journalTableCfg.tableName}_#${persistenceId}_#${sequenceNumber}_idx"""
+        _ <-
+          sqlu"""ALTER INDEX #${fullTmpTableName}_#${tags}_idx RENAME TO #${journalTableCfg.tableName}_#${tags}_idx"""
         _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_pkey RENAME TO #${journalTableCfg.tableName}_pkey"""
       } yield ()
 
@@ -199,21 +214,22 @@ private[journal] object JournalSchema {
           #$tags           int[],
           PRIMARY KEY (#$persistenceId, #$sequenceNumber)
         ) PARTITION BY LIST (#$persistenceId)"""
-        maxSeqByPid <- sql"SELECT #$persistenceId, max(#$sequenceNumber) FROM #$fullSourceTableName GROUP BY #$persistenceId"
-          .as[(String, Int)]
+        maxSeqByPid <-
+          sql"SELECT #$persistenceId, max(#$sequenceNumber) FROM #$fullSourceTableName GROUP BY #$persistenceId"
+            .as[(String, Int)]
         _ <- DBIO.sequence {
-          maxSeqByPid.map {
-            case (pid, maxSeqNum) =>
-              val sanitizedPartitionId = pid.replaceAll("\\W", "_")
-              val fullPartitionName = s"$schema.${partitionPrefix}_$sanitizedPartitionId"
-              for {
-                _ <- sqlu"CREATE TABLE IF NOT EXISTS #$fullPartitionName PARTITION OF #$fullTmpTableName FOR VALUES IN ('#$pid') PARTITION BY RANGE (#$sequenceNumber)"
-                _ <- DBIO.sequence {
-                  (0 to maxSeqNum / partitionSize).map { i =>
-                    sqlu"CREATE TABLE IF NOT EXISTS #${fullPartitionName}_#$i PARTITION OF #$fullPartitionName FOR VALUES FROM (#${i * partitionSize}) TO (#${(i + 1) * partitionSize})"
-                  }
+          maxSeqByPid.map { case (pid, maxSeqNum) =>
+            val sanitizedPartitionId = pid.replaceAll("\\W", "_")
+            val fullPartitionName = s"$schema.${partitionPrefix}_$sanitizedPartitionId"
+            for {
+              _ <-
+                sqlu"CREATE TABLE IF NOT EXISTS #$fullPartitionName PARTITION OF #$fullTmpTableName FOR VALUES IN ('#$pid') PARTITION BY RANGE (#$sequenceNumber)"
+              _ <- DBIO.sequence {
+                (0 to maxSeqNum / partitionSize).map { i =>
+                  sqlu"CREATE TABLE IF NOT EXISTS #${fullPartitionName}_#$i PARTITION OF #$fullPartitionName FOR VALUES FROM (#${i * partitionSize}) TO (#${(i + 1) * partitionSize})"
                 }
-              } yield ()
+              }
+            } yield ()
           }
         }
       } yield ()
