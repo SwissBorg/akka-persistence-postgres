@@ -16,10 +16,10 @@ import slick.jdbc.JdbcBackend
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-class ByteArraySnapshotDao(
-    db: JdbcBackend#Database,
-    snapshotConfig: SnapshotConfig,
-    serialization: Serialization)(implicit ec: ExecutionContext, val mat: Materializer)
+class ByteArraySnapshotDao(db: JdbcBackend#Database, snapshotConfig: SnapshotConfig, serialization: Serialization)(
+    implicit
+    ec: ExecutionContext,
+    val mat: Materializer)
     extends SnapshotDao {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 

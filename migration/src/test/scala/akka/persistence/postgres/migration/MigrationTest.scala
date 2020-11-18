@@ -196,7 +196,8 @@ trait PrepareDatabase extends BeforeAndAfterEach with BeforeAndAfterAll with Sca
             PRIMARY KEY (#$persistenceId, #$sequenceNumber)
         )"""
       _ <- sqlu"""DROP INDEX IF EXISTS old_#${journalTableName}_#${ordering}_idx"""
-      _ <- sqlu"""CREATE UNIQUE INDEX #${journalTableName}_#${ordering}_idx ON migration.#$journalTableName (#$ordering)"""
+      _ <-
+        sqlu"""CREATE UNIQUE INDEX #${journalTableName}_#${ordering}_idx ON migration.#$journalTableName (#$ordering)"""
       // create & fill temp tags dictionary
       _ <- sqlu"""DROP TABLE IF EXISTS migration.tag_definition"""
       _ <- sqlu"""CREATE TABLE IF NOT EXISTS migration.tag_definition

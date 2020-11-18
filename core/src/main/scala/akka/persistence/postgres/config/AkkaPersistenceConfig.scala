@@ -30,7 +30,8 @@ class JournalTableColumnNames(config: Config) {
   val tags: String = cfg.as[String]("tags", "tags")
   val message: String = cfg.as[String]("message", "message")
   val metadata: String = cfg.as[String]("metadata", "metadata")
-  override def toString: String = s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message,$metadata)"
+  override def toString: String =
+    s"JournalTableColumnNames($persistenceId,$sequenceNumber,$created,$tags,$message,$metadata)"
 }
 
 class JournalPartitionsConfiguration(config: Config) {
@@ -55,7 +56,8 @@ class SnapshotTableColumnNames(config: Config) {
   val created: String = cfg.as[String]("created", "created")
   val snapshot: String = cfg.as[String]("snapshot", "snapshot")
   val metadata: String = cfg.as[String]("metadata", "metadata")
-  override def toString: String = s"SnapshotTableColumnNames($persistenceId,$sequenceNumber,$created,$snapshot,$metadata)"
+  override def toString: String =
+    s"SnapshotTableColumnNames($persistenceId,$sequenceNumber,$created,$snapshot,$metadata)"
 }
 
 class SnapshotTableConfiguration(config: Config) {

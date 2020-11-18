@@ -14,8 +14,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 
 class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionValues {
-  val config: Config = ConfigFactory.parseString(
-    """
+  val config: Config = ConfigFactory.parseString("""
       |postgres-journal {
       |  class = "akka.persistence.postgres.journal.PostgresAsyncWriteJournal"
       |

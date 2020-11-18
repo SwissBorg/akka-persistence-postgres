@@ -6,8 +6,8 @@
 package akka.persistence.postgres.query
 
 import akka.pattern._
-import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
-import akka.persistence.query.{EventEnvelope, NoOffset, Sequence}
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
+import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 
 import scala.concurrent.duration._
 

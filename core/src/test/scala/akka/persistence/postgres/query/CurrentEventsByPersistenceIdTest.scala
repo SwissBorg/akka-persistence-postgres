@@ -8,11 +8,12 @@ package akka.persistence.postgres.query
 import akka.Done
 import akka.persistence.Persistence
 import akka.persistence.postgres.journal.PostgresAsyncWriteJournal
-import akka.persistence.postgres.util.Schema.{NestedPartitions, Partitioned, Plain, SchemaType}
-import akka.persistence.query.{EventEnvelope, Offset, Sequence}
+import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
+import akka.persistence.query.{ EventEnvelope, Offset, Sequence }
 import akka.testkit.TestProbe
 
-abstract class CurrentEventsByPersistenceIdTest(val schemaType: SchemaType) extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-shared-db-application.conf") {
+abstract class CurrentEventsByPersistenceIdTest(val schemaType: SchemaType)
+    extends QueryTestSpec(s"${schemaType.resourceNamePrefix}-shared-db-application.conf") {
   import QueryTestSpec.EventEnvelopeProbeOps
 
   it should "not find any events for unknown pid" in withActorSystem { implicit system =>

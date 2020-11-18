@@ -18,8 +18,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journal")(
-    implicit system: ActorSystem,
+class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journal")(implicit
+    system: ActorSystem,
     mat: Materializer)
     extends PgSlickSupport {
 
@@ -88,12 +88,11 @@ class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_j
 
     val dml = Source
       .fromPublisher(eventsPublisher)
-      .mapAsync(1) {
-        case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
-          for {
-            pr <- Future.fromTry(deserializer.deserialize(oldMessage))
-            jr <- serializer.serialize(pr, tags.map(_.split(tagsSeparator).toSet).getOrElse(Set.empty))
-          } yield JournalRow(ordering, deleted, persistenceId, sequenceNumber, jr.message, jr.tags, jr.metadata)
+      .mapAsync(1) { case (ordering, deleted, persistenceId, sequenceNumber, oldMessage, tags) =>
+        for {
+          pr <- Future.fromTry(deserializer.deserialize(oldMessage))
+          jr <- serializer.serialize(pr, tags.map(_.split(tagsSeparator).toSet).getOrElse(Set.empty))
+        } yield JournalRow(ordering, deleted, persistenceId, sequenceNumber, jr.message, jr.tags, jr.metadata)
       }
       .batch(migrationBatchSize, List(_))(_ :+ _)
       .map(journalQueries.insertAll)
