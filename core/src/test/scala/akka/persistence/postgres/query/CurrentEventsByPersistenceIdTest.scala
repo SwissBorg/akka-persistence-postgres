@@ -18,7 +18,7 @@ abstract class CurrentEventsByPersistenceIdTest(val schemaType: SchemaType)
 
   it should "not find any events for unknown pid" in withActorSystem { implicit system =>
     val journalOps = new ScalaPostgresReadJournalOperations(system)
-    journalOps.withCurrentEventsByPersistenceId()("unkown-pid", 0L, Long.MaxValue) { tp =>
+    journalOps.withCurrentEventsByPersistenceId()("unknown-pid", 0L, Long.MaxValue) { tp =>
       tp.request(Int.MaxValue)
       tp.expectComplete()
     }
