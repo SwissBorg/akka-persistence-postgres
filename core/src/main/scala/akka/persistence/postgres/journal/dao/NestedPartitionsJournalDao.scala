@@ -47,22 +47,21 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
             sqlu"""CREATE TABLE IF NOT EXISTS #${schema + tableName} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES IN ('#$persistenceId') PARTITION BY RANGE (#${journalTableCfg.columnNames.sequenceNumber})"""
           }
 
-        def createSequenceNumberPartitions(): DBIOAction[List[Unit], NoStream, Effect] = {
-          DBIO.sequence {
-            partitionsToCreate.map { partitionNumber =>
-              val name = s"${tableName}_$partitionNumber"
-              val minRange = partitionNumber * partitionSize
-              val maxRange = minRange + partitionSize
-              val partitionDetails =
-                s"persistenceId = '$persistenceId' and sequenceNr between $minRange and $maxRange"
-              withHandledPartitionErrors(logger, partitionDetails) {
-                sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)""".asTry
-              }.andThen {
-                createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate)
-                DBIO.successful(())
+        def createSequenceNumberPartitions(): DBIOAction[Unit, NoStream, Effect] = {
+          DBIO
+            .sequence {
+              partitionsToCreate.map { partitionNumber =>
+                val name = s"${tableName}_$partitionNumber"
+                val minRange = partitionNumber * partitionSize
+                val maxRange = minRange + partitionSize
+                val partitionDetails =
+                  s"persistenceId = '$persistenceId' and sequenceNr between $minRange and $maxRange"
+                withHandledPartitionErrors(logger, partitionDetails) {
+                  sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)""".asTry
+                }
               }
             }
-          }
+            .map(_ => createdPartitions.put(persistenceId, existingPartitions ::: partitionsToCreate): Unit)
         }
 
         for {
