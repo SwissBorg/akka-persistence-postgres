@@ -74,7 +74,9 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
           }
         }
       }
-      DBIO.sequence(actions).map(_ => ())
+      DBIO
+        .sequence(actions)
+        .map(_ => createdPartitions.compareAndSet(existingPartitions, existingPartitions ++ partitionsToCreate): Unit)
     } else {
       DBIO.successful(())
     }
