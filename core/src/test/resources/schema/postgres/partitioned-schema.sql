@@ -42,7 +42,6 @@ CREATE SEQUENCE journal_ordering_seq OWNED BY public.journal.ordering;
 
 CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
 CREATE INDEX journal_tags_idx ON public.journal USING GIN (tags public.gin__int_ops);
-CREATE INDEX journal_persistence_sequence_idx ON public.journal USING BTREE (persistence_id, sequence_number);
 
 DROP TABLE IF EXISTS public.tags;
 

@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import akka.persistence.postgres.JournalRow
 import akka.persistence.postgres.config.JournalConfig
-import akka.persistence.postgres.db.DbErrors.withHandledPartitionErrors
+import akka.persistence.postgres.db.DbErrors.{ withHandledIndexErrors, withHandledPartitionErrors }
 import akka.serialization.Serialization
 import akka.stream.Materializer
 import slick.jdbc.JdbcBackend.Database
@@ -69,9 +69,13 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
           val name = s"${partitionPrefix}_$partitionNumber"
           val minRange = partitionNumber * partitionSize
           val maxRange = minRange + partitionSize
-          withHandledPartitionErrors(logger, s"ordering between $minRange and $maxRange") {
-            sqlu"""CREATE TABLE IF NOT EXISTS #${schema + name} PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
-          }
+          val partitionName = s"${schema + name}"
+          val indexName = s"${name}_persistence_sequence_idx"
+          withHandledPartitionErrors(logger, s"$partitionName (ordering between $minRange and $maxRange)") {
+            sqlu"""CREATE TABLE IF NOT EXISTS #$partitionName PARTITION OF #${schema + journalTableCfg.tableName} FOR VALUES FROM (#$minRange) TO (#$maxRange)"""
+          }.andThen(withHandledIndexErrors(logger, s"$indexName for partition $partitionName") {
+            sqlu"""CREATE UNIQUE INDEX IF NOT EXISTS #$indexName ON #$partitionName USING BTREE (#${journalTableCfg.columnNames.persistenceId}, #${journalTableCfg.columnNames.sequenceNumber});"""
+          })
         }
       }
       DBIO
