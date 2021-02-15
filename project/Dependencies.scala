@@ -38,5 +38,5 @@ object Dependencies {
     "ch.qos.logback" % "logback-classic" % LogbackVersion,
     "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
     "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
-    "org.flywaydb" % "flyway-core" % "7.3.2") ++ JdbcDrivers).map(_ % Test)
+    "org.flywaydb" % "flyway-core" % "7.5.3") ++ JdbcDrivers).map(_ % Test)
 }
