@@ -61,11 +61,11 @@ abstract class EventAdapterTest(val schemaType: SchemaType) extends QueryTestSpe
         tp.expectNoMessage(100.millis)
 
         actor1 ! Event("1")
-        tp.expectNext(ExpectNextTimeout, EventEnvelope(Sequence(1), "my-1", 1, EventRestored("1")))
+        tp.expectNext(ExpectNextTimeout, new EventEnvelope(Sequence(1), "my-1", 1, EventRestored("1"), 0L, None))
         tp.expectNoMessage(100.millis)
 
         actor1 ! Event("2")
-        tp.expectNext(ExpectNextTimeout, EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2")))
+        tp.expectNext(ExpectNextTimeout, new EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2"), 0L, None))
         tp.expectNoMessage(100.millis)
         tp.cancel()
       }
@@ -85,12 +85,12 @@ abstract class EventAdapterTest(val schemaType: SchemaType) extends QueryTestSpe
 
       journalOps.withEventsByTag(10.seconds)("event", Sequence(1)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, EventRestored("2")))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, EventRestored("3")))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, EventRestored("2"), 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, EventRestored("3"), 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor1 ? TaggedEvent(Event("1"), "event")
-        tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, EventRestored("1")))
+        tp.expectNext(new EventEnvelope(Sequence(4), "my-1", 2, EventRestored("1"), 0L, None))
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
       }
@@ -109,21 +109,27 @@ abstract class EventAdapterTest(val schemaType: SchemaType) extends QueryTestSpe
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 1, 1) { tp =>
-        tp.request(Int.MaxValue).expectNext(EventEnvelope(Sequence(1), "my-1", 1, EventRestored("1"))).expectComplete()
+        tp.request(Int.MaxValue)
+          .expectNext(new EventEnvelope(Sequence(1), "my-1", 1, EventRestored("1"), 0L, None))
+          .expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 2, 2) { tp =>
-        tp.request(Int.MaxValue).expectNext(EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2"))).expectComplete()
+        tp.request(Int.MaxValue)
+          .expectNext(new EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2"), 0L, None))
+          .expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 3, 3) { tp =>
-        tp.request(Int.MaxValue).expectNext(EventEnvelope(Sequence(3), "my-1", 3, EventRestored("3"))).expectComplete()
+        tp.request(Int.MaxValue)
+          .expectNext(new EventEnvelope(Sequence(3), "my-1", 3, EventRestored("3"), 0L, None))
+          .expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 2, 3) { tp =>
         tp.request(Int.MaxValue)
-          .expectNext(EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2")))
-          .expectNext(EventEnvelope(Sequence(3), "my-1", 3, EventRestored("3")))
+          .expectNext(new EventEnvelope(Sequence(2), "my-1", 2, EventRestored("2"), 0L, None))
+          .expectNext(new EventEnvelope(Sequence(3), "my-1", 3, EventRestored("3"), 0L, None))
           .expectComplete()
       }
     }

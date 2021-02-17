@@ -44,49 +44,49 @@ abstract class CurrentEventsByPersistenceIdTest(val schemaType: SchemaType)
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 1, 1) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
         tp.expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 1, 2) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-1", 2, 2))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-1", 2, 2, 0L, None))
         tp.expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 2, 2) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(2), "my-1", 2, 2))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-1", 2, 2, 0L, None))
         tp.expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 2, 3) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(2), "my-1", 2, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-1", 2, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
         tp.expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 3, 3) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
         tp.expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 0, 3) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-1", 2, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-1", 2, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
         tp.expectComplete()
       }
 
       journalOps.withCurrentEventsByPersistenceId()("my-1", 1, 3) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-1", 2, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-1", 2, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
         tp.expectComplete()
       }
     }

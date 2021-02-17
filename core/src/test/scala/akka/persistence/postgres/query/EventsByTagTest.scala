@@ -57,38 +57,38 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag()("number", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("number", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("number", Sequence(0)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("number", Sequence(1)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("number", Sequence(2)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.cancel()
       }
 
@@ -101,19 +101,19 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag()("number", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor1 ? withTags(1, "number")
-        tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, 1))
+        tp.expectNext(new EventEnvelope(Sequence(4), "my-1", 2, 1, 0L, None))
 
         actor1 ? withTags(1, "number")
-        tp.expectNext(EventEnvelope(Sequence(5), "my-1", 3, 1))
+        tp.expectNext(new EventEnvelope(Sequence(5), "my-1", 3, 1, 0L, None))
 
         actor1 ? withTags(1, "number")
-        tp.expectNext(EventEnvelope(Sequence(6), "my-1", 4, 1))
+        tp.expectNext(new EventEnvelope(Sequence(6), "my-1", 4, 1, 0L, None))
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
       }
@@ -167,29 +167,29 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag()("number", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("sharded-1", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("sharded-10", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
 
       journalOps.withEventsByTag()("sharded-100", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
@@ -239,12 +239,12 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag()("number", Sequence(1)) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 3, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor1 ? withTags(1, "number")
-        tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, 1))
+        tp.expectNext(new EventEnvelope(Sequence(4), "my-1", 2, 1, 0L, None))
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
       }
@@ -267,7 +267,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
         tp.expectNoMessage(1.second)
 
         actor1 ? withTags(1, "number")
-        tp.expectNext(EventEnvelope(Sequence(4), "my-1", 2, 1))
+        tp.expectNext(new EventEnvelope(Sequence(4), "my-1", 2, 1, 0L, None))
         tp.expectNoMessage(1.second)
 
         tp.cancel()
@@ -306,15 +306,15 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
         tp.expectNoMessage(NoMsgTime)
 
         actor1 ! withTags(1, "one") // 1
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor2 ! withTags(1, "one") // 2
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 1))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-2", 1, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor3 ! withTags(1, "one") // 3
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 1))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-3", 1, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor1 ! withTags(2, "two") // 4
@@ -327,15 +327,15 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
         tp.expectNoMessage(NoMsgTime)
 
         actor1 ! withTags(1, "one") // 7
-        tp.expectNext(EventEnvelope(Sequence(7), "my-1", 3, 1))
+        tp.expectNext(new EventEnvelope(Sequence(7), "my-1", 3, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor2 ! withTags(1, "one") // 8
-        tp.expectNext(EventEnvelope(Sequence(8), "my-2", 3, 1))
+        tp.expectNext(new EventEnvelope(Sequence(8), "my-2", 3, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
 
         actor3 ! withTags(1, "one") // 9
-        tp.expectNext(EventEnvelope(Sequence(9), "my-3", 3, 1))
+        tp.expectNext(new EventEnvelope(Sequence(9), "my-3", 3, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
@@ -366,37 +366,37 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag(10.seconds)("prime", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-1", 2, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
-        tp.expectNext(EventEnvelope(Sequence(5), "my-1", 5, 5))
-        tp.expectNext(EventEnvelope(Sequence(6), "my-2", 1, 3))
-        tp.expectNext(EventEnvelope(Sequence(7), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(2), "my-1", 2, 2, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(5), "my-1", 5, 5, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(6), "my-2", 1, 3, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(7), "my-3", 1, 3, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
 
       journalOps.withEventsByTag(10.seconds)("three", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
-        tp.expectNext(EventEnvelope(Sequence(6), "my-2", 1, 3))
-        tp.expectNext(EventEnvelope(Sequence(7), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(6), "my-2", 1, 3, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(7), "my-3", 1, 3, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
 
       journalOps.withEventsByTag(10.seconds)("3", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(3), "my-1", 3, 3))
-        tp.expectNext(EventEnvelope(Sequence(6), "my-2", 1, 3))
-        tp.expectNext(EventEnvelope(Sequence(7), "my-3", 1, 3))
+        tp.expectNext(new EventEnvelope(Sequence(3), "my-1", 3, 3, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(6), "my-2", 1, 3, 0L, None))
+        tp.expectNext(new EventEnvelope(Sequence(7), "my-3", 1, 3, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
 
       journalOps.withEventsByTag(10.seconds)("one", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
+        tp.expectNext(new EventEnvelope(Sequence(1), "my-1", 1, 1, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
       }
@@ -410,7 +410,7 @@ abstract class EventsByTagTest(val schemaType: SchemaType)
 
       journalOps.withEventsByTag(10.seconds)("five", NoOffset) { tp =>
         tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(5), "my-1", 5, 5))
+        tp.expectNext(new EventEnvelope(Sequence(5), "my-1", 5, 5, 0L, None))
         tp.expectNoMessage(NoMsgTime)
         tp.cancel()
         tp.expectNoMessage(NoMsgTime)
