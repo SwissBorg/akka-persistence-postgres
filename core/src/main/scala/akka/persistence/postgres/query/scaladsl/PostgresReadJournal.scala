@@ -50,7 +50,9 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
   val readJournalConfig = new ReadJournalConfig(config)
 
   private val writePluginId = config.getString("write-plugin")
-  private val eventAdapters = Persistence(system).adaptersFor(writePluginId)
+  // If 'config' is empty, or if the plugin reference is not found, then the write plugin will be resolved from the
+  // ActorSystem configuration. Otherwise, it will be resolved from the provided 'config'.
+  private val eventAdapters = Persistence(system).adaptersFor(writePluginId, config)
 
   val readJournalDao: ReadJournalDao = {
     val slickDb = SlickExtension(system).database(config)
@@ -294,10 +296,13 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
       .mapConcat(identity)
   }
 
-  def currentEventsByTag(tag: String, offset: Long): Source[EventEnvelope, NotUsed] =
-    Source.future(readJournalDao.maxJournalSequence()).flatMapConcat { maxOrderingInDb =>
-      eventsByTag(tag, offset, terminateAfterOffset = Some(maxOrderingInDb))
-    }
+  def currentEventsByTag(tag: String, offset: Long): Source[EventEnvelope, NotUsed] = {
+    Source
+      .futureSource(readJournalDao.maxJournalSequence().map { maxOrderingInDb =>
+        eventsByTag(tag, offset, terminateAfterOffset = Some(maxOrderingInDb))
+      })
+      .mapMaterializedValue(_ => NotUsed)
+  }
 
   /**
    * Query events that have a specific tag.
