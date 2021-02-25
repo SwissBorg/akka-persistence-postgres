@@ -21,7 +21,7 @@ You can read more about DAOs and schema variants in [the official documentation]
 To use `akka-persistence-postgres` in your SBT project, add the following to your `build.sbt`:
 
 ```scala
-libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "0.4.1"
+libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "0.5.0-M1"
 ```
 
 For a maven project add:
@@ -29,7 +29,7 @@ For a maven project add:
 <dependency>
     <groupId>com.swisborg</groupId>
     <artifactId>akka-persistence-postgres_2.12</artifactId>
-    <version>0.4.1</version>
+    <version>0.5.0-M1</version>
 </dependency>
 ```
 to your `pom.xml`.
@@ -130,14 +130,14 @@ We provide you with an optional artifact, `akka-persistence-postgres-migration` 
 ##### Add akka-persistence-migration to your project
 Add the following to your `build.sbt` 
 ```
-libraryDependencies += "com.swissborg" %% "akka-persistence-postgres-migration" % "0.4.1"
+libraryDependencies += "com.swissborg" %% "akka-persistence-postgres-migration" % "0.5.0-M1"
 ``` 
 For a maven project add: 
 ```xml
 <dependency>
     <groupId>com.swisborg</groupId>
     <artifactId>akka-persistence-postgres-migration_2.12</artifactId>
-    <version>0.4.1</version>
+    <version>0.5.0-M1</version>
 </dependency>
 ``` 
 to your `pom.xml`.
