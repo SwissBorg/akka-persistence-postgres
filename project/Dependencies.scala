@@ -2,21 +2,21 @@ import sbt._
 
 object Dependencies {
   val Scala212 = "2.12.13"
-  val Scala213 = "2.13.4"
+  val Scala213 = "2.13.5"
   val ScalaVersions = Seq(Scala212, Scala213)
 
-  val AkkaVersion = "2.6.12"
+  val AkkaVersion = "2.6.13"
   val AkkaBinaryVersion = "2.6"
 
   val SlickVersion = "3.3.3"
-  val ScalaTestVersion = "3.2.3"
-  val SlickPgVersion = "0.19.4"
+  val ScalaTestVersion = "3.2.5"
+  val SlickPgVersion = "0.19.5"
 
   val ScaffeineVersion = "4.0.2"
 
   val LogbackVersion = "1.2.3"
 
-  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.18")
+  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.19")
 
   val Libraries: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
@@ -38,5 +38,5 @@ object Dependencies {
     "ch.qos.logback" % "logback-classic" % LogbackVersion,
     "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion,
     "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
-    "org.flywaydb" % "flyway-core" % "7.5.3") ++ JdbcDrivers).map(_ % Test)
+    "org.flywaydb" % "flyway-core" % "7.5.4") ++ JdbcDrivers).map(_ % Test)
 }
