@@ -9,3 +9,5 @@ target
 .project
 .worksheet
 **.DS_Store
+.metals/
+.vscode/
