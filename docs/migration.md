@@ -1,11 +1,11 @@
 ---
 layout: page
-title: Migration
+title: Migrations
 permalink: /migration
 nav_order: 60
 ---
 
-# Migration
+# Migrations
 
 ## Migration from akka-persistence-jdbc 4.0.0
 It is possible to migrate existing journals from Akka Persistence JDBC 4.0.0. 
@@ -50,3 +50,15 @@ It's your choice whether you want to trigger migration manually or (recommended)
 
 ### Examples
 An example Flyway-based migration can be found in the demo app: https://github.com/mkubala/demo-akka-persistence-postgres/blob/master/src/main/scala/com/github/mkubala/FlywayMigrationExample.scala
+
+## Migration from akka-persistence-postgres 0.4.0 to 0.5.0
+New indices need to be created on each partition, to avoid locking production databases for too long, it should be done in 2 steps:
+1. manually create indices CONCURRENTLY,
+2. deploy new release with migration scripts.
+
+### Manually create indices CONCURRENTLY
+Execute DDL statements produced by the [sample migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migratrion-0.5.0/partitioned/1-add-indices-manually.sql), adapt top level variables to match your journal configuration before executing.
+
+### Deploy new release with migration scripts
+See [sample flyway migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migratrion-0.5.0/partitioned/2-add-indices-flyway.sql) and adapt top level variables to match your journal configuration.
+
