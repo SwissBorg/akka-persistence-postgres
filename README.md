@@ -21,13 +21,13 @@ You can read more about DAOs and schema variants in [the official documentation]
 To use `akka-persistence-postgres` in your SBT project, add the following to your `build.sbt`:
 
 ```scala
-libraryDependencies += "com.swisborg" %% "akka-persistence-postgres" % "0.5.0-M1"
+libraryDependencies += "com.swissborg" %% "akka-persistence-postgres" % "0.5.0-M1"
 ```
 
 For a maven project add:
 ```xml
 <dependency>
-    <groupId>com.swisborg</groupId>
+    <groupId>com.swissborg</groupId>
     <artifactId>akka-persistence-postgres_2.12</artifactId>
     <version>0.5.0-M1</version>
 </dependency>
