@@ -20,7 +20,7 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
     compiledJournalTable ++= xs.sortBy(_.sequenceNumber)
 
   private def selectAllJournalForPersistenceId(persistenceId: Rep[String]) =
-    journalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
+    journalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc) // why .desc ?
 
   def delete(persistenceId: String, toSequenceNr: Long): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
     journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
@@ -54,20 +54,28 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     journalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
+  // metadata lookup
   val highestSequenceNrForPersistenceId = Compiled(_highestSequenceNrForPersistenceId _)
 
+  // metadata lookup
   val highestMarkedSequenceNrForPersistenceId = Compiled(_highestMarkedSequenceNrForPersistenceId _)
 
+  // not used?
   private def _selectByPersistenceIdAndMaxSequenceNumber(persistenceId: Rep[String], maxSequenceNr: Rep[Long]) =
     selectAllJournalForPersistenceId(persistenceId).filter(_.sequenceNumber <= maxSequenceNr)
 
+  // not used?
   val selectByPersistenceIdAndMaxSequenceNumber = Compiled(_selectByPersistenceIdAndMaxSequenceNumber _)
 
+  // not used, remove or dedup with read journal
   private def _allPersistenceIdsDistinct: Query[Rep[String], String, Seq] =
     journalTable.map(_.persistenceId).distinct
 
+  // not used, remove or dedup with read journal
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
 
+  // for partition pruning, how to integrate min/max ordering?
+  // at least do where ordering >= metadata.min_ordering
   private def _messagesQuery(
       persistenceId: Rep[String],
       fromSequenceNr: Rep[Long],

@@ -111,7 +111,7 @@ class PostgresReadJournal(config: Config, configPath: String)(implicit val syste
       .repeat(0)
       .flatMapConcat(_ => delaySource.flatMapConcat(_ => currentPersistenceIds()))
       .statefulMapConcat[String] { () =>
-        var knownIds = Set.empty[String]
+        var knownIds = Set.empty[String] // get rid of that and instead use natural ordering of persistenceIds in metadata when sorted by id
         def next(id: String): Iterable[String] = {
           val xs = Set(id).diff(knownIds)
           knownIds += id

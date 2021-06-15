@@ -14,6 +14,7 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
 
   private val journalTable: TableQuery[JournalTable] = FlatJournalTable(readJournalConfig.journalTableConfiguration)
 
+  // from metadata table to avoid distinct call
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
 
@@ -23,6 +24,7 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
 
+  // for partition pruning, consider adding a filter on ordering >= metadata.min_ordering
   private def _messagesQuery(
       persistenceId: Rep[String],
       fromSequenceNr: Rep[Long],
@@ -54,6 +56,7 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
 
   val orderingByOrdering = Compiled(_journalSequenceQuery _)
 
+  // this could also be done using metadata table, to be evaluated
   val maxOrdering = Compiled {
     journalTable.map(_.ordering).max.getOrElse(0L)
   }
