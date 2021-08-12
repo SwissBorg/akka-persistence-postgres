@@ -14,7 +14,7 @@ object Dependencies {
 
   val ScaffeineVersion = "4.0.2"
 
-  val LogbackVersion = "1.2.3"
+  val LogbackVersion = "1.2.5"
 
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.20")
 
