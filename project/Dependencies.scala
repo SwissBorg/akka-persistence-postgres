@@ -10,7 +10,7 @@ object Dependencies {
 
   val SlickVersion = "3.3.3"
   val ScalaTestVersion = "3.2.9"
-  val SlickPgVersion = "0.19.5"
+  val SlickPgVersion = "0.19.7"
 
   val ScaffeineVersion = "4.1.0"
 
