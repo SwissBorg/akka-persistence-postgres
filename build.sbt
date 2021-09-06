@@ -22,7 +22,7 @@ lazy val migration = project
   .settings(
     name := "akka-persistence-postgres-migration",
     libraryDependencies ++= Dependencies.Migration,
-    parallelExecution in Test := false)
+    Test / parallelExecution := false)
   .dependsOn(core)
 
 TaskKey[Unit]("verifyCodeFmt") := {
