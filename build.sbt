@@ -13,6 +13,7 @@ lazy val core = project
   .settings(
     name := "akka-persistence-postgres",
     libraryDependencies ++= Dependencies.Libraries,
+    libraryDependencies += Dependencies.scaffeine(scalaVersion.value),
     mimaBinaryIssueFilters ++= Seq())
 
 lazy val migration = project

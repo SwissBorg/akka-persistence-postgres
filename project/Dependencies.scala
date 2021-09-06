@@ -12,11 +12,17 @@ object Dependencies {
   val ScalaTestVersion = "3.2.9"
   val SlickPgVersion = "0.19.5"
 
-  val ScaffeineVersion = "4.1.0"
-
   val LogbackVersion = "1.2.5"
 
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.23")
+
+  // Downgrade scaffeine version for Scala 2.12 because akka still depends on an old version of scala-java8-compat.
+  def scaffeine(scalaVersion: String): ModuleID =
+    "com.github.blemale" %% "scaffeine" % (CrossVersion.partialVersion(scalaVersion) match {
+      case Some((3, _))                    => "5.1.0"
+      case Some((2, major)) if major >= 13 => "5.1.0"
+      case _                               => "4.0.2"
+    })
 
   val Libraries: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
@@ -24,7 +30,6 @@ object Dependencies {
     "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion,
     "com.github.tminglei" %% "slick-pg" % SlickPgVersion,
     "com.github.tminglei" %% "slick-pg_circe-json" % SlickPgVersion,
-    "com.github.blemale" %% "scaffeine" % ScaffeineVersion,
     "ch.qos.logback" % "logback-classic" % LogbackVersion % Test,
     "com.typesafe.akka" %% "akka-slf4j" % AkkaVersion % Test,
     "com.typesafe.akka" %% "akka-persistence-tck" % AkkaVersion % Test,
