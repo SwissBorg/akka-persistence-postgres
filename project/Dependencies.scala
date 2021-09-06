@@ -19,8 +19,7 @@ object Dependencies {
   // Downgrade scaffeine version for Scala 2.12 because akka still depends on an old version of scala-java8-compat.
   def scaffeine(scalaVersion: String): ModuleID =
     "com.github.blemale" %% "scaffeine" % (CrossVersion.partialVersion(scalaVersion) match {
-      case Some((3, _))                    => "5.1.0"
-      case Some((2, major)) if major >= 13 => "5.1.0"
+      case Some((2, major)) if major >= 13 => "4.1.0"
       case _                               => "4.0.2"
     })
 
