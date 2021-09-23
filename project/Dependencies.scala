@@ -9,7 +9,7 @@ object Dependencies {
   val AkkaBinaryVersion = "2.6"
 
   val SlickVersion = "3.3.3"
-  val ScalaTestVersion = "3.2.9"
+  val ScalaTestVersion = "3.2.10"
   val SlickPgVersion = "0.19.7"
 
   val LogbackVersion = "1.2.6"
