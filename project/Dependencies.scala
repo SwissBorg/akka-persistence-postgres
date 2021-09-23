@@ -14,7 +14,7 @@ object Dependencies {
 
   val LogbackVersion = "1.2.6"
 
-  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.23")
+  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.2.24")
 
   // Downgrade scaffeine version for Scala 2.12 because akka still depends on an old version of scala-java8-compat.
   def scaffeine(scalaVersion: String): ModuleID =
