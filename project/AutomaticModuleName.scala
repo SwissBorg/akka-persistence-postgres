@@ -16,6 +16,5 @@ object AutomaticModuleName {
   private val AutomaticModuleName = "Automatic-Module-Name"
 
   def settings(name: String): Seq[Def.Setting[Task[Seq[PackageOption]]]] = Seq(
-    Compile / packageOptions += Package.ManifestAttributes(AutomaticModuleName -> name),
-    packageBin / packageOptions += Package.ManifestAttributes(AutomaticModuleName -> name))
+    Compile / packageBin / packageOptions += Package.ManifestAttributes(AutomaticModuleName -> name))
 }
