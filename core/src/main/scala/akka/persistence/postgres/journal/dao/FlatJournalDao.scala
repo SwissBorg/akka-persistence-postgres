@@ -9,8 +9,8 @@ import slick.jdbc.JdbcBackend._
 
 import scala.concurrent.ExecutionContext
 
-class FlatJournalDao(val db: Database, val journalConfig: JournalConfig, serialization: Serialization)(implicit
-    val ec: ExecutionContext,
+class FlatJournalDao(val db: Database, val journalConfig: JournalConfig, serialization: Serialization)(
+    implicit val ec: ExecutionContext,
     val mat: Materializer)
     extends BaseByteArrayJournalDao {
   val queries = new JournalQueries(FlatJournalTable(journalConfig.journalTableConfiguration))

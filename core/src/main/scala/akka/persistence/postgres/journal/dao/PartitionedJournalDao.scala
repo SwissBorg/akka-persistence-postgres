@@ -12,8 +12,8 @@ import slick.jdbc.JdbcBackend.Database
 import scala.collection.immutable.{ Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
 
-class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(implicit
-    ec: ExecutionContext,
+class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
+    implicit ec: ExecutionContext,
     mat: Materializer)
     extends FlatJournalDao(db, journalConfig, serialization) {
   override val queries = new JournalQueries(PartitionedJournalTable(journalConfig.journalTableConfiguration))
