@@ -57,8 +57,7 @@ New indices need to be created on each partition, to avoid locking production da
 2. deploy new release with migration scripts.
 
 ### Manually create indices CONCURRENTLY
-Execute DDL statements produced by the [sample migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migratrion-0.5.0/partitioned/1-add-indices-manually.sql), adapt top level variables to match your journal configuration before executing.
+Execute DDL statements produced by the [sample migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.5.0/partitioned/1-add-indices-manually.sql), adapt top level variables to match your journal configuration before executing.
 
 ### Deploy new release with migration scripts
-See [sample flyway migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migratrion-0.5.0/partitioned/2-add-indices-flyway.sql) and adapt top level variables to match your journal configuration.
-
+See [sample flyway migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.5.0/partitioned/2-add-indices-flyway.sql) and adapt top level variables to match your journal configuration.
