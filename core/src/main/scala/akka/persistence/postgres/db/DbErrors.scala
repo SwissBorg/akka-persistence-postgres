@@ -28,8 +28,8 @@ object DbErrors {
         DBIO.successful(())
     }
 
-  def withHandledIndexErrors(logger: Logger, indexDetails: String)(dbio: DBIOAction[_, NoStream, Effect])(implicit
-      ec: ExecutionContext): DBIOAction[Unit, NoStream, Effect] =
+  def withHandledIndexErrors(logger: Logger, indexDetails: String)(dbio: DBIOAction[_, NoStream, Effect])(
+      implicit ec: ExecutionContext): DBIOAction[Unit, NoStream, Effect] =
     dbio.asTry.flatMap {
       case Failure(ex: SQLException) if ex.getSQLState == PgUniqueViolation =>
         logger.debug(s"Index $indexDetails already exists")

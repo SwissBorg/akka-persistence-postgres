@@ -171,8 +171,8 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
    *                 (since the actor queries every second by default,
    *                 this is effectively the number of seconds after which events are assumed missing)
    */
-  def withJournalSequenceActor(db: JdbcBackend.Database, maxTries: Int)(f: ActorRef => Unit)(implicit
-      system: ActorSystem): Unit = {
+  def withJournalSequenceActor(db: JdbcBackend.Database, maxTries: Int)(f: ActorRef => Unit)(
+      implicit system: ActorSystem): Unit = {
     import system.dispatcher
     implicit val mat: Materializer = SystemMaterializer(system).materializer
     val readJournalDao =

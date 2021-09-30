@@ -18,8 +18,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journal")(implicit
-    system: ActorSystem,
+class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_journal")(
+    implicit system: ActorSystem,
     mat: Materializer)
     extends PgSlickSupport {
 

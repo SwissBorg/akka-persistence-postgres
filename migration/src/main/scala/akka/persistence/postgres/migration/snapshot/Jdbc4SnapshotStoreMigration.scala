@@ -18,8 +18,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scala.util.Failure
 
-class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(implicit
-    system: ActorSystem,
+class Jdbc4SnapshotStoreMigration(globalConfig: Config, tempTableName: String = "tmp_snapshot")(
+    implicit system: ActorSystem,
     mat: Materializer)
     extends PgSlickSupport {
 
