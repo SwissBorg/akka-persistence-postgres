@@ -13,7 +13,7 @@ BEGIN
           END IF;';
 
   EXECUTE sql;
-      
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

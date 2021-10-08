@@ -1,4 +1,3 @@
-
 DO $$
 DECLARE
   -- replace with appropriate values
@@ -9,11 +8,11 @@ DECLARE
   jpi_table TEXT;
   sql TEXT;
 BEGIN
-    jpi_table := schema || '.' || jpi_table_name;
-   	sql := 'CREATE TRIGGER trig_check_persistence_id_max_sequence_number 
-            BEFORE UPDATE ON ' || jpi_table || ' FOR EACH ROW 
-            EXECUTE PROCEDURE ' || schema || '.check_persistence_id_max_sequence_number()';  
+  jpi_table := schema || '.' || jpi_table_name;
+  sql := 'CREATE TRIGGER trig_check_persistence_id_max_sequence_number
+          BEFORE UPDATE ON ' || jpi_table || ' FOR EACH ROW
+          EXECUTE PROCEDURE ' || schema || '.check_persistence_id_max_sequence_number()';
 
-   	EXECUTE sql;
-END ;
+  EXECUTE sql;
+END;
 $$ LANGUAGE plpgsql;

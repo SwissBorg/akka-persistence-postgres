@@ -25,9 +25,9 @@ BEGIN
          'VALUES (NEW.' || j_persistence_id_column || ', NEW.' || j_sequence_number_column || ', NEW.' || j_ordering_column || ', NEW.' || j_ordering_column || ')' ||
          'ON CONFLICT (' || jpi_persistence_id_column || ') DO UPDATE' ||
          'SET ' ||
-         	jpi_max_sequence_number_column || ' = NEW.' || j_sequence_number_column || ',' ||
-        	jpi_max_ordering_column || ' = NEW' || j_ordering_column || ',' ||
-        	jpi_min_ordering_column || ' = LEAST(' || jpi_table || '.' || jpi_min_ordering_column || ', NEW.' || j_ordering_column || ')';
+            jpi_max_sequence_number_column || ' = NEW.' || j_sequence_number_column || ',' ||
+            jpi_max_ordering_column || ' = NEW' || j_ordering_column || ',' ||
+            jpi_min_ordering_column || ' = LEAST(' || jpi_table || '.' || jpi_min_ordering_column || ', NEW.' || j_ordering_column || ')';
 
   EXECUTE sql;
       
