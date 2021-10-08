@@ -17,7 +17,9 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
     implicit ec: ExecutionContext,
     mat: Materializer)
     extends FlatJournalDao(db, journalConfig, serialization) {
-  override val queries = new JournalQueries(NestedPartitionsJournalTable(journalConfig.journalTableConfiguration))
+  override val queries = new JournalQueries(
+    NestedPartitionsJournalTable(journalConfig.journalTableConfiguration),
+    JournalPersistenceIdsTable(journalConfig.journalPersistenceIdsTableConfiguration))
   private val journalTableCfg = journalConfig.journalTableConfiguration
   private val partitionSize = journalConfig.partitionsConfig.size
   private val partitionPrefix = journalConfig.partitionsConfig.prefix

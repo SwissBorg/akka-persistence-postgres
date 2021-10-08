@@ -49,6 +49,25 @@ class JournalTableConfiguration(config: Config) {
   override def toString: String = s"JournalTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
+class JournalPersistenceIdsTableColumnNames(config: Config) {
+  private val cfg = config.asConfig("tables.journalPersistenceIds.columnNames")
+  val persistenceId: String = cfg.as[String]("persistenceId", "persistence_id")
+  val maxSequenceNumber: String = cfg.as[String]("maxSequenceNumber", "max_sequence_number")
+  val maxOrdering: String = cfg.as[String]("maxOrdering", "max_ordering")
+  val minOrdering: String = cfg.as[String]("minOrdering", "min_ordering")
+
+  override def toString: String =
+    s"JournalPersistenceIdsTableColumnNames($persistenceId,$maxSequenceNumber,$maxOrdering,$minOrdering)"
+}
+
+class JournalPersistenceIdsTableConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.journalPersistenceIds")
+  val tableName: String = cfg.as[String]("tableName", "journal_persistence_ids")
+  val schemaName: Option[String] = cfg.as[String]("schemaName").trim
+  val columnNames: JournalPersistenceIdsTableColumnNames = new JournalPersistenceIdsTableColumnNames(config)
+  override def toString: String = s"JournalPersistenceIdsTableConfiguration($tableName,$schemaName,$columnNames)"
+}
+
 class SnapshotTableColumnNames(config: Config) {
   private val cfg = config.asConfig("tables.snapshot.columnNames")
   val persistenceId: String = cfg.as[String]("persistenceId", "persistence_id")
@@ -122,6 +141,7 @@ class TagsConfig(config: Config) {
 class JournalConfig(config: Config) {
   val partitionsConfig = new JournalPartitionsConfiguration(config)
   val journalTableConfiguration = new JournalTableConfiguration(config)
+  val journalPersistenceIdsTableConfiguration = new JournalPersistenceIdsTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
   val tagsConfig = new TagsConfig(config)

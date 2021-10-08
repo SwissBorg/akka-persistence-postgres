@@ -6,7 +6,7 @@
 package akka.persistence.postgres
 package journal.dao
 
-import akka.persistence.postgres.config.JournalTableConfiguration
+import akka.persistence.postgres.config.{ JournalPersistenceIdsTableConfiguration, JournalTableConfiguration }
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 import io.circe.Json
 
@@ -89,4 +89,30 @@ object PartitionedJournalTable {
 object NestedPartitionsJournalTable {
   def apply(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
     FlatJournalTable.apply(journalTableCfg)
+}
+
+class JournalPersistenceIdsTable(_tableTag: Tag, journalPersistenceIdsTableCfg: JournalPersistenceIdsTableConfiguration)
+    extends Table[JournalPersistenceIdsRow](
+      _tableTag,
+      _schemaName = journalPersistenceIdsTableCfg.schemaName,
+      _tableName = journalPersistenceIdsTableCfg.tableName) {
+  override def * = (
+    persistenceId,
+    maxSequenceNumber,
+    minOrdering,
+    maxOrdering) <> (JournalPersistenceIdsRow.tupled, JournalPersistenceIdsRow.unapply)
+
+  val persistenceId: Rep[String] =
+    column[String](journalPersistenceIdsTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
+  val maxSequenceNumber: Rep[Long] = column[Long](journalPersistenceIdsTableCfg.columnNames.maxSequenceNumber)
+  val minOrdering: Rep[Long] = column[Long](journalPersistenceIdsTableCfg.columnNames.minOrdering)
+  val maxOrdering: Rep[Long] = column[Long](journalPersistenceIdsTableCfg.columnNames.maxOrdering)
+
+  val pk = primaryKey(s"${tableName}_pk", persistenceId)
+}
+
+object JournalPersistenceIdsTable {
+  def apply(
+      journalPersistenceIdsTableCfg: JournalPersistenceIdsTableConfiguration): TableQuery[JournalPersistenceIdsTable] =
+    TableQuery(tag => new JournalPersistenceIdsTable(tag, journalPersistenceIdsTableCfg))
 }

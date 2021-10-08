@@ -16,4 +16,10 @@ package object postgres {
       message: Array[Byte],
       tags: List[Int],
       metadata: Json)
+
+  final case class JournalPersistenceIdsRow(
+      persistenceId: String,
+      maxSequenceNumber: Long,
+      minOrdering: Long,
+      maxOrdering: Long)
 }

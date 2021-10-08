@@ -13,7 +13,9 @@ class FlatJournalDao(val db: Database, val journalConfig: JournalConfig, seriali
     implicit val ec: ExecutionContext,
     val mat: Materializer)
     extends BaseByteArrayJournalDao {
-  val queries = new JournalQueries(FlatJournalTable(journalConfig.journalTableConfiguration))
+  val queries = new JournalQueries(
+    FlatJournalTable(journalConfig.journalTableConfiguration),
+    JournalPersistenceIdsTable(journalConfig.journalPersistenceIdsTableConfiguration))
   val tagDao = new SimpleTagDao(db, journalConfig.tagsTableConfiguration)
   val eventTagConverter = new CachedTagIdResolver(tagDao, journalConfig.tagsConfig)
   val serializer = new ByteArrayJournalSerializer(serialization, eventTagConverter)

@@ -17,7 +17,7 @@ class JournalQueriesTest extends BaseQueryTest {
 
   it should "create SQL query for highestSequenceNrForPersistenceId" in withJournalQueries { queries =>
     queries.highestSequenceNrForPersistenceId(
-      "aaa") shouldBeSQL """select max("sequence_number") from "journal" where "persistence_id" = ?"""
+      "aaa") shouldBeSQL """select "max_sequence_number" from "journal_persistence_ids" where "persistence_id" = ? limit 1"""
   }
 
   it should "create SQL query for selectByPersistenceIdAndMaxSequenceNumber" in withJournalQueries { queries =>
@@ -64,7 +64,10 @@ class JournalQueriesTest extends BaseQueryTest {
 
   private def withJournalQueries(f: JournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(new JournalQueries(FlatJournalTable.apply(journalConfig.journalTableConfiguration)))
+      f(
+        new JournalQueries(
+          FlatJournalTable.apply(journalConfig.journalTableConfiguration),
+          JournalPersistenceIdsTable.apply(journalConfig.journalPersistenceIdsTableConfiguration)))
     }
   }
 }

@@ -18,6 +18,7 @@ class JournalTablesTest extends TablesTestSpec {
   } {
     journalName should "be configured with a schema name" in {
       journalTable.baseTableRow.schemaName shouldBe journalTableConfiguration.schemaName
+
     }
 
     it should "be configured with a table name" in {
@@ -33,5 +34,28 @@ class JournalTablesTest extends TablesTestSpec {
         journalTableConfiguration.columnNames.sequenceNumber)
       journalTable.baseTableRow.tags.toString shouldBe colName(journalTableConfiguration.columnNames.tags)
     }
+  }
+
+  val journalPersistenceIdsTableConfiguration = journalConfig.journalPersistenceIdsTableConfiguration
+  val journalPersistenceIdsTable = JournalPersistenceIdsTable(journalPersistenceIdsTableConfiguration)
+
+  "JournalPersistenceIdsTable" should "be configured with a schema name" in {
+    journalPersistenceIdsTable.baseTableRow.schemaName shouldBe journalPersistenceIdsTableConfiguration.schemaName
+  }
+
+  it should "be configured with a table name" in {
+    journalPersistenceIdsTable.baseTableRow.tableName shouldBe journalPersistenceIdsTableConfiguration.tableName
+  }
+
+  it should "be configured with column names" in {
+    val colName = toColumnName(journalPersistenceIdsTableConfiguration.tableName)(_)
+    journalPersistenceIdsTable.baseTableRow.persistenceId.toString shouldBe colName(
+      journalPersistenceIdsTableConfiguration.columnNames.persistenceId)
+    journalPersistenceIdsTable.baseTableRow.maxSequenceNumber.toString shouldBe colName(
+      journalPersistenceIdsTableConfiguration.columnNames.maxSequenceNumber)
+    journalPersistenceIdsTable.baseTableRow.maxOrdering.toString shouldBe colName(
+      journalPersistenceIdsTableConfiguration.columnNames.maxOrdering)
+    journalPersistenceIdsTable.baseTableRow.minOrdering.toString shouldBe colName(
+      journalPersistenceIdsTableConfiguration.columnNames.minOrdering)
   }
 }

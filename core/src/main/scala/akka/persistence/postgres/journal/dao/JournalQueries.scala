@@ -10,7 +10,9 @@ import io.circe.Json
 import slick.lifted.TableQuery
 import slick.sql.FixedSqlAction
 
-class JournalQueries(journalTable: TableQuery[JournalTable]) {
+class JournalQueries(
+    journalTable: TableQuery[JournalTable],
+    journalPersistenceIdsTable: TableQuery[JournalPersistenceIdsTable]) {
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
@@ -48,8 +50,9 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
       .map(_.deleted)
       .update(true)
 
-  private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
-    journalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
+  private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]) = {
+    journalPersistenceIdsTable.filter(_.persistenceId === persistenceId).map(_.maxSequenceNumber).take(1)
+  }
 
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     journalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
