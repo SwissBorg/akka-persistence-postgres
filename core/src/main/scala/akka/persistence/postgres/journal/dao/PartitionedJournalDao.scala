@@ -1,7 +1,5 @@
 package akka.persistence.postgres.journal.dao
 
-import java.util.concurrent.atomic.AtomicReference
-
 import akka.persistence.postgres.JournalRow
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.DbErrors.{ withHandledIndexErrors, withHandledPartitionErrors }
@@ -9,6 +7,7 @@ import akka.serialization.Serialization
 import akka.stream.Materializer
 import slick.jdbc.JdbcBackend.Database
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.immutable.{ Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
 

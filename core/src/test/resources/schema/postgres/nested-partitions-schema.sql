@@ -66,8 +66,6 @@ CREATE TABLE IF NOT EXISTS public.snapshot
 );
 
 DROP TRIGGER IF EXISTS trig_update_journal_persistence_ids on public.journal;
-DROP TRIGGER IF EXISTS trig_check_persistence_id_max_sequence_number on public.journal_persistence_ids;
-DROP FUNCTION IF EXISTS public.check_persistence_id_max_sequence_number();
 DROP FUNCTION IF EXISTS public.update_journal_persistence_ids();
 DROP TABLE IF EXISTS public.journal_persistence_ids;
 
@@ -79,43 +77,24 @@ CREATE TABLE public.journal_persistence_ids(
   PRIMARY KEY (persistence_id)
 );
 
-
 CREATE OR REPLACE FUNCTION public.update_journal_persistence_ids() RETURNS TRIGGER AS
 $$
 DECLARE
 BEGIN
-  INSERT into public.journal_persistence_ids (persistence_id, max_sequence_number, min_ordering, max_ordering)
+  INSERT into public.journal_persistence_ids (persistence_id, max_sequence_number, max_ordering, min_ordering)
   VALUES (NEW.persistence_id, NEW.sequence_number, NEW.ordering, NEW.ordering)
   ON CONFLICT (persistence_id) DO UPDATE
-  SET max_sequence_number = NEW.sequence_number, max_ordering = NEW.ordering, min_ordering = LEAST(public.journal_persistence_ids.min_ordering, NEW.ordering);
+  SET
+    max_sequence_number = GREATEST(public.journal_persistence_ids.max_sequence_number, NEW.sequence_number),
+    max_ordering = GREATEST(public.journal_persistence_ids.max_ordering, NEW.ordering),
+    min_ordering = LEAST(public.journal_persistence_ids.min_ordering, NEW.ordering);
 
   RETURN NEW;
 END;
 $$
 LANGUAGE plpgsql;
-
 
 CREATE TRIGGER trig_update_journal_persistence_ids
   AFTER INSERT ON public.journal
   FOR EACH ROW
   EXECUTE PROCEDURE public.update_journal_persistence_ids();
-
-
-CREATE OR REPLACE FUNCTION public.check_persistence_id_max_sequence_number() RETURNS TRIGGER AS
-$$
-DECLARE
-BEGIN
-  IF NEW.max_sequence_number <= OLD.max_sequence_number THEN
-    RAISE EXCEPTION 'New max_sequence_number not higher than previous value';
-  END IF;
-
-  RETURN NEW;
-END;
-$$
-LANGUAGE plpgsql;
-
-
-CREATE TRIGGER trig_check_persistence_id_max_sequence_number
-  BEFORE UPDATE ON public.journal_persistence_ids
-  FOR EACH ROW
-  EXECUTE PROCEDURE public.check_persistence_id_max_sequence_number();
