@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS public.snapshot
     PRIMARY KEY (persistence_id, sequence_number)
 );
 
-DROP TRIGGER IF EXISTS trig_update_journal_persistence_ids on public.journal;
+DROP TRIGGER IF EXISTS trig_update_journal_persistence_ids ON public.journal;
 DROP FUNCTION IF EXISTS public.update_journal_persistence_ids();
 DROP TABLE IF EXISTS public.journal_persistence_ids;
 
@@ -81,7 +81,7 @@ CREATE OR REPLACE FUNCTION public.update_journal_persistence_ids() RETURNS TRIGG
 $$
 DECLARE
 BEGIN
-  INSERT into public.journal_persistence_ids (persistence_id, max_sequence_number, max_ordering, min_ordering)
+  INSERT INTO public.journal_persistence_ids (persistence_id, max_sequence_number, max_ordering, min_ordering)
   VALUES (NEW.persistence_id, NEW.sequence_number, NEW.ordering, NEW.ordering)
   ON CONFLICT (persistence_id) DO UPDATE
   SET
