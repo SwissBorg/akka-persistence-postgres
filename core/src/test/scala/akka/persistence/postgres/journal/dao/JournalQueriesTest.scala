@@ -6,10 +6,6 @@ import io.circe.{ Json, JsonObject }
 
 class JournalQueriesTest extends BaseQueryTest {
 
-  it should "produce SQL query for distinct persistenceID" in withJournalQueries { queries =>
-    queries.allPersistenceIdsDistinct shouldBeSQL """select distinct "persistence_id" from "journal""""
-  }
-
   it should "create SQL query for highestMarkedSequenceNrForPersistenceId" in withJournalQueries { queries =>
     queries.highestMarkedSequenceNrForPersistenceId(
       "aaa") shouldBeSQL """select max("sequence_number") from "journal" where ("deleted" = true) and ("persistence_id" = ?)"""
@@ -18,12 +14,6 @@ class JournalQueriesTest extends BaseQueryTest {
   it should "create SQL query for highestSequenceNrForPersistenceId" in withJournalQueries { queries =>
     queries.highestSequenceNrForPersistenceId(
       "aaa") shouldBeSQL """select "max_sequence_number" from "journal_persistence_ids" where "persistence_id" = ? limit 1"""
-  }
-
-  it should "create SQL query for selectByPersistenceIdAndMaxSequenceNumber" in withJournalQueries { queries =>
-    queries.selectByPersistenceIdAndMaxSequenceNumber(
-      "aaa",
-      11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ("persistence_id" = ?) and ("sequence_number" <= ?) order by "sequence_number" desc"""
   }
 
   it should "create SQL query for messagesQuery" in withJournalQueries { queries =>

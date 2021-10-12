@@ -5,7 +5,7 @@ import akka.persistence.postgres.util.BaseQueryTest
 class ReadJournalQueriesTest extends BaseQueryTest {
 
   it should "create SQL query for allPersistenceIdsDistinct" in withReadJournalQueries { queries =>
-    queries.allPersistenceIdsDistinct(23L) shouldBeSQL """select distinct "persistence_id" from "journal" limit ?"""
+    queries.allPersistenceIds(23L) shouldBeSQL """select "persistence_id" from "journal_persistence_ids" limit ?"""
   }
 
   it should "create SQL query for messagesQuery" in withReadJournalQueries { queries =>

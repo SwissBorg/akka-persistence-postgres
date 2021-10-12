@@ -69,6 +69,7 @@ class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_j
       for {
         _ <- journalSchema.createTable
         _ <- journalSchema.createTagsTable
+        _ <- journalSchema.createJournalPersistenceIdsTable
       } yield ()
     }
 
@@ -106,6 +107,7 @@ class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_j
 
     val fut = for {
       _ <- db.run(createTables.transactionally)
+      _ <- db.run(journalSchema.createTriggers.transactionally)
       cnt <- dml.runReduce(_ + _)
       _ <- db.run(journalSchema.createSequence.transactionally)
       _ <- db.run(journalSchema.createIndexes.transactionally)

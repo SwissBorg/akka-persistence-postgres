@@ -21,9 +21,6 @@ class JournalQueries(
   def writeJournalRows(xs: Seq[JournalRow]): FixedSqlAction[Option[Int], NoStream, slick.dbio.Effect.Write] =
     compiledJournalTable ++= xs.sortBy(_.sequenceNumber)
 
-  private def selectAllJournalForPersistenceId(persistenceId: Rep[String]) =
-    journalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
-
   def delete(persistenceId: String, toSequenceNr: Long): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
     journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
   }
@@ -60,16 +57,6 @@ class JournalQueries(
   val highestSequenceNrForPersistenceId = Compiled(_highestSequenceNrForPersistenceId _)
 
   val highestMarkedSequenceNrForPersistenceId = Compiled(_highestMarkedSequenceNrForPersistenceId _)
-
-  private def _selectByPersistenceIdAndMaxSequenceNumber(persistenceId: Rep[String], maxSequenceNr: Rep[Long]) =
-    selectAllJournalForPersistenceId(persistenceId).filter(_.sequenceNumber <= maxSequenceNr)
-
-  val selectByPersistenceIdAndMaxSequenceNumber = Compiled(_selectByPersistenceIdAndMaxSequenceNumber _)
-
-  private def _allPersistenceIdsDistinct: Query[Rep[String], String, Seq] =
-    journalTable.map(_.persistenceId).distinct
-
-  val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
 
   private def _messagesQuery(
       persistenceId: Rep[String],

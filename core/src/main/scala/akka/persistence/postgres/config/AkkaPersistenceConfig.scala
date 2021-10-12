@@ -176,6 +176,7 @@ case class JournalSequenceRetrievalConfig(
 
 class ReadJournalConfig(config: Config) {
   val journalTableConfiguration = new JournalTableConfiguration(config)
+  val journalPersistenceIdsTableConfiguration = new JournalPersistenceIdsTableConfiguration(config)
   val journalSequenceRetrievalConfiguration = JournalSequenceRetrievalConfig(config)
   val pluginConfig = new ReadJournalPluginConfig(config)
   val tagsConfig = new TagsConfig(config)

@@ -24,6 +24,23 @@ private[journal] trait JournalSchema {
   def getTable: TableQuery[TempJournalTable]
   def createTable: DBIOAction[Unit, NoStream, Effect.Write]
 
+  def createJournalPersistenceIdsTable: DBIOAction[Unit, NoStream, Effect.Write] = {
+    val journalPersistenceIdsTableCfg = journalCfg.journalPersistenceIdsTableConfiguration
+    val fullTableName =
+      s"${journalPersistenceIdsTableCfg.schemaName.getOrElse("public")}.${journalPersistenceIdsTableCfg.tableName}"
+
+    import journalPersistenceIdsTableCfg.columnNames._
+    for {
+      _ <- sqlu"""CREATE TABLE #$fullTableName (
+            #$persistenceId TEXT NOT NULL,
+            #$maxSequenceNumber BIGINT       NOT NULL,
+            #$maxOrdering       BIGINT       NOT NULL,
+            #$minOrdering       BIGINT       NOT NULL,
+            PRIMARY KEY (#$persistenceId)
+          )"""
+    } yield ()
+  }
+
   def createTagsTable: DBIOAction[Unit, NoStream, Effect.Write] = {
     val tagsTableConfig = journalCfg.tagsTableConfiguration
     import tagsTableConfig.columnNames._
@@ -71,6 +88,50 @@ private[journal] trait JournalSchema {
       _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_#${tags}_idx RENAME TO #${journalTableCfg.tableName}_#${tags}_idx"""
       _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_pkey RENAME TO #${journalTableCfg.tableName}_pkey"""
     } yield ()
+
+  def createTriggers: DBIOAction[Unit, NoStream, Effect.Write] = {
+    val journalTableCfg = journalCfg.journalTableConfiguration
+    val journalPersistenceIdsTableCfg = journalCfg.journalPersistenceIdsTableConfiguration
+    val schema = journalPersistenceIdsTableCfg.schemaName.getOrElse("public")
+    val fullTableName = s"$schema.${journalPersistenceIdsTableCfg.tableName}"
+    val journalFullTableName = s"$schema.${journalTableCfg.tableName}"
+
+    import journalPersistenceIdsTableCfg.columnNames._
+    import journalTableCfg.columnNames.{ persistenceId => jPersistenceId, _ }
+
+    for {
+      _ <- sqlu"""
+            CREATE OR REPLACE FUNCTION #$schema.update_journal_persistence_ids() RETURNS TRIGGER AS $$$$
+            DECLARE
+            BEGIN
+              INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
+              VALUES (NEW.#$jPersistenceId, NEW.#$sequenceNumber, NEW.#$ordering, NEW.#$ordering)
+              ON CONFLICT (#$persistenceId) DO UPDATE
+              SET
+                #$maxSequenceNumber = GREATEST(#$fullTableName.#$maxSequenceNumber, NEW.#$sequenceNumber),
+                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering),
+                #$minOrdering = LEAST(#$fullTableName.#$minOrdering, NEW.#$ordering);
+            
+              RETURN NEW;
+            END;
+            $$$$ LANGUAGE plpgsql;
+           """
+
+      _ <- sqlu"""
+            CREATE TRIGGER trig_update_journal_persistence_ids
+            AFTER INSERT ON #$journalFullTableName
+            FOR EACH ROW
+            EXECUTE PROCEDURE #$schema.update_journal_persistence_ids();
+           """
+
+      _ <- sqlu"""
+            CREATE TRIGGER trig_update_journal_persistence_ids
+            AFTER INSERT ON #$fullTmpTableName
+            FOR EACH ROW
+            EXECUTE PROCEDURE #$schema.update_journal_persistence_ids();
+           """
+    } yield ()
+  }
 }
 
 private[journal] object JournalSchema {
