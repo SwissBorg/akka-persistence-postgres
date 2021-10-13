@@ -5,7 +5,7 @@ import akka.persistence.postgres.util.BaseQueryTest
 class ReadJournalQueriesTest extends BaseQueryTest {
 
   it should "create SQL query for allPersistenceIdsDistinct" in withReadJournalQueries { queries =>
-    queries.allPersistenceIds(23L) shouldBeSQL """select "persistence_id" from "journal_persistence_ids" limit ?"""
+    queries.allPersistenceIdsDistinct(23L) shouldBeSQL """select distinct "persistence_id" from "journal" limit ?"""
   }
 
   it should "create SQL query for messagesQuery" in withReadJournalQueries { queries =>
@@ -30,7 +30,7 @@ class ReadJournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for maxJournalSequenceQuery" in withReadJournalQueries { queries =>
-    queries.maxOrdering shouldBeSQL """select max("max_ordering") from "journal_persistence_ids""""
+    queries.maxOrdering shouldBeSQL """select max("ordering") from "journal""""
   }
 
   private def withReadJournalQueries(f: ReadJournalQueries => Unit): Unit = {

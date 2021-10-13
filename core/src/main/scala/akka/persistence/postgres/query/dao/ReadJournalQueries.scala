@@ -13,21 +13,11 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
   private val journalTable: TableQuery[JournalTable] = FlatJournalTable(readJournalConfig.journalTableConfiguration)
-  private val journalPersistenceIdsTable: TableQuery[JournalPersistenceIdsTable] = JournalPersistenceIdsTable(
-    readJournalConfig.journalPersistenceIdsTableConfiguration)
 
-  private def _allPersistenceIds(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
-    if (readJournalConfig.includeDeleted)
-      journalPersistenceIdsTable.map(_.persistenceId).take(max)
-    else
-      journalPersistenceIdsTable
-        .joinLeft(journalTable.filter(_.deleted === false))
-        .on(_.persistenceId === _.persistenceId)
-        .filter(_._2.isDefined)
-        .map(_._1.persistenceId)
-        .take(max)
+  private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
+    baseTableQuery().map(_.persistenceId).distinct.take(max)
 
-  val allPersistenceIds = Compiled(_allPersistenceIds _)
+  val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
 
   private def baseTableQuery() =
     if (readJournalConfig.includeDeleted) journalTable
@@ -65,6 +55,6 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   val orderingByOrdering = Compiled(_journalSequenceQuery _)
 
   val maxOrdering = Compiled {
-    journalPersistenceIdsTable.map(_.maxOrdering).max.getOrElse(0L)
+    journalTable.map(_.ordering).max.getOrElse(0L)
   }
 }
