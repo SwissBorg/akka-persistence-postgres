@@ -13,7 +13,8 @@ class JournalQueriesTest extends BaseQueryTest {
 
   it should "create SQL query for highestSequenceNrForPersistenceId" in withJournalQueries { queries =>
     queries.highestSequenceNrForPersistenceId(
-      "aaa") shouldBeSQL """select "max_sequence_number" from "journal_persistence_ids" where "persistence_id" = ? limit 1"""
+      "aaa") shouldBeSQL """select max("sequence_number") from "journal" where "persistence_id" = ?"""
+  // queries.highestSequenceNrForPersistenceId("aaa") shouldBeSQL """select "max_sequence_number" from "journal_persistence_ids" where "persistence_id" = ? limit 1"""
   }
 
   it should "create SQL query for messagesQuery" in withJournalQueries { queries =>

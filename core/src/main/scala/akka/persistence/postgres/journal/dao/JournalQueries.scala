@@ -48,7 +48,8 @@ class JournalQueries(
       .update(true)
 
   private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]) = {
-    journalPersistenceIdsTable.filter(_.persistenceId === persistenceId).map(_.maxSequenceNumber).take(1)
+    journalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
+    // journalPersistenceIdsTable.filter(_.persistenceId === persistenceId).map(_.maxSequenceNumber).take(1)
   }
 
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
