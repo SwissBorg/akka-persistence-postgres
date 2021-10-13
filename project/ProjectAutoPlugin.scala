@@ -36,7 +36,8 @@ object ProjectAutoPlugin extends AutoPlugin {
       "-Xlog-reflective-calls",
       "-language:higherKinds",
       "-language:implicitConversions",
-      "-Ydelambdafy:method"),
+      "-Ydelambdafy:method",
+      "-target:jvm-11"),
     Compile / doc / scalacOptions := scalacOptions.value ++ Seq(
       "-doc-title",
       "Akka Persistence Postgres",
