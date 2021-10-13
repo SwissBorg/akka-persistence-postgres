@@ -65,6 +65,6 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   val orderingByOrdering = Compiled(_journalSequenceQuery _)
 
   val maxOrdering = Compiled {
-    journalTable.map(_.ordering).max.getOrElse(0L)
+    journalPersistenceIdsTable.map(_.maxOrdering).max.getOrElse(0L)
   }
 }

@@ -30,7 +30,7 @@ class ReadJournalQueriesTest extends BaseQueryTest {
   }
 
   it should "create SQL query for maxJournalSequenceQuery" in withReadJournalQueries { queries =>
-    queries.maxOrdering shouldBeSQL """select max("ordering") from "journal""""
+    queries.maxOrdering shouldBeSQL """select max("max_ordering") from "journal_persistence_ids""""
   }
 
   private def withReadJournalQueries(f: ReadJournalQueries => Unit): Unit = {
