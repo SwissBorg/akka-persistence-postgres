@@ -39,8 +39,7 @@ object ProjectAutoPlugin extends AutoPlugin {
       "-unchecked",
       "-Xlog-reflective-calls",
       "-language:higherKinds",
-      "-language:implicitConversions",
-      "-target:jvm-1.8"),
+      "-language:implicitConversions"),
     scalacOptions += {
       if (scalaVersion.value.startsWith("2.13")) ""
       else "-Ypartial-unification"
