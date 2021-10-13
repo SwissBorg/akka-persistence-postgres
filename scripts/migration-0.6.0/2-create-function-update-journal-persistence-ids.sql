@@ -26,8 +26,8 @@ BEGIN
   jpi_table := schema || '.' || jpi_table_name;
   cols := jpi_persistence_id_column || ', ' || jpi_max_sequence_number_column || ', ' || jpi_max_ordering_column || ', ' || jpi_min_ordering_column;
   vals := '($1).' || j_persistence_id_column || ', ($1).' || j_sequence_number_column || ', ($1).' || j_ordering_column || ',($1).' || j_ordering_column;
-  upds := jpi_max_sequence_number_column || ' = GREATEST(' || jpi_table || '.' || jpi_max_sequence_number_column || ', ($1).' || j_sequence_number_column || '), ' ||
-          jpi_max_ordering_column || ' = GREATEST(' || jpi_table || '.' || jpi_max_ordering_column || ', ($1).' || j_ordering_column || '), ' ||
+  upds := jpi_max_sequence_number_column || ' = ($1).' || j_sequence_number_column || ', ' ||
+          jpi_max_ordering_column || ' = ($1).' || j_ordering_column || ', ' ||
           jpi_min_ordering_column || ' = LEAST(' || jpi_table || '.' || jpi_min_ordering_column || ', ($1).' || j_ordering_column || ')';
 
   sql := 'INSERT INTO ' || jpi_table || ' (' || cols || ') VALUES (' || vals || ') ' ||

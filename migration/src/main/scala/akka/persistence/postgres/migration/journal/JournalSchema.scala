@@ -108,8 +108,8 @@ private[journal] trait JournalSchema {
               VALUES (NEW.#$jPersistenceId, NEW.#$sequenceNumber, NEW.#$ordering, NEW.#$ordering)
               ON CONFLICT (#$persistenceId) DO UPDATE
               SET
-                #$maxSequenceNumber = GREATEST(#$fullTableName.#$maxSequenceNumber, NEW.#$sequenceNumber),
-                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering),
+                #$maxSequenceNumber = NEW.#$sequenceNumber,
+                #$maxOrdering = NEW.#$ordering,
                 #$minOrdering = LEAST(#$fullTableName.#$minOrdering, NEW.#$ordering);
             
               RETURN NEW;
@@ -129,6 +129,26 @@ private[journal] trait JournalSchema {
             AFTER INSERT ON #$fullTmpTableName
             FOR EACH ROW
             EXECUTE PROCEDURE #$schema.update_journal_persistence_ids();
+           """
+
+      _ <- sqlu"""
+            CREATE OR REPLACE FUNCTION #$schema.check_persistence_id_max_sequence_number() RETURNS TRIGGER AS $$$$
+            DECLARE
+            BEGIN
+              IF NEW.#$maxSequenceNumber <= OLD.#$maxSequenceNumber THEN
+                RAISE EXCEPTION 'New max_sequence_number not higher than previous value';
+              END IF;
+              
+              RETURN NEW;
+            END;
+            $$$$ LANGUAGE plpgsql;
+           """
+
+      _ <- sqlu"""
+            CREATE TRIGGER trig_check_persistence_id_max_sequence_number
+            BEFORE UPDATE ON #$fullTableName
+            FOR EACH ROW
+            EXECUTE PROCEDURE #$schema.check_persistence_id_max_sequence_number();
            """
     } yield ()
   }

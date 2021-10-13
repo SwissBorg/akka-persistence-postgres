@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS public.snapshot
     PRIMARY KEY (persistence_id, sequence_number)
 );
 
+DROP TRIGGER IF EXISTS trig_check_persistence_id_max_sequence_number ON public.journal_persistence_ids;
+DROP FUNCTION IF EXISTS public.check_persistence_id_max_sequence_number();
 DROP TRIGGER IF EXISTS trig_update_journal_persistence_ids ON public.journal;
 DROP FUNCTION IF EXISTS public.update_journal_persistence_ids();
 DROP TABLE IF EXISTS public.journal_persistence_ids;
@@ -85,8 +87,8 @@ BEGIN
   VALUES (NEW.persistence_id, NEW.sequence_number, NEW.ordering, NEW.ordering)
   ON CONFLICT (persistence_id) DO UPDATE
   SET
-    max_sequence_number = GREATEST(public.journal_persistence_ids.max_sequence_number, NEW.sequence_number),
-    max_ordering = GREATEST(public.journal_persistence_ids.max_ordering, NEW.ordering),
+    max_sequence_number = NEW.sequence_number,
+    max_ordering = NEW.ordering,
     min_ordering = LEAST(public.journal_persistence_ids.min_ordering, NEW.ordering);
 
   RETURN NEW;
@@ -98,3 +100,22 @@ CREATE TRIGGER trig_update_journal_persistence_ids
   AFTER INSERT ON public.journal
   FOR EACH ROW
   EXECUTE PROCEDURE public.update_journal_persistence_ids();
+
+CREATE OR REPLACE FUNCTION public.check_persistence_id_max_sequence_number() RETURNS TRIGGER AS
+$$
+DECLARE
+BEGIN
+  IF NEW.max_sequence_number <= OLD.max_sequence_number THEN
+    RAISE EXCEPTION 'New max_sequence_number not higher than previous value';
+  END IF;
+
+  RETURN NEW;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trig_check_persistence_id_max_sequence_number
+  BEFORE UPDATE ON public.journal_persistence_ids
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.check_persistence_id_max_sequence_number();
