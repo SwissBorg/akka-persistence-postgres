@@ -31,7 +31,7 @@ abstract class StoreOnlySerializableMessagesTest(schemaType: SchemaType)
 
     override val receiveCommand: Receive = LoggingReceive { case msg =>
       persist(msg) { _ =>
-        sender ! akka.actor.Status.Success("")
+        sender() ! akka.actor.Status.Success("")
       }
     }
 

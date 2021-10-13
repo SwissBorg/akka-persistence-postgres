@@ -14,10 +14,6 @@ object ProjectAutoPlugin extends AutoPlugin {
       organizationName := "SwissBorg",
       organizationHomepage := None,
       homepage := Some(url("https://github.com/SwissBorg/akka-persistence-postgres")),
-      scmInfo := Some(
-        ScmInfo(
-          url("https://github.com/SwissBorg/akka-persistence-postgres"),
-          "git@github.com:SwissBorg/akka-persistence-postgres.git")),
       licenses := Seq("Apache-2.0" -> url("https://opensource.org/licenses/Apache-2.0")),
       description := "A plugin for storing events in a PostgreSQL journal",
       startYear := Some(2020),
@@ -39,12 +35,8 @@ object ProjectAutoPlugin extends AutoPlugin {
       "-unchecked",
       "-Xlog-reflective-calls",
       "-language:higherKinds",
-      "-language:implicitConversions"),
-    scalacOptions += {
-      if (scalaVersion.value.startsWith("2.13")) ""
-      else "-Ypartial-unification"
-    },
-    scalacOptions += "-Ydelambdafy:method",
+      "-language:implicitConversions",
+      "-Ydelambdafy:method"),
     Compile / doc / scalacOptions := scalacOptions.value ++ Seq(
       "-doc-title",
       "Akka Persistence Postgres",
@@ -59,6 +51,10 @@ object ProjectAutoPlugin extends AutoPlugin {
         s"https://github.com/SwissBorg/akka-persistence-postgres/tree/${branch}€{FILE_PATH_EXT}#L€{FILE_LINE}"
       }),
     // show full stack traces and test case durations
-    Test / testOptions += Tests.Argument("-oDF"))
+    Test / testOptions += Tests.Argument("-oDF"),
+    scmInfo := Some(
+      ScmInfo(
+        url("https://github.com/SwissBorg/akka-persistence-postgres"),
+        "git@github.com:SwissBorg/akka-persistence-postgres.git")))
 
 }
