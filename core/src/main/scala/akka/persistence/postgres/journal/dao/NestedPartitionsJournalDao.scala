@@ -29,7 +29,7 @@ class NestedPartitionsJournalDao(db: Database, journalConfig: JournalConfig, ser
 
   def attachJournalPartition(xs: Seq[JournalRow]): Future[Unit] = {
     val persistenceIdToMaxSequenceNumber =
-      xs.groupBy(_.persistenceId).mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
+      xs.groupBy(_.persistenceId).view.mapValues(_.map(_.sequenceNumber)).mapValues(sq => (sq.min, sq.max))
     val databaseOperations = persistenceIdToMaxSequenceNumber.toList.map { case (persistenceId, (minSeqNr, maxSeqNr)) =>
       val requiredPartitions = minSeqNr / partitionSize to maxSeqNr / partitionSize
       val existingPartitions = createdPartitions.getOrDefault(persistenceId, Nil)

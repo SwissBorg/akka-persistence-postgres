@@ -173,7 +173,7 @@ abstract class CurrentEventsByTagTest(val schemaType: SchemaType)
     val batch1Size = 200
     val batch2Size = 10000
 
-    import scala.collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
 
     it should "complete without any gaps in case events are being persisted when the query is executed" in withActorSystem(
       withMaxBufferSize(1000)) { implicit system =>
