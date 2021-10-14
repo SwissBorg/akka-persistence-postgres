@@ -6,7 +6,6 @@
 package akka.persistence.postgres.query
 
 import java.util.concurrent.atomic.AtomicLong
-
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.pattern.ask
 import akka.persistence.postgres.config.JournalSequenceRetrievalConfig
@@ -27,6 +26,7 @@ import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.Random
 
 abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   private val log = LoggerFactory.getLogger(classOf[JournalSequenceActorTest])
@@ -76,7 +76,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
               JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
             }
             .grouped(10000)
-            .mapAsync(4) { rows =>
+            .mapAsync(1) { rows =>
               db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
@@ -112,7 +112,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
               JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
             }
             .grouped(10000)
-            .mapAsync(4) { rows =>
+            .mapAsync(1) { rows =>
               db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
@@ -145,7 +145,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
               JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
             }
             .grouped(10000)
-            .mapAsync(4) { rows =>
+            .mapAsync(1) { rows =>
               db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
