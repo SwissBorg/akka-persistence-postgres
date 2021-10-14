@@ -95,7 +95,7 @@ abstract class JournalDaoStreamMessagesMemoryTest(val schemaType: SchemaType)
 
         val lastInsert =
           Source
-            .fromIterator(() => (1 to numberOfInsertBatches).toIterator)
+            .fromIterator(() => (1 to numberOfInsertBatches).iterator)
             .mapAsync(1) { i =>
               val end = i * eventsPerBatch
               val start = end - (eventsPerBatch - 1)
