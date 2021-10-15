@@ -4,7 +4,7 @@ object Dependencies {
   val Scala213 = "2.13.6"
   val ScalaVersions = Seq(Scala213)
 
-  val AkkaVersion = "2.6.16"
+  val AkkaVersion = "2.6.17"
   val AkkaBinaryVersion = "2.6"
   val FlywayVersion = "8.0.1"
   val ScaffeineVersion = "5.1.1"
