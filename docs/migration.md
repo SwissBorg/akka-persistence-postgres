@@ -22,14 +22,14 @@ We provide you with an optional artifact, `akka-persistence-postgres-migration` 
 #### Add akka-persistence-migration to your project
 Add the following to your `build.sbt` 
 ```
-0-M1libraryDependencies += "com.swissborg" %% "akka-persistence-postgres-migration" % "0.5.0-M1"
+libraryDependencies += "com.swissborg" %% "akka-persistence-postgres-migration" % "0.5.0-M4"
 ``` 
 For a maven project add: 
 ```xml
 <dependency>
     <groupId>com.swisborg</groupId>
-    <artifactId>akka-persistence-postgres-migration_2.12</artifactId>
-    <version>0.5.0-M1</version>
+    <artifactId>akka-persistence-postgres-migration_2.13</artifactId>
+    <version>0.5.0-M4</version>
 </dependency>
 ``` 
 to your `pom.xml`.
