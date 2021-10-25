@@ -1,3 +1,4 @@
+-- Depending on your use case consider partitioning this table.
 DO $$
 DECLARE
   -- replace with appropriate values
