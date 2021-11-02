@@ -61,13 +61,13 @@ trait PartitionedJournalSpecTestCases {
 
   "A journal" must {
     "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
-      //given
+      // given
       val perId = "perId-1"
       val numOfSenders = 5
       val batchSize = 1000
       val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
 
-      //when
+      // when
       Future
         .sequence {
           senders.map { case (sender, idx) =>
@@ -78,7 +78,7 @@ trait PartitionedJournalSpecTestCases {
         }
         .futureValue(Timeout(Span(1, Minute)))
 
-      //then
+      // then
       val journalOps = new ScalaPostgresReadJournalOperations(system)
       journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
         tp.request(Long.MaxValue)

@@ -112,17 +112,17 @@ abstract class JournalPartitioningSpec(schemaType: SchemaType)
   "A journal" must {
     "not give up on creating many partitions when the 1st one already exists" in withFreshSchemaAndPlugin {
       (journal, writerUuid) =>
-        //given
+        // given
         val numOfEvents = journalConfig.daoConfig.batchSize * 4
 
         val perIds: List[String] = (0 to 10).map(n => s"perId-$n").toList
 
-        //when
+        // when
         Future.sequence {
           perIds.map(writeBatchOfMessages)
         }.futureValue
 
-        //then
+        // then
         perIds.foreach(assertRecovery)
 
         def writeBatchOfMessages(perId: String): Future[Unit] = {
@@ -158,17 +158,17 @@ class NestedPartitionsJournalPartitioningSpec extends JournalPartitioningSpec(Ne
   "A journal" must {
     "allow to store concurrently events for different persistenceId" in withFreshSchemaAndPlugin {
       (journal, writerUuid) =>
-        //given
+        // given
         val pId1 = "persist1"
         val pId2 = "persist2"
         val sender1 = TestProbe()
         val sender2 = TestProbe()
         val receiverProbe = TestProbe()
-        //when
+        // when
         writeMessages(1, 1000, pId1, sender1.ref, writerUuid)(journal)
         writeMessages(1, 1000, pId2, sender2.ref, writerUuid)(journal)
 
-        //then
+        // then
         journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId1, receiverProbe.ref)
         (1 to 1000).foreach { i =>
           receiverProbe.expectMsg(replayedPostgresMessage(i, pId1, writerUuid))
@@ -183,17 +183,17 @@ class NestedPartitionsJournalPartitioningSpec extends JournalPartitioningSpec(Ne
     }
 
     "create new sub-partition for new events" in withFreshSchemaAndPlugin { (journal, writerUuid) =>
-      //given
+      // given
       val pId = "persist3"
       val sender = TestProbe()
       val receiverProbe = TestProbe()
-      //when
+      // when
       writeMessages(1, 1000, pId, sender.ref, writerUuid)(journal)
 
       // Assuming that partition's capacity is 2000 rows.
       writeMessages(1001, 2500, pId, sender.ref, writerUuid)(journal)
 
-      //then
+      // then
       journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
       (1 to 2500).foreach { i =>
         receiverProbe.expectMsg(replayedPostgresMessage(i, pId, writerUuid))
@@ -207,17 +207,17 @@ class NestedPartitionsJournalPartitioningSpec extends JournalPartitioningSpec(Ne
 class PartitionedJournalPartitioningSpec extends JournalPartitioningSpec(Partitioned) {
   "A Journal" must {
     "create new partition for new events" in withFreshSchemaAndPlugin { (journal, writerUuid) =>
-      //given
+      // given
       val pId = "persist3"
       val sender = TestProbe()
       val receiverProbe = TestProbe()
-      //when
+      // when
       writeMessages(1, 2000, pId, sender.ref, writerUuid)(journal)
 
       // Assuming that partition's capacity is 2000 rows.
       writeMessages(2001, 2500, pId, sender.ref, writerUuid)(journal)
 
-      //then
+      // then
       journal ! ReplayMessages(1, Long.MaxValue, Long.MaxValue, pId, receiverProbe.ref)
       (1 to 2500).foreach { i =>
         receiverProbe.expectMsg(replayedPostgresMessage(i, pId, writerUuid))
