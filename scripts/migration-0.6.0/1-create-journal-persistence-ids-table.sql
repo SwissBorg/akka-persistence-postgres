@@ -33,7 +33,7 @@ BEGIN
   FOR i IN 0..(jpi_partitions_number - 1) LOOP
     EXECUTE 'CREATE TABLE IF NOT EXISTS ' || jpi_partitions_table_name_perfix || i ||
             ' PARTITION OF ' || jpi_table ||
-            ' FOR VALUES WITH (MODULUS 10, REMAINDER ' || i || ')';
+            ' FOR VALUES WITH (MODULUS ' || jpi_partitions_number || ', REMAINDER ' || i || ')';
   END LOOP;
 END;
 $$ LANGUAGE plpgsql;
