@@ -51,13 +51,14 @@ class JournalTableConfiguration(config: Config) {
 
 class JournalPersistenceIdsTableColumnNames(config: Config) {
   private val cfg = config.asConfig("tables.journalPersistenceIds.columnNames")
+  val id: String = cfg.as[String]("id", "id")
   val persistenceId: String = cfg.as[String]("persistenceId", "persistence_id")
   val maxSequenceNumber: String = cfg.as[String]("maxSequenceNumber", "max_sequence_number")
   val maxOrdering: String = cfg.as[String]("maxOrdering", "max_ordering")
   val minOrdering: String = cfg.as[String]("minOrdering", "min_ordering")
 
   override def toString: String =
-    s"JournalPersistenceIdsTableColumnNames($persistenceId,$maxSequenceNumber,$maxOrdering,$minOrdering)"
+    s"JournalPersistenceIdsTableColumnNames($id,$persistenceId,$maxSequenceNumber,$maxOrdering,$minOrdering)"
 }
 
 class JournalPersistenceIdsTableConfiguration(config: Config) {

@@ -73,12 +73,16 @@ DROP FUNCTION IF EXISTS public.update_journal_persistence_ids();
 DROP TABLE IF EXISTS public.journal_persistence_ids;
 
 CREATE TABLE public.journal_persistence_ids(
+  id BIGSERIAL,
   persistence_id TEXT NOT NULL,
   max_sequence_number BIGINT NOT NULL,
   min_ordering BIGINT NOT NULL,
   max_ordering BIGINT NOT NULL,
-  PRIMARY KEY (persistence_id)
-);
+  PRIMARY KEY (id, persistence_id)
+) PARTITION BY HASH(id);
+
+CREATE TABLE public.journal_persistence_ids_0 PARTITION OF public.journal_persistence_ids FOR VALUES WITH (MODULUS 2, REMAINDER 0);
+CREATE TABLE public.journal_persistence_ids_1 PARTITION OF public.journal_persistence_ids FOR VALUES WITH (MODULUS 2, REMAINDER 1);
 
 CREATE OR REPLACE FUNCTION public.update_journal_persistence_ids() RETURNS TRIGGER AS
 $$
@@ -86,7 +90,7 @@ DECLARE
 BEGIN
   INSERT INTO public.journal_persistence_ids (persistence_id, max_sequence_number, max_ordering, min_ordering)
   VALUES (NEW.persistence_id, NEW.sequence_number, NEW.ordering, NEW.ordering)
-  ON CONFLICT (persistence_id) DO UPDATE
+  ON CONFLICT (id, persistence_id) DO UPDATE
   SET
     max_sequence_number = NEW.sequence_number,
     max_ordering = NEW.ordering,

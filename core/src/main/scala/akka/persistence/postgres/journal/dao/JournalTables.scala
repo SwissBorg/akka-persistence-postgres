@@ -97,11 +97,13 @@ class JournalPersistenceIdsTable(_tableTag: Tag, journalPersistenceIdsTableCfg: 
       _schemaName = journalPersistenceIdsTableCfg.schemaName,
       _tableName = journalPersistenceIdsTableCfg.tableName) {
   override def * = (
+    id,
     persistenceId,
     maxSequenceNumber,
     minOrdering,
     maxOrdering) <> (JournalPersistenceIdsRow.tupled, JournalPersistenceIdsRow.unapply)
 
+  val id: Rep[Long] = column[Long](journalPersistenceIdsTableCfg.columnNames.id)
   val persistenceId: Rep[String] =
     column[String](journalPersistenceIdsTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
   val maxSequenceNumber: Rep[Long] = column[Long](journalPersistenceIdsTableCfg.columnNames.maxSequenceNumber)

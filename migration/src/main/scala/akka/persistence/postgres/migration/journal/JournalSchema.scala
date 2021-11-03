@@ -32,12 +32,17 @@ private[journal] trait JournalSchema {
     import journalPersistenceIdsTableCfg.columnNames._
     for {
       _ <- sqlu"""CREATE TABLE #$fullTableName (
+            #$id BIGSERIAL,
             #$persistenceId TEXT NOT NULL,
             #$maxSequenceNumber BIGINT       NOT NULL,
             #$maxOrdering       BIGINT       NOT NULL,
             #$minOrdering       BIGINT       NOT NULL,
-            PRIMARY KEY (#$persistenceId)
-          )"""
+            PRIMARY KEY (#$id, #$persistenceId)
+          ) PARTITION BY HASH(#$id)"""
+      _ <-
+        sqlu"""CREATE TABLE #${fullTableName}_0 PARTITION OF #$fullTableName FOR VALUES WITH (MODULUS 2, REMAINDER 0)"""
+      _ <-
+        sqlu"""CREATE TABLE #${fullTableName}_1 PARTITION OF #$fullTableName FOR VALUES WITH (MODULUS 2, REMAINDER 1)"""
     } yield ()
   }
 
@@ -106,7 +111,7 @@ private[journal] trait JournalSchema {
             BEGIN
               INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
               VALUES (NEW.#$jPersistenceId, NEW.#$sequenceNumber, NEW.#$ordering, NEW.#$ordering)
-              ON CONFLICT (#$persistenceId) DO UPDATE
+              ON CONFLICT (#$id, #$persistenceId) DO UPDATE
               SET
                 #$maxSequenceNumber = NEW.#$sequenceNumber,
                 #$maxOrdering = NEW.#$ordering,
