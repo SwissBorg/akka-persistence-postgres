@@ -9,7 +9,6 @@ DECLARE
   j_sequence_number_column CONSTANT TEXT := 'sequence_number';
   j_ordering_column CONSTANT TEXT := 'ordering';
   jpi_table_name CONSTANT TEXT := 'journal_persistence_ids';
-  jpi_id_column CONSTANT TEXT := 'id';
   jpi_persistence_id_column CONSTANT TEXT := 'persistence_id';
   jpi_max_sequence_number_column CONSTANT TEXT := 'max_sequence_number';
   jpi_max_ordering_column CONSTANT TEXT := 'max_ordering';
@@ -32,7 +31,7 @@ BEGIN
           jpi_min_ordering_column || ' = LEAST(' || jpi_table || '.' || jpi_min_ordering_column || ', ($1).' || j_ordering_column || ')';
 
   sql := 'INSERT INTO ' || jpi_table || ' (' || cols || ') VALUES (' || vals || ') ' ||
-         'ON CONFLICT (' || jpi_id_column || ', ' || jpi_persistence_id_column || ') DO UPDATE SET ' || upds;
+         'ON CONFLICT (' || jpi_persistence_id_column || ') DO UPDATE SET ' || upds;
 
   EXECUTE sql USING NEW;
   RETURN NEW;

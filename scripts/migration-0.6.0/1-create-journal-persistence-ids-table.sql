@@ -9,7 +9,7 @@ DECLARE
   jpi_max_sequence_number_column CONSTANT TEXT := 'max_sequence_number';
   jpi_max_ordering_column CONSTANT TEXT := 'max_ordering';
   jpi_min_ordering_column CONSTANT TEXT := 'min_ordering';
-  jpi_partitions_table_name_perfix CONSTANT TEXT := 'journal_persistence_ids_';
+  jpi_partitions_table_name_prefix CONSTANT TEXT := 'journal_persistence_ids_';
   jpi_partitions_number CONSTANT INTEGER := 10;
 
   -- variables
@@ -25,13 +25,13 @@ BEGIN
           jpi_max_sequence_number_column || ' BIGINT NOT NULL, ' ||
           jpi_max_ordering_column || ' BIGINT NOT NULL, ' ||
           jpi_min_ordering_column || ' BIGINT NOT NULL, ' ||
-          'PRIMARY KEY (' || jpi_id_column || ', ' || jpi_persistence_id_column || ')' ||
-        ') PARTITION BY HASH(' || jpi_id_column || ')';
+          'PRIMARY KEY (' || jpi_persistence_id_column || ')' ||
+        ') PARTITION BY HASH(' || jpi_persistence_id_column || ')';
 
   EXECUTE sql;
 
   FOR i IN 0..(jpi_partitions_number - 1) LOOP
-    EXECUTE 'CREATE TABLE IF NOT EXISTS ' || jpi_partitions_table_name_perfix || i ||
+    EXECUTE 'CREATE TABLE IF NOT EXISTS ' || jpi_partitions_table_name_prefix || i ||
             ' PARTITION OF ' || jpi_table ||
             ' FOR VALUES WITH (MODULUS ' || jpi_partitions_number || ', REMAINDER ' || i || ')';
   END LOOP;

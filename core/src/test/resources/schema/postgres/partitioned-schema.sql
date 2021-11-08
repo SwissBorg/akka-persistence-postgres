@@ -78,8 +78,8 @@ CREATE TABLE public.journal_persistence_ids(
   max_sequence_number BIGINT NOT NULL,
   min_ordering BIGINT NOT NULL,
   max_ordering BIGINT NOT NULL,
-  PRIMARY KEY (id, persistence_id)
-) PARTITION BY HASH(id);
+  PRIMARY KEY (persistence_id)
+) PARTITION BY HASH(persistence_id);
 
 CREATE TABLE public.journal_persistence_ids_0 PARTITION OF public.journal_persistence_ids FOR VALUES WITH (MODULUS 2, REMAINDER 0);
 CREATE TABLE public.journal_persistence_ids_1 PARTITION OF public.journal_persistence_ids FOR VALUES WITH (MODULUS 2, REMAINDER 1);
@@ -90,7 +90,7 @@ DECLARE
 BEGIN
   INSERT INTO public.journal_persistence_ids (persistence_id, max_sequence_number, max_ordering, min_ordering)
   VALUES (NEW.persistence_id, NEW.sequence_number, NEW.ordering, NEW.ordering)
-  ON CONFLICT (id, persistence_id) DO UPDATE
+  ON CONFLICT (persistence_id) DO UPDATE
   SET
     max_sequence_number = NEW.sequence_number,
     max_ordering = NEW.ordering,

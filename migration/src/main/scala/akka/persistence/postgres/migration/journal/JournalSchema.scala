@@ -37,8 +37,8 @@ private[journal] trait JournalSchema {
             #$maxSequenceNumber BIGINT       NOT NULL,
             #$maxOrdering       BIGINT       NOT NULL,
             #$minOrdering       BIGINT       NOT NULL,
-            PRIMARY KEY (#$id, #$persistenceId)
-          ) PARTITION BY HASH(#$id)"""
+            PRIMARY KEY (#$persistenceId)
+          ) PARTITION BY HASH(#$persistenceId)"""
       _ <-
         sqlu"""CREATE TABLE #${fullTableName}_0 PARTITION OF #$fullTableName FOR VALUES WITH (MODULUS 2, REMAINDER 0)"""
       _ <-
@@ -111,7 +111,7 @@ private[journal] trait JournalSchema {
             BEGIN
               INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
               VALUES (NEW.#$jPersistenceId, NEW.#$sequenceNumber, NEW.#$ordering, NEW.#$ordering)
-              ON CONFLICT (#$id, #$persistenceId) DO UPDATE
+              ON CONFLICT (#$persistenceId) DO UPDATE
               SET
                 #$maxSequenceNumber = NEW.#$sequenceNumber,
                 #$maxOrdering = NEW.#$ordering,
