@@ -6,24 +6,24 @@
 package akka.persistence.postgres.journal
 
 import akka.actor.Actor
-import akka.persistence.JournalProtocol.ReplayedMessage
+import akka.persistence.JournalProtocol.{ReplayedMessage, WriteMessages, WriteMessagesFailed}
 import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.query.ScalaPostgresReadJournalOperations
 import akka.persistence.postgres.util.Schema._
-import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
+import akka.persistence.postgres.util.{ClasspathResources, DropCreate}
 import akka.persistence.query.Sequence
-import akka.persistence.{ CapabilityFlag, PersistentImpl }
+import akka.persistence.{AtomicWrite, CapabilityFlag, PersistentImpl, PersistentRepr}
 import akka.testkit.TestProbe
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{ Minute, Span }
-import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
+import org.scalatest.time.{Minute, Span}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     extends JournalSpec(ConfigFactory.load(config))
@@ -54,6 +54,30 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     super.afterAll()
   }
 
+  "A journal" must {
+    "not allow to store events with sequence number lower than what is already stored for the same persistence id" in {
+      // given
+      val perId = "perId"
+      val sender = TestProbe()
+      val repeatedSnr = 5
+
+      // when
+      writeMessages(1, repeatedSnr + 1, perId, sender.ref, writerUuid)
+
+      // then
+      val msg = AtomicWrite(PersistentRepr(
+        payload = s"a-$repeatedSnr",
+        sequenceNr = repeatedSnr,
+        persistenceId = pid,
+        sender = sender.ref,
+        writerUuid = writerUuid
+      ))
+
+      val probe = TestProbe()
+      journal ! WriteMessages(Seq(msg), probe.ref, actorInstanceId)
+      probe.expectMsgType[WriteMessagesFailed]
+    }
+  }
 }
 
 trait PartitionedJournalSpecTestCases {
