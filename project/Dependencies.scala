@@ -6,7 +6,7 @@ object Dependencies {
 
   val AkkaVersion = "2.6.17"
   val AkkaBinaryVersion = "2.6"
-  val FlywayVersion = "8.0.3"
+  val FlywayVersion = "8.0.4"
   val ScaffeineVersion = "5.1.1"
   val ScalaTestVersion = "3.2.10"
   val SlickVersion = "3.3.3"
