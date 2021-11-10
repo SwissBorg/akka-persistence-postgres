@@ -60,7 +60,7 @@ trait PartitionedJournalSpecTestCases {
   this: PostgresJournalSpec =>
 
   "A journal" must {
-    "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
+    "store events concurrently for different persistence ids without creating duplicates or gaps among journal ordering (offset)" in {
       // given
       val numOfSenders = 5
       val batchSize = 1000
@@ -77,26 +77,29 @@ trait PartitionedJournalSpecTestCases {
         }
         .futureValue(Timeout(Span(1, Minute)))
 
-      // then
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
+      var orderings: IndexedSeq[Long] = IndexedSeq.empty
+
       senders.foreach { case (_, idx) =>
-        val journalOps = new ScalaPostgresReadJournalOperations(system)
         journalOps.withCurrentEventsByPersistenceId()(s"perId-${idx + 1}") { tp =>
           tp.request(Long.MaxValue)
           val replayedMessages = (1 to batchSize).map { _ =>
             tp.expectNext()
           }
           tp.expectComplete()
-          val orderings = replayedMessages.map(_.offset).collect { case Sequence(value) =>
+          orderings = orderings ++ replayedMessages.map(_.offset).collect { case Sequence(value) =>
             value
           }
-          orderings.size should equal(batchSize)
-          val minOrd = orderings.min
-          val maxOrd = orderings.max
-          val expectedOrderings = (minOrd to maxOrd).toList
-
-          (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
         }
       }
+
+      // then
+      orderings.size should equal(batchSize * numOfSenders)
+      val minOrd = orderings.min
+      val maxOrd = orderings.max
+      val expectedOrderings = (minOrd to maxOrd).toList
+
+      (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
     }
   }
 
