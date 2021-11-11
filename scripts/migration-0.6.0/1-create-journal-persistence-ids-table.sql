@@ -20,7 +20,7 @@ BEGIN
 
   sql := 'CREATE TABLE IF NOT EXISTS ' || jpi_table ||
        '(' ||
-          jpi_id_column || ' BIGSERIAL, ' ||
+          jpi_id_column || ' BIGINT GENERATED ALWAYS AS IDENTITY, ' ||
           jpi_persistence_id_column || ' TEXT NOT NULL, ' ||
           jpi_max_sequence_number_column || ' BIGINT NOT NULL, ' ||
           jpi_max_ordering_column || ' BIGINT NOT NULL, ' ||

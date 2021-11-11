@@ -32,7 +32,7 @@ private[journal] trait JournalSchema {
     import journalPersistenceIdsTableCfg.columnNames._
     for {
       _ <- sqlu"""CREATE TABLE #$fullTableName (
-            #$id BIGSERIAL,
+            #$id BIGINT GENERATED ALWAYS AS IDENTITY,
             #$persistenceId TEXT NOT NULL,
             #$maxSequenceNumber BIGINT       NOT NULL,
             #$maxOrdering       BIGINT       NOT NULL,

@@ -73,7 +73,7 @@ DROP FUNCTION IF EXISTS public.update_journal_persistence_ids();
 DROP TABLE IF EXISTS public.journal_persistence_ids;
 
 CREATE TABLE public.journal_persistence_ids(
-  id BIGSERIAL,
+  id BIGINT GENERATED ALWAYS AS IDENTITY,
   persistence_id TEXT NOT NULL,
   max_sequence_number BIGINT NOT NULL,
   min_ordering BIGINT NOT NULL,
