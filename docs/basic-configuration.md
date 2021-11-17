@@ -36,6 +36,7 @@ Depending on the journal variant, choose the appropriate schema:
 
 - [Plain (flat) Journal]({{ site.repo }}/core/src/test/resources/schema/postgres/plain-schema.sql)
 - [Journal with Nested Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql)
+- [Journal with Ordering Partitions]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql)
 
 ## Reference Configuration
 
@@ -153,7 +154,7 @@ Keep in mind that the default maximum length for a table name in Postgres is 63 
 
 ### Using journal partitioned by ordering (offset)
 
-In order to start using partitioned journal, you have to apply [this schema]({{ site.repo }}/core/src/test/resources/schema/postgres/nested-partitions-schema.sql) and set the Journal DAO FQCN:
+In order to start using partitioned journal, you have to apply [this schema]({{ site.repo }}/core/src/test/resources/schema/postgres/partitioned-schema.sql) and set the Journal DAO FQCN:
 ```hocon
 postgres-journal.dao = "akka.persistence.postgres.journal.dao.PartitionedJournalDao"
 ```
