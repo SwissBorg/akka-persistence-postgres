@@ -31,6 +31,9 @@ For a maven project add:
 ```
 to your `pom.xml`.
 
+> :warning: Since Akka [does not allow mixed versions](https://doc.akka.io/docs/akka/current/common/binary-compatibility-rules.html#mixed-versioning-is-not-allowed) in a project, Akka dependencies are marked a `Provided`. This means that your application `libraryDependencies` needs to directly include Akka as a dependency. The minimal supported Akka version is 2.6.16.  
+
+
 ## Source code
 
 Source code for this plugin can be found on [GitHub](https://github.com/SwissBorg/akka-persistence-postgres).
