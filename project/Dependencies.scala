@@ -13,7 +13,7 @@ object Dependencies {
 
   val LogbackVersion = "1.2.10"
 
-  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.3.3")
+  val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.3.5")
 
   val Libraries: Seq[ModuleID] = Seq(
     "ch.qos.logback" % "logback-classic" % LogbackVersion % Test,
