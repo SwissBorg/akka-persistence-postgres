@@ -8,7 +8,7 @@ object Dependencies {
   val FlywayVersion = "8.5.11"
   val ScaffeineVersion = "5.2.0"
   val ScalaTestVersion = "3.2.12"
-  val SlickVersion = "3.3.3"
+  val SlickVersion = "3.4.0"
   val SlickPgVersion = "0.20.3"
 
   val LogbackVersion = "1.2.11"
