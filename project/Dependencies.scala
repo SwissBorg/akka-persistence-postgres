@@ -32,7 +32,7 @@ object Dependencies {
 
   val Migration: Seq[ModuleID] =
     Seq(
-      "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
+      ("com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion).exclude("com.typesafe", "ssl-config-core"),
       "com.typesafe" %% "ssl-config-core" % SslConfigVersion).map(_ % Compile) ++ (Seq(
       "org.scalatest" %% "scalatest" % ScalaTestVersion,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion,
