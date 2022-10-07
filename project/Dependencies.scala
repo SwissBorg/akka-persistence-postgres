@@ -5,13 +5,13 @@ object Dependencies {
   val ScalaVersions = Seq(Scala213)
 
   val AkkaVersion = "2.6.16"
-  val FlywayVersion = "8.5.11"
+  val FlywayVersion = "8.5.13"
   val ScaffeineVersion = "5.2.0"
-  val ScalaTestVersion = "3.2.12"
+  val ScalaTestVersion = "3.2.13"
   val SlickVersion = "3.3.3"
-  val SlickPgVersion = "0.20.3"
+  val SlickPgVersion = "0.20.4"
 
-  val LogbackVersion = "1.2.11"
+  val LogbackVersion = "1.4.0"
 
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.5.0")
 
