@@ -37,7 +37,7 @@ object ProjectAutoPlugin extends AutoPlugin {
       "-language:higherKinds",
       "-language:implicitConversions",
       "-Ydelambdafy:method",
-      "-target:jvm-11"),
+      "-release:11"),
     Compile / doc / scalacOptions := scalacOptions.value ++ Seq(
       "-doc-title",
       "Akka Persistence Postgres",

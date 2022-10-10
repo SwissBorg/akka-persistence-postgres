@@ -1,17 +1,18 @@
 import sbt._
 
 object Dependencies {
-  val Scala213 = "2.13.8"
+  val Scala213 = "2.13.9"
   val ScalaVersions = Seq(Scala213)
 
   val AkkaVersion = "2.6.16"
-  val FlywayVersion = "8.5.13"
+  val FlywayVersion = "9.4.0"
   val ScaffeineVersion = "5.2.1"
-  val ScalaTestVersion = "3.2.13"
-  val SlickVersion = "3.3.3"
-  val SlickPgVersion = "0.20.4"
+  val ScalaTestVersion = "3.2.14"
+  val SlickVersion = "3.4.1"
+  val SlickPgVersion = "0.21.0"
+  val SslConfigVersion = "0.6.1"
 
-  val LogbackVersion = "1.4.0"
+  val LogbackVersion = "1.4.3"
 
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.5.0")
 
@@ -30,7 +31,9 @@ object Dependencies {
     "org.scalatest" %% "scalatest" % ScalaTestVersion % Test) ++ JdbcDrivers.map(_ % Test)
 
   val Migration: Seq[ModuleID] =
-    Seq("com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion).map(_ % Compile) ++ (Seq(
+    Seq(
+      ("com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion).exclude("com.typesafe", "ssl-config-core"),
+      "com.typesafe" %% "ssl-config-core" % SslConfigVersion).map(_ % Compile) ++ (Seq(
       "org.scalatest" %% "scalatest" % ScalaTestVersion,
       "com.typesafe.akka" %% "akka-testkit" % AkkaVersion,
       "ch.qos.logback" % "logback-classic" % LogbackVersion,

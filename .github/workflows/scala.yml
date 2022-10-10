@@ -12,11 +12,11 @@ jobs:
     name: Java ${{matrix.java}}
     strategy:
       matrix:
-        java: ['openjdk@1.11', 'adopt@1.11']
+        java: ['openjdk@1.11', 'adopt@1.11', 'openjdk@1.17']
     steps:
     - uses: actions/checkout@v2
     - name: Set up java
-      uses: olafurpg/setup-scala@v10
+      uses: olafurpg/setup-scala@v13
       with:
         java-version: ${{matrix.java}}
     - name: Start Postgres
