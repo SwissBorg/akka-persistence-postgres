@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Scala and Java
-        uses: olafurpg/setup-scala@v13
+        uses: coursier/setup-action@v1
         with:
           java-version: openjdk@1.11
       - uses: olafurpg/setup-gpg@v3
