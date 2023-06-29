@@ -12,7 +12,7 @@ import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
 import scala.concurrent.duration._
 
 abstract class LogicalDeleteQueryTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
-  implicit val askTimeout = 500.millis
+  implicit val askTimeout: FiniteDuration = 500.millis
 
   it should "return logically deleted events when using CurrentEventsByTag (backward compatibility)" in withActorSystem {
     implicit system =>

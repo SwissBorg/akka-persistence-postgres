@@ -15,8 +15,8 @@ jobs:
         java: ['openjdk@1.11', 'adopt@1.11', 'openjdk@1.17']
     steps:
     - uses: actions/checkout@v2
-    - name: Set up java
-      uses: olafurpg/setup-scala@v13
+    - name: Setup Scala and Java
+      uses: coursier/setup-action@v1
       with:
         java-version: ${{matrix.java}}
     - name: Start Postgres

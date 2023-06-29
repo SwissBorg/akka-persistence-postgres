@@ -8,12 +8,13 @@ package akka.persistence.postgres.snapshot
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickDatabase
 import akka.persistence.postgres.util.Schema._
-import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
+import akka.persistence.postgres.util.{ClasspathResources, DropCreate}
 import akka.persistence.snapshot.SnapshotStoreSpec
 import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
 abstract class PostgresSnapshotStoreSpec(schemaType: SchemaType)
@@ -24,7 +25,7 @@ abstract class PostgresSnapshotStoreSpec(schemaType: SchemaType)
     with DropCreate {
   implicit val pc: PatienceConfig = PatienceConfig(timeout = 10.seconds)
 
-  implicit lazy val ec = system.dispatcher
+  implicit lazy val ec: ExecutionContextExecutor = system.dispatcher
 
   lazy val cfg = system.settings.config.getConfig("postgres-journal")
 
