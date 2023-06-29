@@ -37,7 +37,7 @@ trait ExtendedPostgresProfile
       with SearchImplicits
       with SearchAssistants
       with JsonImplicits {
-    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+    implicit val strListTypeMapper: DriverJdbcType[List[String]] = new SimpleArrayJdbcType[String]("text").to(_.toList)
   }
   object MyAPI extends MyAPI
 }

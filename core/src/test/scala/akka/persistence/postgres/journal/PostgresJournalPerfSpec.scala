@@ -8,16 +8,17 @@ package akka.persistence.postgres.journal
 import akka.actor.Props
 import akka.persistence.CapabilityFlag
 import akka.persistence.journal.JournalPerfSpec
-import akka.persistence.journal.JournalPerfSpec.{ BenchActor, Cmd, ResetCounter }
+import akka.persistence.journal.JournalPerfSpec.{BenchActor, Cmd, ResetCounter}
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.util.Schema._
-import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
+import akka.persistence.postgres.util.{ClasspathResources, DropCreate}
 import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 
 abstract class PostgresJournalPerfSpec(config: String, schemaType: SchemaType)
@@ -29,7 +30,7 @@ abstract class PostgresJournalPerfSpec(config: String, schemaType: SchemaType)
     with DropCreate {
   override protected def supportsRejectingNonSerializableObjects: CapabilityFlag = true
 
-  implicit lazy val ec = system.dispatcher
+  implicit lazy val ec: ExecutionContextExecutor = system.dispatcher
 
   implicit def pc: PatienceConfig = PatienceConfig(timeout = 10.minutes)
 
