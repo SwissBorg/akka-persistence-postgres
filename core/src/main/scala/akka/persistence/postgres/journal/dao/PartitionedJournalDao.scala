@@ -17,7 +17,7 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     extends FlatJournalDao(db, journalConfig, serialization) {
   override val queries = new JournalQueries(
     PartitionedJournalTable(journalConfig.journalTableConfiguration),
-    JournalPersistenceIdsTable(journalConfig.journalPersistenceIdsTableConfiguration))
+    JournalMetadataTable(journalConfig.journalMetadataTableConfiguration))
   private val journalTableCfg = journalConfig.journalTableConfiguration
   private val partitionSize = journalConfig.partitionsConfig.size
   private val partitionPrefix = journalConfig.partitionsConfig.prefix

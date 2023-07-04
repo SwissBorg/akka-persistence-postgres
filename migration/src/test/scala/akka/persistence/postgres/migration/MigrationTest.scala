@@ -177,8 +177,8 @@ trait PrepareDatabase extends BeforeAndAfterEach with BeforeAndAfterAll with Sca
     val journalTableConfig = journalConfig.journalTableConfiguration
     val journalTableName = journalTableConfig.tableName
 
-    val journalPersistenceIdsTableConfig = journalConfig.journalPersistenceIdsTableConfiguration
-    val journalPersistenceIdsTableName = journalPersistenceIdsTableConfig.tableName
+    val journalMetadataTableConfig = journalConfig.journalMetadataTableConfiguration
+    val journalMetadataTableName = journalMetadataTableConfig.tableName
 
     val tagsTableConfig = journalConfig.tagsTableConfiguration
     import journalTableConfig.columnNames.{ tags => tagsCol, _ }
@@ -188,12 +188,12 @@ trait PrepareDatabase extends BeforeAndAfterEach with BeforeAndAfterAll with Sca
       _ <- sqlu"""DROP TABLE IF EXISTS migration.old_#$journalTableName"""
       _ <- sqlu"""DROP TABLE IF EXISTS migration.#$tempJournalTableName"""
       _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalTableName"""
-      _ <- sqlu"""DROP TRIGGER IF EXISTS trig_update_journal_persistence_ids ON migration.#$journalTableName"""
-      _ <- sqlu"""DROP FUNCTION IF EXISTS migration.update_journal_persistence_ids()"""
+      _ <- sqlu"""DROP TRIGGER IF EXISTS trig_update_journal_metadata ON migration.#$journalTableName"""
+      _ <- sqlu"""DROP FUNCTION IF EXISTS migration.update_journal_metadata()"""
       _ <-
-        sqlu"""DROP TRIGGER IF EXISTS trig_check_persistence_id_max_sequence_number ON migration.#$journalPersistenceIdsTableName"""
+        sqlu"""DROP TRIGGER IF EXISTS trig_check_persistence_id_max_sequence_number ON migration.#$journalMetadataTableName"""
       _ <- sqlu"""DROP FUNCTION IF EXISTS migration.check_persistence_id_max_sequence_number()"""
-      _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalPersistenceIdsTableName"""
+      _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalMetadataTableName"""
       _ <- sqlu"""CREATE TABLE IF NOT EXISTS migration.#$journalTableName
         (
             #$ordering       BIGSERIAL,

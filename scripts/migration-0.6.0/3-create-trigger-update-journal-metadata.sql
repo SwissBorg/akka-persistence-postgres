@@ -10,9 +10,9 @@ DECLARE
 BEGIN
   j_table := schema || '.' || j_table_name;
 
-  sql := 'CREATE TRIGGER trig_update_journal_persistence_id
+  sql := 'CREATE TRIGGER trig_update_journal_metadata
     AFTER INSERT ON ' || j_table || ' FOR EACH ROW
-    EXECUTE PROCEDURE ' || schema || '.update_journal_persistence_ids()';
+    EXECUTE PROCEDURE ' || schema || '.update_journal_metadata()';
 
   EXECUTE sql;
 END;

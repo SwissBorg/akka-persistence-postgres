@@ -3,12 +3,12 @@ CREATE OR REPLACE FUNCTION public.check_persistence_id_max_sequence_number() RET
 $$
 DECLARE
   -- replace with appropriate values
-  jpi_max_sequence_number_column CONSTANT TEXT := 'max_sequence_number';
+  jm_max_sequence_number_column CONSTANT TEXT := 'max_sequence_number';
 
   -- variables
   sql TEXT;
 BEGIN
-  sql := 'IF NEW.' || jpi_max_sequence_number_column || ' <= OLD.' || jpi_max_sequence_number_column || ' THEN
+  sql := 'IF NEW.' || jm_max_sequence_number_column || ' <= OLD.' || jm_max_sequence_number_column || ' THEN
             RAISE EXCEPTION ''New max_sequence_number not higher than previous value'';
           END IF;';
 

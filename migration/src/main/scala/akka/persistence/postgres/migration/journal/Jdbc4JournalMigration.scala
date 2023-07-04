@@ -69,7 +69,7 @@ class Jdbc4JournalMigration(globalConfig: Config, tempTableName: String = "tmp_j
       for {
         _ <- journalSchema.createTable
         _ <- journalSchema.createTagsTable
-        _ <- journalSchema.createJournalPersistenceIdsTable
+        _ <- journalSchema.createJournalMetadataTable
       } yield ()
     }
 

@@ -24,12 +24,12 @@ private[journal] trait JournalSchema {
   def getTable: TableQuery[TempJournalTable]
   def createTable: DBIOAction[Unit, NoStream, Effect.Write]
 
-  def createJournalPersistenceIdsTable: DBIOAction[Unit, NoStream, Effect.Write] = {
-    val journalPersistenceIdsTableCfg = journalCfg.journalPersistenceIdsTableConfiguration
+  def createJournalMetadataTable: DBIOAction[Unit, NoStream, Effect.Write] = {
+    val journalMetadataTableCfg = journalCfg.journalMetadataTableConfiguration
     val fullTableName =
-      s"${journalPersistenceIdsTableCfg.schemaName.getOrElse("public")}.${journalPersistenceIdsTableCfg.tableName}"
+      s"${journalMetadataTableCfg.schemaName.getOrElse("public")}.${journalMetadataTableCfg.tableName}"
 
-    import journalPersistenceIdsTableCfg.columnNames._
+    import journalMetadataTableCfg.columnNames._
     for {
       _ <- sqlu"""CREATE TABLE #$fullTableName (
             #$id BIGINT GENERATED ALWAYS AS IDENTITY,
@@ -96,17 +96,17 @@ private[journal] trait JournalSchema {
 
   def createTriggers: DBIOAction[Unit, NoStream, Effect.Write] = {
     val journalTableCfg = journalCfg.journalTableConfiguration
-    val journalPersistenceIdsTableCfg = journalCfg.journalPersistenceIdsTableConfiguration
-    val schema = journalPersistenceIdsTableCfg.schemaName.getOrElse("public")
-    val fullTableName = s"$schema.${journalPersistenceIdsTableCfg.tableName}"
+    val journalMetadataTableCfg = journalCfg.journalMetadataTableConfiguration
+    val schema = journalMetadataTableCfg.schemaName.getOrElse("public")
+    val fullTableName = s"$schema.${journalMetadataTableCfg.tableName}"
     val journalFullTableName = s"$schema.${journalTableCfg.tableName}"
 
-    import journalPersistenceIdsTableCfg.columnNames._
+    import journalMetadataTableCfg.columnNames._
     import journalTableCfg.columnNames.{ persistenceId => jPersistenceId, _ }
 
     for {
       _ <- sqlu"""
-            CREATE OR REPLACE FUNCTION #$schema.update_journal_persistence_ids() RETURNS TRIGGER AS $$$$
+            CREATE OR REPLACE FUNCTION #$schema.update_journal_metadata() RETURNS TRIGGER AS $$$$
             DECLARE
             BEGIN
               INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
@@ -123,17 +123,17 @@ private[journal] trait JournalSchema {
            """
 
       _ <- sqlu"""
-            CREATE TRIGGER trig_update_journal_persistence_ids
+            CREATE TRIGGER trig_update_journal_metadata
             AFTER INSERT ON #$journalFullTableName
             FOR EACH ROW
-            EXECUTE PROCEDURE #$schema.update_journal_persistence_ids();
+            EXECUTE PROCEDURE #$schema.update_journal_metadata();
            """
 
       _ <- sqlu"""
-            CREATE TRIGGER trig_update_journal_persistence_ids
+            CREATE TRIGGER trig_update_journal_metadata
             AFTER INSERT ON #$fullTmpTableName
             FOR EACH ROW
-            EXECUTE PROCEDURE #$schema.update_journal_persistence_ids();
+            EXECUTE PROCEDURE #$schema.update_journal_metadata();
            """
 
       _ <- sqlu"""

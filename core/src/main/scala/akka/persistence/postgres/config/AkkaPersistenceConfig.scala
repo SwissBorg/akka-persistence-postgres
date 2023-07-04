@@ -49,8 +49,8 @@ class JournalTableConfiguration(config: Config) {
   override def toString: String = s"JournalTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
-class JournalPersistenceIdsTableColumnNames(config: Config) {
-  private val cfg = config.asConfig("tables.journalPersistenceIds.columnNames")
+class JournalMetadataTableColumnNames(config: Config) {
+  private val cfg = config.asConfig("tables.journalMetadata.columnNames")
   val id: String = cfg.as[String]("id", "id")
   val persistenceId: String = cfg.as[String]("persistenceId", "persistence_id")
   val maxSequenceNumber: String = cfg.as[String]("maxSequenceNumber", "max_sequence_number")
@@ -58,15 +58,15 @@ class JournalPersistenceIdsTableColumnNames(config: Config) {
   val minOrdering: String = cfg.as[String]("minOrdering", "min_ordering")
 
   override def toString: String =
-    s"JournalPersistenceIdsTableColumnNames($id,$persistenceId,$maxSequenceNumber,$maxOrdering,$minOrdering)"
+    s"JournalMetadataTableColumnNames($id,$persistenceId,$maxSequenceNumber,$maxOrdering,$minOrdering)"
 }
 
-class JournalPersistenceIdsTableConfiguration(config: Config) {
-  private val cfg = config.asConfig("tables.journalPersistenceIds")
-  val tableName: String = cfg.as[String]("tableName", "journal_persistence_ids")
+class JournalMetadataTableConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.journalMetadata")
+  val tableName: String = cfg.as[String]("tableName", "journal_metadata")
   val schemaName: Option[String] = cfg.as[String]("schemaName").trim
-  val columnNames: JournalPersistenceIdsTableColumnNames = new JournalPersistenceIdsTableColumnNames(config)
-  override def toString: String = s"JournalPersistenceIdsTableConfiguration($tableName,$schemaName,$columnNames)"
+  val columnNames: JournalMetadataTableColumnNames = new JournalMetadataTableColumnNames(config)
+  override def toString: String = s"JournalMetadataTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
 class SnapshotTableColumnNames(config: Config) {
@@ -142,14 +142,14 @@ class TagsConfig(config: Config) {
 class JournalConfig(config: Config) {
   val partitionsConfig = new JournalPartitionsConfiguration(config)
   val journalTableConfiguration = new JournalTableConfiguration(config)
-  val journalPersistenceIdsTableConfiguration = new JournalPersistenceIdsTableConfiguration(config)
+  val journalMetadataTableConfiguration = new JournalMetadataTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
   val tagsConfig = new TagsConfig(config)
   val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
   override def toString: String =
-    s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
+    s"JournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
 }
 
 class SnapshotConfig(config: Config) {
@@ -177,7 +177,7 @@ case class JournalSequenceRetrievalConfig(
 
 class ReadJournalConfig(config: Config) {
   val journalTableConfiguration = new JournalTableConfiguration(config)
-  val journalPersistenceIdsTableConfiguration = new JournalPersistenceIdsTableConfiguration(config)
+  val journalMetadataTableConfiguration = new JournalMetadataTableConfiguration(config)
   val journalSequenceRetrievalConfiguration = JournalSequenceRetrievalConfig(config)
   val pluginConfig = new ReadJournalPluginConfig(config)
   val tagsConfig = new TagsConfig(config)
@@ -188,5 +188,5 @@ class ReadJournalConfig(config: Config) {
   val includeDeleted: Boolean = config.as[Boolean]("includeLogicallyDeleted", true)
 
   override def toString: String =
-    s"ReadJournalConfig($journalTableConfiguration,$pluginConfig,$refreshInterval,$maxBufferSize,$addShutdownHook,$includeDeleted)"
+    s"ReadJournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$refreshInterval,$maxBufferSize,$addShutdownHook,$includeDeleted)"
 }

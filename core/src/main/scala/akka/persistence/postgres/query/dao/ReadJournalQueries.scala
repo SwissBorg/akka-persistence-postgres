@@ -7,7 +7,7 @@ package akka.persistence.postgres
 package query.dao
 
 import akka.persistence.postgres.config.ReadJournalConfig
-import akka.persistence.postgres.journal.dao.{ FlatJournalTable, JournalPersistenceIdsTable, JournalTable }
+import akka.persistence.postgres.journal.dao.{ FlatJournalTable, JournalMetadataTable, JournalTable }
 
 class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
@@ -17,11 +17,11 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
 
-  val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
-
   private def baseTableQuery() =
     if (readJournalConfig.includeDeleted) journalTable
     else journalTable.filter(_.deleted === false)
+
+  val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
 
   private def _messagesQuery(
       persistenceId: Rep[String],

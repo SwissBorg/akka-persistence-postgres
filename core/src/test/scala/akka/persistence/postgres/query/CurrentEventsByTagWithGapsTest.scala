@@ -46,9 +46,9 @@ class CurrentEventsByTagWithGapsTest
         }.futureValue
 
         val journalTable = schemaType.table(journalConfig.journalTableConfiguration)
-        val journalPersistenceIdsTable =
-          schemaType.persistenceIdsTable(journalConfig.journalPersistenceIdsTableConfiguration)
-        val journalQueries = new JournalQueries(journalTable, journalPersistenceIdsTable)
+        val journalMetadataTable =
+          schemaType.metadataTable(journalConfig.journalMetadataTableConfiguration)
+        val journalQueries = new JournalQueries(journalTable, journalMetadataTable)
         val journalOps = new JavaDslPostgresReadJournalOperations(system)
         val tag = "testTag"
 
