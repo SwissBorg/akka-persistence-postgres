@@ -8,12 +8,27 @@ class ReadJournalQueriesTest extends BaseQueryTest {
     queries.allPersistenceIdsDistinct(23L) shouldBeSQL """select distinct "persistence_id" from "journal" limit ?"""
   }
 
+  it should "create SQL query for minAndMaxOrderingStoredForPersistenceId" in withReadJournalQueries { queries =>
+    queries.minAndMaxOrderingStoredForPersistenceId(
+      "aaa") shouldBeSQL """select "min_ordering", "max_ordering" from "journal_metadata" where "persistence_id" = ? limit 1"""
+  }
+
   it should "create SQL query for messagesQuery" in withReadJournalQueries { queries =>
     queries.messagesQuery(
       "p1",
       1L,
       4L,
       5L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
+  }
+
+  it should "create SQL query for messagesOrderingBoundedQuery" in withReadJournalQueries { queries =>
+    queries.messagesOrderingBoundedQuery(
+      "aaa",
+      1L,
+      4L,
+      5L,
+      1L,
+      10L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ((((("persistence_id" = ?) and ("deleted" = false)) and ("sequence_number" >= ?)) and ("sequence_number" <= ?)) and ("ordering" >= ?)) and ("ordering" <= ?) order by "sequence_number" limit ?"""
   }
 
   it should "create SQL query for eventsByTag" in withReadJournalQueries { queries =>

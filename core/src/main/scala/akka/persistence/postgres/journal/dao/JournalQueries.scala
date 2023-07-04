@@ -10,9 +10,7 @@ import io.circe.Json
 import slick.lifted.TableQuery
 import slick.sql.FixedSqlAction
 
-class JournalQueries(
-                      journalTable: TableQuery[JournalTable],
-                      journalMetadataTable: TableQuery[JournalMetadataTable]) {
+class JournalQueries(journalTable: TableQuery[JournalTable], journalMetadataTable: TableQuery[JournalMetadataTable]) {
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
@@ -52,15 +50,17 @@ class JournalQueries(
 
   private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     journalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
-//    journalMetadataTable
-//      .filter(_.persistenceId === persistenceId)
-//      .map(_.maxSequenceNumber)
-//      .max // TODO replace with more appropriate combinator?
+
+  private def _highestStoredSequenceNrForPersistenceId(persistenceId: Rep[String]): Query[Rep[Long], Long, Seq] = {
+    journalMetadataTable.filter(_.persistenceId === persistenceId).map(_.maxSequenceNumber).take(1)
+  }
 
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     journalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
   val highestSequenceNrForPersistenceId = Compiled(_highestSequenceNrForPersistenceId _)
+
+  val highestStoredSequenceNrForPersistenceId = Compiled(_highestStoredSequenceNrForPersistenceId _)
 
   val highestMarkedSequenceNrForPersistenceId = Compiled(_highestMarkedSequenceNrForPersistenceId _)
 
@@ -73,6 +73,12 @@ class JournalQueries(
     journalTable.map(_.persistenceId).distinct
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
+
+  private def _minAndMaxOrderingStoredForPersistenceId(
+      persistenceId: Rep[String]): Query[(Rep[Long], Rep[Long]), (Long, Long), Seq] =
+    journalMetadataTable.filter(_.persistenceId === persistenceId).take(1).map(r => (r.minOrdering, r.maxOrdering))
+
+  val minAndMaxOrderingStoredForPersistenceId = Compiled(_minAndMaxOrderingStoredForPersistenceId _)
 
   private def _messagesQuery(
       persistenceId: Rep[String],
@@ -87,6 +93,24 @@ class JournalQueries(
       .sortBy(_.sequenceNumber.asc)
       .take(max)
 
+  private def _messagesOrderingBoundedQuery(
+      persistenceId: Rep[String],
+      fromSequenceNr: Rep[Long],
+      toSequenceNr: Rep[Long],
+      max: ConstColumn[Long],
+      minOrdering: Rep[Long],
+      maxOrdering: Rep[Long]): Query[JournalTable, JournalRow, Seq] =
+    journalTable
+      .filter(_.persistenceId === persistenceId)
+      .filter(_.deleted === false)
+      .filter(_.sequenceNumber >= fromSequenceNr)
+      .filter(_.sequenceNumber <= toSequenceNr)
+      .filter(_.ordering >= minOrdering)
+      .filter(_.ordering <= maxOrdering)
+      .sortBy(_.sequenceNumber.asc)
+      .take(max)
+
   val messagesQuery = Compiled(_messagesQuery _)
 
+  val messagesOrderingBoundedQuery = Compiled(_messagesOrderingBoundedQuery _)
 }

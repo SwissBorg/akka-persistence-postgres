@@ -11,7 +11,11 @@ import akka.pattern.ask
 import akka.persistence.postgres.config.JournalSequenceRetrievalConfig
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
-import akka.persistence.postgres.query.dao.{ ByteArrayReadJournalDao, TestProbeReadJournalDao }
+import akka.persistence.postgres.query.dao.{
+  ByteArrayReadJournalDao,
+  PartitionedReadJournalDao,
+  TestProbeReadJournalDao
+}
 import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao }
 import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.postgres.{ JournalRow, SharedActorSystemTestSpec }
@@ -22,6 +26,7 @@ import akka.testkit.TestProbe
 import io.circe.{ Json, JsonObject }
 import org.scalatest.time.Span
 import org.slf4j.LoggerFactory
+import slick.jdbc
 import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
 
 import scala.concurrent.Future
@@ -315,6 +320,26 @@ class PartitionedJournalSequenceActorTest extends JournalSequenceActorTest(Parti
         db.run(sqlu"""CREATE TABLE IF NOT EXISTS j_1 PARTITION OF journal FOR VALUES FROM (0) TO (1000000000);""")
       }
     }
+  }
+
+  override def withJournalSequenceActor(db: jdbc.JdbcBackend.Database, maxTries: Int)(f: ActorRef => Unit)(
+      implicit system: ActorSystem): Unit = {
+    import system.dispatcher
+    implicit val mat: Materializer = SystemMaterializer(system).materializer
+    val readJournalDao =
+      new PartitionedReadJournalDao(
+        db,
+        readJournalConfig,
+        SerializationExtension(system),
+        new CachedTagIdResolver(
+          new SimpleTagDao(db, readJournalConfig.tagsTableConfiguration),
+          readJournalConfig.tagsConfig))
+    val actor =
+      system.actorOf(
+        JournalSequenceActor
+          .props(readJournalDao, readJournalConfig.journalSequenceRetrievalConfiguration.copy(maxTries = maxTries)))
+    try f(actor)
+    finally system.stop(actor)
   }
 }
 
