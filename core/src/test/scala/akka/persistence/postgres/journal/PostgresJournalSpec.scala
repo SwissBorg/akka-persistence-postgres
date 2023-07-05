@@ -6,24 +6,24 @@
 package akka.persistence.postgres.journal
 
 import akka.actor.Actor
-import akka.persistence.JournalProtocol.{ReplayedMessage, WriteMessages, WriteMessagesFailed}
+import akka.persistence.JournalProtocol.{ ReplayedMessage, WriteMessages, WriteMessagesFailed }
 import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.query.ScalaPostgresReadJournalOperations
 import akka.persistence.postgres.util.Schema._
-import akka.persistence.postgres.util.{ClasspathResources, DropCreate}
+import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
 import akka.persistence.query.Sequence
-import akka.persistence.{AtomicWrite, CapabilityFlag, PersistentImpl, PersistentRepr}
+import akka.persistence.{ AtomicWrite, CapabilityFlag, PersistentImpl, PersistentRepr }
 import akka.testkit.TestProbe
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Minute, Span}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.time.{ Minute, Span }
+import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     extends JournalSpec(ConfigFactory.load(config))
@@ -65,13 +65,13 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
       writeMessages(1, repeatedSnr + 1, perId, sender.ref, writerUuid)
 
       // then
-      val msg = AtomicWrite(PersistentRepr(
-        payload = s"a-$repeatedSnr",
-        sequenceNr = repeatedSnr,
-        persistenceId = pid,
-        sender = sender.ref,
-        writerUuid = writerUuid
-      ))
+      val msg = AtomicWrite(
+        PersistentRepr(
+          payload = s"a-$repeatedSnr",
+          sequenceNr = repeatedSnr,
+          persistenceId = pid,
+          sender = sender.ref,
+          writerUuid = writerUuid))
 
       val probe = TestProbe()
       journal ! WriteMessages(Seq(msg), probe.ref, actorInstanceId)
@@ -137,6 +137,9 @@ class NestedPartitionsJournalSpecSharedDb
 class NestedPartitionsJournalSpecPhysicalDelete
     extends PostgresJournalSpec("nested-partitions-application-with-hard-delete.conf", NestedPartitions)
 
+class NestedPartitionsJournalSpecUseJournalMetadata
+    extends PostgresJournalSpec("nested-partitions-application-with-use-journal-metadata.conf", NestedPartitions)
+
 class PartitionedJournalSpec
     extends PostgresJournalSpec("partitioned-application.conf", Partitioned)
     with PartitionedJournalSpecTestCases
@@ -147,6 +150,12 @@ class PartitionedJournalSpecPhysicalDelete
     extends PostgresJournalSpec("partitioned-application-with-hard-delete.conf", Partitioned)
     with PartitionedJournalSpecTestCases
 
+class PartitionedJournalSpecUseJournalMetadata
+    extends PostgresJournalSpec("partitioned-application-with-use-journal-metadata.conf", Partitioned)
+    with PartitionedJournalSpecTestCases
+
 class PlainJournalSpec extends PostgresJournalSpec("plain-application.conf", Plain)
 class PlainJournalSpecSharedDb extends PostgresJournalSpec("plain-shared-db-application.conf", Plain)
 class PlainJournalSpecPhysicalDelete extends PostgresJournalSpec("plain-application-with-hard-delete.conf", Plain)
+class PlainJournalSpecUseJournalMetadata
+    extends PostgresJournalSpec("plain-application-with-use-journal-metadata.conf", Plain)

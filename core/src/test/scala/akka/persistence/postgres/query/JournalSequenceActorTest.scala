@@ -11,11 +11,7 @@ import akka.pattern.ask
 import akka.persistence.postgres.config.JournalSequenceRetrievalConfig
 import akka.persistence.postgres.db.ExtendedPostgresProfile
 import akka.persistence.postgres.query.JournalSequenceActor.{ GetMaxOrderingId, MaxOrderingId }
-import akka.persistence.postgres.query.dao.{
-  ByteArrayReadJournalDao,
-  PartitionedReadJournalDao,
-  TestProbeReadJournalDao
-}
+import akka.persistence.postgres.query.dao.{ FlatReadJournalDao, PartitionedReadJournalDao, TestProbeReadJournalDao }
 import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao }
 import akka.persistence.postgres.util.Schema.{ NestedPartitions, Partitioned, Plain, SchemaType }
 import akka.persistence.postgres.{ JournalRow, SharedActorSystemTestSpec }
@@ -31,7 +27,6 @@ import slick.jdbc.{ JdbcBackend, JdbcCapabilities }
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Random
 
 abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends QueryTestSpec(schemaType.configName) {
   private val log = LoggerFactory.getLogger(classOf[JournalSequenceActorTest])
@@ -181,7 +176,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
     import system.dispatcher
     implicit val mat: Materializer = SystemMaterializer(system).materializer
     val readJournalDao =
-      new ByteArrayReadJournalDao(
+      new FlatReadJournalDao(
         db,
         readJournalConfig,
         SerializationExtension(system),

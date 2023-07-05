@@ -19,9 +19,7 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     implicit ec: ExecutionContext,
     mat: Materializer)
     extends FlatJournalDao(db, journalConfig, serialization) {
-  override val queries = new JournalQueries(
-    PartitionedJournalTable(journalConfig.journalTableConfiguration),
-    JournalMetadataTable(journalConfig.journalMetadataTableConfiguration))
+  override val queries = new JournalQueries(PartitionedJournalTable(journalConfig.journalTableConfiguration))
   private val journalTableCfg = journalConfig.journalTableConfiguration
   private val partitionSize = journalConfig.partitionsConfig.size
   private val partitionPrefix = journalConfig.partitionsConfig.prefix
@@ -96,17 +94,23 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
       fromSequenceNr: Long,
       toSequenceNr: Long,
       max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
-    // Query the metadata table to get the known min and max ordering a persistence_id has,
-    // so that the postgres query planner might immediately discard scanning unnecessary partitions
-    val messagesQuery = queries.minAndMaxOrderingStoredForPersistenceId(persistenceId).result.headOption.flatMap {
-      case Some((minOrdering, maxOrdering)) =>
-        queries
-          .messagesOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering, maxOrdering)
-          .result
-      case None =>
-        queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
-    }
 
-    Source.fromPublisher(db.stream(messagesQuery)).via(serializer.deserializeFlow)
+    // This behaviour override is only applied here, because it is only useful on the PartitionedJournal strategy.
+    val query = if (journalConfig.useJournalMetadata) {
+      metadataQueries.minAndMaxOrderingForPersistenceId(persistenceId).result.headOption.flatMap {
+        case Some((minOrdering, maxOrdering)) =>
+          // if journal_metadata knows the min and max ordering of a persistenceId,
+          // use them to help the query planner to avoid scanning unnecessary partitions.
+          queries
+            .messagesOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering, maxOrdering)
+            .result
+        case None =>
+          // fallback to standard behaviour
+          queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
+      }
+    } else
+      queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
+
+    Source.fromPublisher(db.stream(query)).via(serializer.deserializeFlow)
   }
 }

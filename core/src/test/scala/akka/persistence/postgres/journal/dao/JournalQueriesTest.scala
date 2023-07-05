@@ -20,20 +20,10 @@ class JournalQueriesTest extends BaseQueryTest {
       "aaa") shouldBeSQL """select max("sequence_number") from "journal" where "persistence_id" = ?"""
   }
 
-  it should "create SQL query for highestStoredSequenceNrForPersistenceId" in withJournalQueries { queries =>
-    queries.highestStoredSequenceNrForPersistenceId(
-      "aaa") shouldBeSQL """select "max_sequence_number" from "journal_metadata" where "persistence_id" = ? limit 1"""
-  }
-
   it should "create SQL query for selectByPersistenceIdAndMaxSequenceNumber" in withJournalQueries { queries =>
     queries.selectByPersistenceIdAndMaxSequenceNumber(
       "aaa",
       11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ("persistence_id" = ?) and ("sequence_number" <= ?) order by "sequence_number" desc"""
-  }
-
-  it should "create SQL query for minAndMaxOrderingStoredForPersistenceId" in withJournalQueries { queries =>
-    queries.minAndMaxOrderingStoredForPersistenceId(
-      "aaa") shouldBeSQL """select "min_ordering", "max_ordering" from "journal_metadata" where "persistence_id" = ? limit 1"""
   }
 
   it should "create SQL query for messagesQuery" in withJournalQueries { queries =>
@@ -84,10 +74,7 @@ class JournalQueriesTest extends BaseQueryTest {
 
   private def withJournalQueries(f: JournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(
-        new JournalQueries(
-          FlatJournalTable.apply(journalConfig.journalTableConfiguration),
-          JournalMetadataTable.apply(journalConfig.journalMetadataTableConfiguration)))
+      f(new JournalQueries(FlatJournalTable.apply(journalConfig.journalTableConfiguration)))
     }
   }
 }

@@ -12,6 +12,7 @@ import scala.concurrent.duration._
 
 object ConfigKeys {
   val useSharedDb = "use-shared-db"
+  val useJournalMetadata = "use-journal-metadata"
 }
 
 class SlickConfiguration(config: Config) {
@@ -148,8 +149,10 @@ class JournalConfig(config: Config) {
   val tagsConfig = new TagsConfig(config)
   val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
+  val useJournalMetadata: Boolean = config.asBoolean(ConfigKeys.useJournalMetadata, false)
+
   override def toString: String =
-    s"JournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
+    s"JournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb,$useJournalMetadata)"
 }
 
 class SnapshotConfig(config: Config) {
@@ -186,7 +189,8 @@ class ReadJournalConfig(config: Config) {
   val maxBufferSize: Int = config.as[String]("max-buffer-size", "500").toInt
   val addShutdownHook: Boolean = config.asBoolean("add-shutdown-hook", true)
   val includeDeleted: Boolean = config.as[Boolean]("includeLogicallyDeleted", true)
+  val useJournalMetadata: Boolean = config.asBoolean(ConfigKeys.useJournalMetadata, false)
 
   override def toString: String =
-    s"ReadJournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$refreshInterval,$maxBufferSize,$addShutdownHook,$includeDeleted)"
+    s"ReadJournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$refreshInterval,$maxBufferSize,$addShutdownHook,$includeDeleted,$useJournalMetadata)"
 }

@@ -8,11 +8,6 @@ class ReadJournalQueriesTest extends BaseQueryTest {
     queries.allPersistenceIdsDistinct(23L) shouldBeSQL """select distinct "persistence_id" from "journal" limit ?"""
   }
 
-  it should "create SQL query for minAndMaxOrderingStoredForPersistenceId" in withReadJournalQueries { queries =>
-    queries.minAndMaxOrderingStoredForPersistenceId(
-      "aaa") shouldBeSQL """select "min_ordering", "max_ordering" from "journal_metadata" where "persistence_id" = ? limit 1"""
-  }
-
   it should "create SQL query for messagesQuery" in withReadJournalQueries { queries =>
     queries.messagesQuery(
       "p1",

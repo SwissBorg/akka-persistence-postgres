@@ -9,7 +9,11 @@ package query.dao
 import akka.NotUsed
 import akka.persistence.PersistentRepr
 import akka.persistence.postgres.config.ReadJournalConfig
-import akka.persistence.postgres.journal.dao.{ BaseJournalDaoWithReadMessages, ByteArrayJournalSerializer }
+import akka.persistence.postgres.journal.dao.{
+  BaseJournalDaoWithReadMessages,
+  ByteArrayJournalSerializer,
+  JournalMetadataTable
+}
 import akka.persistence.postgres.serialization.FlowPersistentReprSerializer
 import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.serialization.Serialization
@@ -61,46 +65,5 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao with BaseJournalDaoWith
 
   override def maxJournalSequence(): Future[Long] = {
     db.run(queries.maxOrdering.result)
-  }
-}
-
-class ByteArrayReadJournalDao(
-    val db: Database,
-    val readJournalConfig: ReadJournalConfig,
-    serialization: Serialization,
-    val tagIdResolver: TagIdResolver)(implicit val ec: ExecutionContext, val mat: Materializer)
-    extends BaseByteArrayReadJournalDao {
-  val queries = new ReadJournalQueries(readJournalConfig)
-  val serializer = new ByteArrayJournalSerializer(
-    serialization,
-    new CachedTagIdResolver(
-      new SimpleTagDao(db, readJournalConfig.tagsTableConfiguration),
-      readJournalConfig.tagsConfig))
-}
-
-class PartitionedReadJournalDao(
-    db: Database,
-    readJournalConfig: ReadJournalConfig,
-    serialization: Serialization,
-    tagIdResolver: TagIdResolver)(implicit ec: ExecutionContext, mat: Materializer)
-    extends ByteArrayReadJournalDao(db, readJournalConfig, serialization, tagIdResolver) {
-
-  import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
-
-  override def messages(
-      persistenceId: String,
-      fromSequenceNr: Long,
-      toSequenceNr: Long,
-      max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
-    val messagesQuery = queries.minAndMaxOrderingStoredForPersistenceId(persistenceId).result.headOption.flatMap {
-      case Some((minOrdering, maxOrdering)) =>
-        queries
-          .messagesOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering, maxOrdering)
-          .result
-      case None =>
-        queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
-    }
-
-    Source.fromPublisher(db.stream(messagesQuery)).via(serializer.deserializeFlow)
   }
 }

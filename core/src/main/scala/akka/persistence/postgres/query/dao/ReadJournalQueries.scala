@@ -13,8 +13,6 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
   private val journalTable: TableQuery[JournalTable] = FlatJournalTable(readJournalConfig.journalTableConfiguration)
-  private val journalMetadataTable: TableQuery[JournalMetadataTable] =
-    JournalMetadataTable.apply(readJournalConfig.journalMetadataTableConfiguration)
 
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
@@ -24,12 +22,6 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
     else journalTable.filter(_.deleted === false)
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
-
-  private def _minAndMaxOrderingStoredForPersistenceId(
-      persistenceId: Rep[String]): Query[(Rep[Long], Rep[Long]), (Long, Long), Seq] =
-    journalMetadataTable.filter(_.persistenceId === persistenceId).take(1).map(r => (r.minOrdering, r.maxOrdering))
-
-  val minAndMaxOrderingStoredForPersistenceId = Compiled(_minAndMaxOrderingStoredForPersistenceId _)
 
   private def _messagesQuery(
       persistenceId: Rep[String],

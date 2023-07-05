@@ -10,7 +10,7 @@ import io.circe.Json
 import slick.lifted.TableQuery
 import slick.sql.FixedSqlAction
 
-class JournalQueries(journalTable: TableQuery[JournalTable], journalMetadataTable: TableQuery[JournalMetadataTable]) {
+class JournalQueries(journalTable: TableQuery[JournalTable]) {
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
@@ -51,16 +51,10 @@ class JournalQueries(journalTable: TableQuery[JournalTable], journalMetadataTabl
   private def _highestSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     journalTable.filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
-  private def _highestStoredSequenceNrForPersistenceId(persistenceId: Rep[String]): Query[Rep[Long], Long, Seq] = {
-    journalMetadataTable.filter(_.persistenceId === persistenceId).map(_.maxSequenceNumber).take(1)
-  }
-
   private def _highestMarkedSequenceNrForPersistenceId(persistenceId: Rep[String]): Rep[Option[Long]] =
     journalTable.filter(_.deleted === true).filter(_.persistenceId === persistenceId).map(_.sequenceNumber).max
 
   val highestSequenceNrForPersistenceId = Compiled(_highestSequenceNrForPersistenceId _)
-
-  val highestStoredSequenceNrForPersistenceId = Compiled(_highestStoredSequenceNrForPersistenceId _)
 
   val highestMarkedSequenceNrForPersistenceId = Compiled(_highestMarkedSequenceNrForPersistenceId _)
 
@@ -73,12 +67,6 @@ class JournalQueries(journalTable: TableQuery[JournalTable], journalMetadataTabl
     journalTable.map(_.persistenceId).distinct
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
-
-  private def _minAndMaxOrderingStoredForPersistenceId(
-      persistenceId: Rep[String]): Query[(Rep[Long], Rep[Long]), (Long, Long), Seq] =
-    journalMetadataTable.filter(_.persistenceId === persistenceId).take(1).map(r => (r.minOrdering, r.maxOrdering))
-
-  val minAndMaxOrderingStoredForPersistenceId = Compiled(_minAndMaxOrderingStoredForPersistenceId _)
 
   private def _messagesQuery(
       persistenceId: Rep[String],
