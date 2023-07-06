@@ -6,19 +6,17 @@
 package akka.persistence.postgres
 package query.dao
 
-import akka.persistence.postgres.config.ReadJournalConfig
-import akka.persistence.postgres.journal.dao.{ FlatJournalTable, JournalMetadataTable, JournalTable }
+import akka.persistence.postgres.journal.dao.JournalTable
+import slick.lifted.TableQuery
 
-class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
+class ReadJournalQueries(journalTable: TableQuery[JournalTable], includeDeleted: Boolean) {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
-
-  private val journalTable: TableQuery[JournalTable] = FlatJournalTable(readJournalConfig.journalTableConfiguration)
 
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
 
   private def baseTableQuery() =
-    if (readJournalConfig.includeDeleted) journalTable
+    if (includeDeleted) journalTable
     else journalTable.filter(_.deleted === false)
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)

@@ -1,5 +1,6 @@
 package akka.persistence.postgres.query.dao
 
+import akka.persistence.postgres.journal.dao.FlatJournalTable
 import akka.persistence.postgres.util.BaseQueryTest
 
 class ReadJournalQueriesTest extends BaseQueryTest {
@@ -45,7 +46,10 @@ class ReadJournalQueriesTest extends BaseQueryTest {
 
   private def withReadJournalQueries(f: ReadJournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(new ReadJournalQueries(readJournalConfig))
+      f(
+        new ReadJournalQueries(
+          FlatJournalTable(readJournalConfig.journalTableConfiguration),
+          readJournalConfig.includeDeleted))
     }
   }
 }

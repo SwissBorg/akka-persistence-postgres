@@ -3,7 +3,11 @@ package akka.persistence.postgres.query.dao
 import akka.NotUsed
 import akka.persistence.PersistentRepr
 import akka.persistence.postgres.config.ReadJournalConfig
-import akka.persistence.postgres.journal.dao.{ ByteArrayJournalSerializer, JournalMetadataTable }
+import akka.persistence.postgres.journal.dao.{
+  ByteArrayJournalSerializer,
+  JournalMetadataTable,
+  PartitionedJournalTable
+}
 import akka.persistence.postgres.tag.{ CachedTagIdResolver, SimpleTagDao, TagIdResolver }
 import akka.serialization.Serialization
 import akka.stream.Materializer
@@ -22,7 +26,9 @@ class PartitionedReadJournalDao(
 
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
-  val queries = new ReadJournalQueries(readJournalConfig)
+  val queries = new ReadJournalQueries(
+    PartitionedJournalTable(readJournalConfig.journalTableConfiguration),
+    readJournalConfig.includeDeleted)
   private val metadataQueries: ReadJournalMetadataQueries = new ReadJournalMetadataQueries(
     JournalMetadataTable(readJournalConfig.journalMetadataTableConfiguration))
 
