@@ -12,13 +12,13 @@ jobs:
     name: Java ${{matrix.java}}
     strategy:
       matrix:
-        java: ['openjdk@1.11', 'adopt@1.11', 'openjdk@1.17']
+        java: ['adopt:1.11', 'temurin:1.11', 'temurin:1.17']
     steps:
     - uses: actions/checkout@v2
     - name: Setup Scala and Java
       uses: coursier/setup-action@v1
       with:
-        java-version: ${{matrix.java}}
+        jvm: ${{matrix.java}}
     - name: Start Postgres
       run: sh ./scripts/launch-postgres.sh
     - name: Run tests
