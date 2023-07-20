@@ -107,7 +107,7 @@ class TagsTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
-  val dao: String = config.asString("dao", "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao")
+  val dao: String = config.asString("dao", "akka.persistence.postgres.journal.dao.FlatJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
 }
 
@@ -122,12 +122,12 @@ class BaseByteArrayJournalDaoConfig(config: Config) {
 }
 
 class ReadJournalPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao")
+  val dao: String = config.as[String]("dao", "akka.persistence.postgres.query.dao.FlatReadJournalDao")
   override def toString: String = s"ReadJournalPluginConfig($dao)"
 }
 
 class SnapshotPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao")
+  val dao: String = config.as[String]("dao", "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao")
   override def toString: String = s"SnapshotPluginConfig($dao)"
 }
 

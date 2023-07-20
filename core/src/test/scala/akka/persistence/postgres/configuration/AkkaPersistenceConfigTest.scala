@@ -46,7 +46,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
+      |  dao = "akka.persistence.postgres.journal.dao.FlatJournalDao"
       |
       |  logicalDelete = true
       |
@@ -111,7 +111,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |    }
       |  }
       |
-      |  dao = "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
+      |  dao = "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao"
       |
       |  slick {
       |    profile = "slick.jdbc.MySQLProfile$"
@@ -163,7 +163,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
       |  # are delivered downstreams.
       |  max-buffer-size = "10"
       |
-      |  dao = "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
+      |  dao = "akka.persistence.postgres.query.dao.FlatReadJournalDao"
       |
       |  tags {
       |    cacheTtl = 12 hours
@@ -238,7 +238,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.journal.dao.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -267,7 +267,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -284,7 +284,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.query.dao.FlatReadJournalDao"
     cfg.refreshInterval shouldBe 1.second
     cfg.maxBufferSize shouldBe 500
 
@@ -313,7 +313,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.journal.dao.FlatJournalDao"
 
     cfg.journalTableConfiguration.tableName shouldBe "journal"
     cfg.journalTableConfiguration.schemaName shouldBe None
@@ -343,7 +343,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao"
 
     cfg.snapshotTableConfiguration.tableName shouldBe "snapshot"
     cfg.snapshotTableConfiguration.schemaName shouldBe None
@@ -360,7 +360,7 @@ class AkkaPersistenceConfigTest extends AnyFlatSpec with Matchers with OptionVal
     slickConfiguration.jndiName shouldBe None
     slickConfiguration.jndiDbName shouldBe None
 
-    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao"
+    cfg.pluginConfig.dao shouldBe "akka.persistence.postgres.query.dao.FlatReadJournalDao"
     cfg.refreshInterval shouldBe 300.millis
     cfg.maxBufferSize shouldBe 10
 
