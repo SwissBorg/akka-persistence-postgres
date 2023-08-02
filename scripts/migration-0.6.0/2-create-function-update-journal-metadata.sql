@@ -26,8 +26,8 @@ BEGIN
   jm_table := schema || '.' || jm_table_name;
   cols := jm_persistence_id_column || ', ' || jm_max_sequence_number_column || ', ' || jm_max_ordering_column || ', ' || jm_min_ordering_column;
   vals := '($1).' || j_persistence_id_column || ', ($1).' || j_sequence_number_column || ', ($1).' || j_ordering_column || ',($1).' || j_ordering_column;
-  upds := jm_max_sequence_number_column || ' = ($1).' || j_sequence_number_column || ', ' ||
-          jm_max_ordering_column || ' = ($1).' || j_ordering_column || ', ' ||
+  upds := jm_max_sequence_number_column || ' = GREATEST(' || jm_table || '.' || jm_max_sequence_number_column || ', ($1).' || j_sequence_number_column || '), ' ||
+          jm_max_ordering_column || ' = GREATEST(' || jm_table || '.' || jm_max_ordering_column || ', ($1).' || j_ordering_column || '), ' ||
           jm_min_ordering_column || ' = LEAST(' || jm_table || '.' || jm_min_ordering_column || ', ($1).' || j_ordering_column || ')';
 
   sql := 'INSERT INTO ' || jm_table || ' (' || cols || ') VALUES (' || vals || ') ' ||

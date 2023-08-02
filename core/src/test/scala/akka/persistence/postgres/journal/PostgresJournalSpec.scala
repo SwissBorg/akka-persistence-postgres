@@ -84,8 +84,9 @@ trait PartitionedJournalSpecTestCases {
   this: PostgresJournalSpec =>
 
   "A journal" must {
-    "store events concurrently for different persistence ids without creating duplicates or gaps among journal ordering (offset)" in {
+    "store events concurrently without any gaps or duplicates among ordering (offset) values" in {
       // given
+      val perId = "perId-1"
       val numOfSenders = 5
       val batchSize = 1000
       val senders = List.fill(numOfSenders)(TestProbe()).zipWithIndex
@@ -95,35 +96,30 @@ trait PartitionedJournalSpecTestCases {
         .sequence {
           senders.map { case (sender, idx) =>
             Future {
-              writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, s"perId-${idx + 1}", sender.ref, writerUuid)
+              writeMessages((idx * batchSize) + 1, (idx + 1) * batchSize, perId, sender.ref, writerUuid)
             }
           }
         }
         .futureValue(Timeout(Span(1, Minute)))
 
-      val journalOps = new ScalaPostgresReadJournalOperations(system)
-      var orderings: IndexedSeq[Long] = IndexedSeq.empty
-
-      senders.foreach { case (_, idx) =>
-        journalOps.withCurrentEventsByPersistenceId()(s"perId-${idx + 1}") { tp =>
-          tp.request(Long.MaxValue)
-          val replayedMessages = (1 to batchSize).map { _ =>
-            tp.expectNext()
-          }
-          tp.expectComplete()
-          orderings = orderings ++ replayedMessages.map(_.offset).collect { case Sequence(value) =>
-            value
-          }
-        }
-      }
-
       // then
-      orderings.size should equal(batchSize * numOfSenders)
-      val minOrd = orderings.min
-      val maxOrd = orderings.max
-      val expectedOrderings = (minOrd to maxOrd).toList
+      val journalOps = new ScalaPostgresReadJournalOperations(system)
+      journalOps.withCurrentEventsByPersistenceId()(perId) { tp =>
+        tp.request(Long.MaxValue)
+        val replayedMessages = (1 to batchSize * numOfSenders).map { _ =>
+          tp.expectNext()
+        }
+        tp.expectComplete()
+        val orderings = replayedMessages.map(_.offset).collect { case Sequence(value) =>
+          value
+        }
+        orderings.size should equal(batchSize * numOfSenders)
+        val minOrd = orderings.min
+        val maxOrd = orderings.max
+        val expectedOrderings = (minOrd to maxOrd).toList
 
-      (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
+        (orderings.sorted should contain).theSameElementsInOrderAs(expectedOrderings)
+      }
     }
   }
 

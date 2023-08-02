@@ -69,8 +69,6 @@ Here is the list of sample flyway migration scripts you can use:
 1. [create journal_metadata table](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/1-create-journal-metadata-table.sql)
 2. [create function to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/2-create-function-update-journal-metadata.sql)
 3. [create trigger to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/3-create-trigger-update-journal-metadata.sql)
-4. [create function to check consistency of max sequence_nr per persistence_id](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/4-create-function-check-persistence-id-max-sequence.sql)
-5. [create trigger to check consistency of max sequence_nr per persistence_id](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/5-create-trigger-check-persistence-id-max-sequence.sql)
 
 ⚠️ Ensure to adapt the top level variables of the scripts to appropriate values that match your journal configuration/setup.
 
