@@ -64,11 +64,15 @@ See [sample flyway migration script](https://github.com/SwissBorg/akka-persisten
 
 ## Migration from akka-persistence-postgres 0.5.0 to 0.6.0
 
+TODO IMPROVE THIS SECTION WITH MORE DETAILS.
+
 The new `journal_metadata` table needs to be added, alongside the triggers and functions associated with it.
+
 Here is the list of sample flyway migration scripts you can use:
 1. [create journal_metadata table](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/1-create-journal-metadata-table.sql)
 2. [create function to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/2-create-function-update-journal-metadata.sql)
 3. [create trigger to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/3-create-trigger-update-journal-metadata.sql)
+4. [populate journal_metadata with past data](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/4-populate-journal-metadata.sql)
 
 ⚠️ Ensure to adapt the top level variables of the scripts to appropriate values that match your journal configuration/setup.
 

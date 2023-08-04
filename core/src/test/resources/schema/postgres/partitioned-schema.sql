@@ -87,14 +87,26 @@ $$
 DECLARE
 BEGIN
   INSERT INTO public.journal_metadata (persistence_id, max_sequence_number, max_ordering, min_ordering)
-  VALUES (NEW.persistence_id, NEW.sequence_number, NEW.ordering, NEW.ordering)
+  VALUES (
+    NEW.persistence_id,
+    NEW.sequence_number,
+    NEW.ordering,
+    CASE
+      WHEN NEW.sequence_number = 1 THEN NEW.ordering
+      ELSE 0
+    END
+  )
   ON CONFLICT (persistence_id) DO UPDATE
   SET
     max_sequence_number = GREATEST(public.journal_metadata.max_sequence_number, NEW.sequence_number),
-    max_ordering = GREATEST(public.journal_metadata.max_ordering, NEW.ordering),
-    min_ordering = LEAST(public.journal_metadata.min_ordering, NEW.ordering);
+    max_ordering = GREATEST(public.journal_metadata.max_ordering, NEW.ordering);
 
   RETURN NEW;
 END;
 $$
 LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_update_journal_metadata
+  AFTER INSERT ON public.journal
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.update_journal_metadata();

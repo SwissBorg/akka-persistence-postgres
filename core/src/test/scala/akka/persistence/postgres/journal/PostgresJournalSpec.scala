@@ -5,11 +5,12 @@
 
 package akka.persistence.postgres.journal
 
-import akka.actor.Actor
-import akka.persistence.JournalProtocol.{ ReplayedMessage, WriteMessages, WriteMessagesFailed }
+import akka.actor.{ Actor, ActorRef }
+import akka.persistence.JournalProtocol.{ ReplayedMessage, WriteMessages, WriteMessagesFailed, WriteMessagesSuccessful }
 import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
+import akka.persistence.postgres.journal.dao.JournalMetadataTable
 import akka.persistence.postgres.query.ScalaPostgresReadJournalOperations
 import akka.persistence.postgres.util.Schema._
 import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
@@ -54,6 +55,19 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     super.afterAll()
   }
 
+  private def writeSingleMessage(seqNr: Int, pid: String, sender: ActorRef, writerUuid: String) = {
+    val msg = AtomicWrite(
+      PersistentRepr(
+        payload = s"a-$seqNr",
+        sequenceNr = seqNr,
+        persistenceId = pid,
+        sender = sender,
+        writerUuid = writerUuid))
+    val probe = TestProbe()
+    journal ! WriteMessages(List(msg), probe.ref, actorInstanceId)
+    probe.expectMsg(WriteMessagesSuccessful)
+  }
+
   "A journal" must {
     "not allow to store events with sequence number lower than what is already stored for the same persistence id" in {
       // given
@@ -69,13 +83,89 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
         PersistentRepr(
           payload = s"a-$repeatedSnr",
           sequenceNr = repeatedSnr,
-          persistenceId = pid,
+          persistenceId = perId,
           sender = sender.ref,
           writerUuid = writerUuid))
 
       val probe = TestProbe()
       journal ! WriteMessages(Seq(msg), probe.ref, actorInstanceId)
       probe.expectMsgType[WriteMessagesFailed]
+    }
+  }
+
+  "An insert on the journal" must {
+    import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
+
+    val metadataTable = JournalMetadataTable(journalConfig.journalMetadataTableConfiguration)
+
+    "automatically insert journal metadata" in {
+      // given
+      val perId = "perId-meta-1"
+      val sender = TestProbe()
+
+      // when
+      writeSingleMessage(1, perId, sender.ref, writerUuid)
+
+      // then
+      val metadataExists = db.run(metadataTable.filter(_.persistenceId === perId).exists.result).futureValue
+      metadataExists shouldBe true
+    }
+
+    "upsert only max_sequence_number and max_ordering if metadata already exists" in {
+      // given
+      val perId = "perId-meta-2"
+      val sender = TestProbe()
+      writeSingleMessage(1, perId, sender.ref, writerUuid)
+      val prevMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val prevMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val prevMinOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      // when
+      writeSingleMessage(2, perId, sender.ref, writerUuid)
+
+      // then
+      val newMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val newMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val newMinOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      newMaxSeqNr shouldBe prevMaxSeqNr + 1
+      newMaxOrdering shouldBe prevMaxOrdering + 1
+      newMinOrdering shouldBe prevMinOrdering
+    }
+
+    "set min_ordering to 0 when no metadata entry exists but the event being inserted is not the first one for the persistenceId (sequence_number > 1)" in {
+      // given
+      val perId = "perId-meta-3"
+      val sender = TestProbe()
+      writeSingleMessage(1, perId, sender.ref, writerUuid)
+      val prevMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val prevMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+
+      // when
+      // simulate case where metadata does not exist, but persistenceId already has events
+      db.run(metadataTable.filter(_.persistenceId === perId).delete).futureValue
+      // write new event of same persistenceId
+      writeSingleMessage(2, perId, sender.ref, writerUuid)
+
+      // then
+      val newMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val newMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val newMinOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      newMaxSeqNr shouldBe prevMaxSeqNr + 1
+      newMaxOrdering shouldBe prevMaxOrdering + 1
+      newMinOrdering shouldBe 0
     }
   }
 }

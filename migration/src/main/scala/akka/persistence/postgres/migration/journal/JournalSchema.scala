@@ -110,12 +110,19 @@ private[journal] trait JournalSchema {
             DECLARE
             BEGIN
               INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
-              VALUES (NEW.#$jPersistenceId, NEW.#$sequenceNumber, NEW.#$ordering, NEW.#$ordering)
+              VALUES (
+                NEW.#$jPersistenceId,
+                NEW.#$sequenceNumber,
+                NEW.#$ordering,
+                CASE
+                  WHEN NEW.#$sequenceNumber = 1 THEN NEW.#$ordering
+                  ELSE -1
+                END
+              )
               ON CONFLICT (#$persistenceId) DO UPDATE
               SET
                 #$maxSequenceNumber = GREATEST(#$fullTableName.#$maxSequenceNumber, NEW.#$sequenceNumber),
-                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering),
-                #$minOrdering = LEAST(#$fullTableName.#$minOrdering, NEW.#$ordering);
+                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering);
             
               RETURN NEW;
             END;
