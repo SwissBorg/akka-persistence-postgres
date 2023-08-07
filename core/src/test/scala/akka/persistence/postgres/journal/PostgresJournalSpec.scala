@@ -139,7 +139,7 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
       newMinOrdering shouldBe prevMinOrdering
     }
 
-    "set min_ordering to 0 when no metadata entry exists but the event being inserted is not the first one for the persistenceId (sequence_number > 1)" in {
+    "set min_ordering to -1 when no metadata entry exists but the event being inserted is not the first one for the persistenceId (sequence_number > 1)" in {
       // given
       val perId = "perId-meta-3"
       val sender = TestProbe()
@@ -165,7 +165,7 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
 
       newMaxSeqNr shouldBe prevMaxSeqNr + 1
       newMaxOrdering shouldBe prevMaxOrdering + 1
-      newMinOrdering shouldBe 0
+      newMinOrdering shouldBe -1
     }
   }
 }

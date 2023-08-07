@@ -26,7 +26,7 @@ BEGIN
   jm_table := schema || '.' || jm_table_name;
   cols := jm_persistence_id_column || ', ' || jm_max_sequence_number_column || ', ' || jm_max_ordering_column || ', ' || jm_min_ordering_column;
   vals := '($1).' || j_persistence_id_column || ', ($1).' || j_sequence_number_column || ', ($1).' || j_ordering_column ||
-          ', CASE WHEN ($1).' || j_sequence_number_column || ' = 1 THEN ($1).' || j_ordering_column || ' ELSE 0 END';
+          ', CASE WHEN ($1).' || j_sequence_number_column || ' = 1 THEN ($1).' || j_ordering_column || ' ELSE -1 END';
   upds := jm_max_sequence_number_column || ' = GREATEST(' || jm_table || '.' || jm_max_sequence_number_column || ', ($1).' || j_sequence_number_column || '), ' ||
           jm_max_ordering_column || ' = GREATEST(' || jm_table || '.' || jm_max_ordering_column || ', ($1).' || j_ordering_column || ')';
 
