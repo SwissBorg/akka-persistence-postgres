@@ -190,9 +190,6 @@ trait PrepareDatabase extends BeforeAndAfterEach with BeforeAndAfterAll with Sca
       _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalTableName"""
       _ <- sqlu"""DROP TRIGGER IF EXISTS trig_update_journal_metadata ON migration.#$journalTableName"""
       _ <- sqlu"""DROP FUNCTION IF EXISTS migration.update_journal_metadata()"""
-      _ <-
-        sqlu"""DROP TRIGGER IF EXISTS trig_check_persistence_id_max_sequence_number ON migration.#$journalMetadataTableName"""
-      _ <- sqlu"""DROP FUNCTION IF EXISTS migration.check_persistence_id_max_sequence_number()"""
       _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalMetadataTableName"""
       _ <- sqlu"""CREATE TABLE IF NOT EXISTS migration.#$journalTableName
         (

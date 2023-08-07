@@ -76,7 +76,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
               JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
             }
             .grouped(10000)
-            .mapAsync(1) { rows =>
+            .mapAsync(4) { rows =>
               db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
@@ -112,7 +112,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
               JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
             }
             .grouped(10000)
-            .mapAsync(1) { rows =>
+            .mapAsync(4) { rows =>
               db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)
@@ -145,7 +145,7 @@ abstract class JournalSequenceActorTest(val schemaType: SchemaType) extends Quer
               JournalRow(id, deleted = false, "id", id, Array(0.toByte), Nil, emptyJson)
             }
             .grouped(10000)
-            .mapAsync(1) { rows =>
+            .mapAsync(4) { rows =>
               db.run(journalTable.forceInsertAll(rows))
             }
             .runWith(Sink.ignore)

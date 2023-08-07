@@ -23,10 +23,10 @@ BEGIN
   sql := 'CREATE TABLE IF NOT EXISTS ' || jm_table ||
        '(' ||
           jm_id_column || ' BIGINT GENERATED ALWAYS AS IDENTITY, ' ||
-          jm_persistence_id_column || ' TEXT NOT NULL, ' ||
           jm_max_sequence_number_column || ' BIGINT NOT NULL, ' ||
           jm_max_ordering_column || ' BIGINT NOT NULL, ' ||
           jm_min_ordering_column || ' BIGINT NOT NULL, ' ||
+          jm_persistence_id_column || ' TEXT NOT NULL, ' ||
           'PRIMARY KEY (' || jm_persistence_id_column || ')' ||
         ') PARTITION BY HASH(' || jm_persistence_id_column || ')';
 

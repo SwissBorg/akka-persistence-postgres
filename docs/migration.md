@@ -64,17 +64,29 @@ See [sample flyway migration script](https://github.com/SwissBorg/akka-persisten
 
 ## Migration from akka-persistence-postgres 0.5.0 to 0.6.0
 
-The new `journal_metadata` table needs to be added, alongside the triggers and functions associated with it.
-Here is the list of sample flyway migration scripts you can use:
+Version 0.6.0 aims to improve the performance of the query that has the most DB I/O when using this plugin: 
+```sql
+select max("sequence_number") from "journal" where "persistence_id" = ?
+```
+
+We introduced a new `journal_metadata` table that will be holding key data per persistence id, that will be used to speed up the above query and others (like the one used to replay events). To do this, we are trading off a bit of performance at event write time and the query read time. This impact is caused by the usage of a DB trigger that is executed everytime an insert on the journal happens.
+So, for now this table is holding the following information per persistence id:
+- max sequence number among all the associated events; 
+- min and max ordering interval where the events are located within the journal; 
+
+We believe the trade-off is worth it since the impact on write performance is much lower that the gain when read time, observed on these queries that take the most of the DB I/O.
+
+Below is the list of sample flyway migration scripts you can use to add this new table and associated triggers.
+⚠️ The last one of them is a simplistic data migration to populate the new table. However, if your data size is big consider using a more lazy ad-hoc alternative that does batch reads from the journal and inserts the missing data. The trigger you will be adding is idempotent, so it is safe to re-process some events when the ad-hoc job is catching up to present date events.    
+
 1. [create journal_metadata table](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/1-create-journal-metadata-table.sql)
 2. [create function to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/2-create-function-update-journal-metadata.sql)
 3. [create trigger to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/3-create-trigger-update-journal-metadata.sql)
-4. [create function to check consistency of max sequence_nr per persistence_id](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/4-create-function-check-persistence-id-max-sequence.sql)
-5. [create trigger to check consistency of max sequence_nr per persistence_id](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/5-create-trigger-check-persistence-id-max-sequence.sql)
+4. [populate journal_metadata with past data](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/4-populate-journal-metadata.sql)
 
 ⚠️ Ensure to adapt the top level variables of the scripts to appropriate values that match your journal configuration/setup.
 
-This new table is used to improve the performance of specific queries. However, its usage is not enabled by default, so the previous (v0.5.0) behaviour is kept. 
+Keep in mind that the usage of the new table by the queries is not enabled by default, so the previous (v0.5.0) behaviour is kept. 
 In order to make use of it you need to specify it through the configuration of your journal:
 
 ```hocon

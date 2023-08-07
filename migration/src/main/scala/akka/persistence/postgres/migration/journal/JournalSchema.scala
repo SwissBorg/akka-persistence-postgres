@@ -32,11 +32,11 @@ private[journal] trait JournalSchema {
     import journalMetadataTableCfg.columnNames._
     for {
       _ <- sqlu"""CREATE TABLE #$fullTableName (
-            #$id BIGINT GENERATED ALWAYS AS IDENTITY,
-            #$persistenceId TEXT NOT NULL,
+            #$id                BIGINT GENERATED ALWAYS AS IDENTITY,
             #$maxSequenceNumber BIGINT       NOT NULL,
             #$maxOrdering       BIGINT       NOT NULL,
             #$minOrdering       BIGINT       NOT NULL,
+            #$persistenceId     TEXT NOT NULL,
             PRIMARY KEY (#$persistenceId)
           ) PARTITION BY HASH(#$persistenceId)"""
       _ <-
@@ -110,12 +110,19 @@ private[journal] trait JournalSchema {
             DECLARE
             BEGIN
               INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
-              VALUES (NEW.#$jPersistenceId, NEW.#$sequenceNumber, NEW.#$ordering, NEW.#$ordering)
+              VALUES (
+                NEW.#$jPersistenceId,
+                NEW.#$sequenceNumber,
+                NEW.#$ordering,
+                CASE
+                  WHEN NEW.#$sequenceNumber = 1 THEN NEW.#$ordering
+                  ELSE -1
+                END
+              )
               ON CONFLICT (#$persistenceId) DO UPDATE
               SET
-                #$maxSequenceNumber = NEW.#$sequenceNumber,
-                #$maxOrdering = NEW.#$ordering,
-                #$minOrdering = LEAST(#$fullTableName.#$minOrdering, NEW.#$ordering);
+                #$maxSequenceNumber = GREATEST(#$fullTableName.#$maxSequenceNumber, NEW.#$sequenceNumber),
+                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering);
             
               RETURN NEW;
             END;
@@ -134,26 +141,6 @@ private[journal] trait JournalSchema {
             AFTER INSERT ON #$fullTmpTableName
             FOR EACH ROW
             EXECUTE PROCEDURE #$schema.update_journal_metadata();
-           """
-
-      _ <- sqlu"""
-            CREATE OR REPLACE FUNCTION #$schema.check_persistence_id_max_sequence_number() RETURNS TRIGGER AS $$$$
-            DECLARE
-            BEGIN
-              IF NEW.#$maxSequenceNumber <= OLD.#$maxSequenceNumber THEN
-                RAISE EXCEPTION 'New max_sequence_number not higher than previous value';
-              END IF;
-              
-              RETURN NEW;
-            END;
-            $$$$ LANGUAGE plpgsql;
-           """
-
-      _ <- sqlu"""
-            CREATE TRIGGER trig_check_persistence_id_max_sequence_number
-            BEFORE UPDATE ON #$fullTableName
-            FOR EACH ROW
-            EXECUTE PROCEDURE #$schema.check_persistence_id_max_sequence_number();
            """
     } yield ()
   }
