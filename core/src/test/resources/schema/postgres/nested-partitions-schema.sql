@@ -92,7 +92,7 @@ BEGIN
     NEW.ordering,
     CASE
       WHEN NEW.sequence_number = 1 THEN NEW.ordering
-      ELSE 0
+      ELSE -1
     END
   )
   ON CONFLICT (persistence_id) DO UPDATE
