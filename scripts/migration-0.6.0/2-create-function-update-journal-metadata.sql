@@ -13,6 +13,8 @@ DECLARE
   jm_max_sequence_number_column CONSTANT TEXT := 'max_sequence_number';
   jm_max_ordering_column CONSTANT TEXT := 'max_ordering';
   jm_min_ordering_column CONSTANT TEXT := 'min_ordering';
+  first_sequence_number_value CONSTANT INTEGER := 1;
+  unset_min_ordering_value CONSTANT INTEGER := -1;
 
   -- variables
   j_table TEXT;
@@ -26,7 +28,7 @@ BEGIN
   jm_table := schema || '.' || jm_table_name;
   cols := jm_persistence_id_column || ', ' || jm_max_sequence_number_column || ', ' || jm_max_ordering_column || ', ' || jm_min_ordering_column;
   vals := '($1).' || j_persistence_id_column || ', ($1).' || j_sequence_number_column || ', ($1).' || j_ordering_column ||
-          ', CASE WHEN ($1).' || j_sequence_number_column || ' = 1 THEN ($1).' || j_ordering_column || ' ELSE -1 END';
+          ', CASE WHEN ($1).' || j_sequence_number_column || ' = ' || first_sequence_number_value || ' THEN ($1).' || j_ordering_column || ' ELSE ' || unset_min_ordering_value || ' END';
   upds := jm_max_sequence_number_column || ' = GREATEST(' || jm_table || '.' || jm_max_sequence_number_column || ', ($1).' || j_sequence_number_column || '), ' ||
           jm_max_ordering_column || ' = GREATEST(' || jm_table || '.' || jm_max_ordering_column || ', ($1).' || j_ordering_column || ')';
 
