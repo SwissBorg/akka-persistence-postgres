@@ -97,18 +97,29 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 
     val metadataTable = JournalMetadataTable(journalConfig.journalMetadataTableConfiguration)
+    val UNSET_MIN_ORDERING = -1
 
     "automatically insert journal metadata" in {
       // given
       val perId = "perId-meta-1"
       val sender = TestProbe()
+      val prevMetadataExists = db.run(metadataTable.filter(_.persistenceId === perId).exists.result).futureValue
 
       // when
       writeSingleMessage(1, perId, sender.ref, writerUuid)
 
       // then
-      val metadataExists = db.run(metadataTable.filter(_.persistenceId === perId).exists.result).futureValue
-      metadataExists shouldBe true
+      val newMetadataExists = db.run(metadataTable.filter(_.persistenceId === perId).exists.result).futureValue
+      val maxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val minOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      prevMetadataExists shouldBe false
+      newMetadataExists shouldBe true
+      // when its the first event the insert should take the ordering value and set that on the min and max_ordering columns
+      maxOrdering shouldBe minOrdering
+      minOrdering > 0 shouldBe true
     }
 
     "upsert only max_sequence_number and max_ordering if metadata already exists" in {
@@ -137,9 +148,10 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
       newMaxSeqNr shouldBe prevMaxSeqNr + 1
       newMaxOrdering shouldBe prevMaxOrdering + 1
       newMinOrdering shouldBe prevMinOrdering
+      newMaxOrdering > 0 shouldBe true
     }
 
-    "set min_ordering to -1 when no metadata entry exists but the event being inserted is not the first one for the persistenceId (sequence_number > 1)" in {
+    "set min_ordering to UNSET_MIN_ORDERING when no metadata entry exists but the event being inserted is not the first one for the persistenceId (sequence_number > 1)" in {
       // given
       val perId = "perId-meta-3"
       val sender = TestProbe()
@@ -165,7 +177,7 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
 
       newMaxSeqNr shouldBe prevMaxSeqNr + 1
       newMaxOrdering shouldBe prevMaxOrdering + 1
-      newMinOrdering shouldBe -1
+      newMinOrdering shouldBe UNSET_MIN_ORDERING
     }
   }
 }
