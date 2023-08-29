@@ -177,6 +177,9 @@ trait PrepareDatabase extends BeforeAndAfterEach with BeforeAndAfterAll with Sca
     val journalTableConfig = journalConfig.journalTableConfiguration
     val journalTableName = journalTableConfig.tableName
 
+    val journalMetadataTableConfig = journalConfig.journalMetadataTableConfiguration
+    val journalMetadataTableName = journalMetadataTableConfig.tableName
+
     val tagsTableConfig = journalConfig.tagsTableConfiguration
     import journalTableConfig.columnNames.{ tags => tagsCol, _ }
     for {
@@ -185,6 +188,9 @@ trait PrepareDatabase extends BeforeAndAfterEach with BeforeAndAfterAll with Sca
       _ <- sqlu"""DROP TABLE IF EXISTS migration.old_#$journalTableName"""
       _ <- sqlu"""DROP TABLE IF EXISTS migration.#$tempJournalTableName"""
       _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalTableName"""
+      _ <- sqlu"""DROP TRIGGER IF EXISTS trig_update_journal_metadata ON migration.#$journalTableName"""
+      _ <- sqlu"""DROP FUNCTION IF EXISTS migration.update_journal_metadata()"""
+      _ <- sqlu"""DROP TABLE IF EXISTS migration.#$journalMetadataTableName"""
       _ <- sqlu"""CREATE TABLE IF NOT EXISTS migration.#$journalTableName
         (
             #$ordering       BIGSERIAL,

@@ -24,6 +24,28 @@ private[journal] trait JournalSchema {
   def getTable: TableQuery[TempJournalTable]
   def createTable: DBIOAction[Unit, NoStream, Effect.Write]
 
+  def createJournalMetadataTable: DBIOAction[Unit, NoStream, Effect.Write] = {
+    val journalMetadataTableCfg = journalCfg.journalMetadataTableConfiguration
+    val fullTableName =
+      s"${journalMetadataTableCfg.schemaName.getOrElse("public")}.${journalMetadataTableCfg.tableName}"
+
+    import journalMetadataTableCfg.columnNames._
+    for {
+      _ <- sqlu"""CREATE TABLE #$fullTableName (
+            #$id                BIGINT GENERATED ALWAYS AS IDENTITY,
+            #$maxSequenceNumber BIGINT       NOT NULL,
+            #$maxOrdering       BIGINT       NOT NULL,
+            #$minOrdering       BIGINT       NOT NULL,
+            #$persistenceId     TEXT NOT NULL,
+            PRIMARY KEY (#$persistenceId)
+          ) PARTITION BY HASH(#$persistenceId)"""
+      _ <-
+        sqlu"""CREATE TABLE #${fullTableName}_0 PARTITION OF #$fullTableName FOR VALUES WITH (MODULUS 2, REMAINDER 0)"""
+      _ <-
+        sqlu"""CREATE TABLE #${fullTableName}_1 PARTITION OF #$fullTableName FOR VALUES WITH (MODULUS 2, REMAINDER 1)"""
+    } yield ()
+  }
+
   def createTagsTable: DBIOAction[Unit, NoStream, Effect.Write] = {
     val tagsTableConfig = journalCfg.tagsTableConfiguration
     import tagsTableConfig.columnNames._
@@ -71,6 +93,57 @@ private[journal] trait JournalSchema {
       _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_#${tags}_idx RENAME TO #${journalTableCfg.tableName}_#${tags}_idx"""
       _ <- sqlu"""ALTER INDEX #${fullTmpTableName}_pkey RENAME TO #${journalTableCfg.tableName}_pkey"""
     } yield ()
+
+  def createTriggers: DBIOAction[Unit, NoStream, Effect.Write] = {
+    val journalTableCfg = journalCfg.journalTableConfiguration
+    val journalMetadataTableCfg = journalCfg.journalMetadataTableConfiguration
+    val schema = journalMetadataTableCfg.schemaName.getOrElse("public")
+    val fullTableName = s"$schema.${journalMetadataTableCfg.tableName}"
+    val journalFullTableName = s"$schema.${journalTableCfg.tableName}"
+
+    import journalMetadataTableCfg.columnNames._
+    import journalTableCfg.columnNames.{ persistenceId => jPersistenceId, _ }
+
+    for {
+      _ <- sqlu"""
+            CREATE OR REPLACE FUNCTION #$schema.update_journal_metadata() RETURNS TRIGGER AS $$$$
+            DECLARE
+            BEGIN
+              INSERT INTO #$fullTableName (#$persistenceId, #$maxSequenceNumber, #$maxOrdering, #$minOrdering)
+              VALUES (
+                NEW.#$jPersistenceId,
+                NEW.#$sequenceNumber,
+                NEW.#$ordering,
+                CASE
+                  WHEN NEW.#$sequenceNumber = 1 THEN NEW.#$ordering
+                  ELSE -1
+                END
+              )
+              ON CONFLICT (#$persistenceId) DO UPDATE
+              SET
+                #$maxSequenceNumber = GREATEST(#$fullTableName.#$maxSequenceNumber, NEW.#$sequenceNumber),
+                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering);
+            
+              RETURN NEW;
+            END;
+            $$$$ LANGUAGE plpgsql;
+           """
+
+      _ <- sqlu"""
+            CREATE TRIGGER trig_update_journal_metadata
+            AFTER INSERT ON #$journalFullTableName
+            FOR EACH ROW
+            EXECUTE PROCEDURE #$schema.update_journal_metadata();
+           """
+
+      _ <- sqlu"""
+            CREATE TRIGGER trig_update_journal_metadata
+            AFTER INSERT ON #$fullTmpTableName
+            FOR EACH ROW
+            EXECUTE PROCEDURE #$schema.update_journal_metadata();
+           """
+    } yield ()
+  }
 }
 
 private[journal] object JournalSchema {

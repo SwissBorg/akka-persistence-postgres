@@ -23,7 +23,7 @@ postgres-snapshot-store {
 }
 
 postgres-read-journal {
-  dao = "akka.persistence.postgres.query.dao.ByteArrayReadJournalDao"
+  dao = "akka.persistence.postgres.query.dao.FlatReadJournalDao"
 }
 ```
 

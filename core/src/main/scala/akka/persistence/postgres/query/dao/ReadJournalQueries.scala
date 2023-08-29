@@ -6,19 +6,17 @@
 package akka.persistence.postgres
 package query.dao
 
-import akka.persistence.postgres.config.ReadJournalConfig
-import akka.persistence.postgres.journal.dao.{ FlatJournalTable, JournalTable }
+import akka.persistence.postgres.journal.dao.JournalTable
+import slick.lifted.TableQuery
 
-class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
+class ReadJournalQueries(journalTable: TableQuery[JournalTable], includeDeleted: Boolean) {
   import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
-
-  private val journalTable: TableQuery[JournalTable] = FlatJournalTable(readJournalConfig.journalTableConfiguration)
 
   private def _allPersistenceIdsDistinct(max: ConstColumn[Long]): Query[Rep[String], String, Seq] =
     baseTableQuery().map(_.persistenceId).distinct.take(max)
 
   private def baseTableQuery() =
-    if (readJournalConfig.includeDeleted) journalTable
+    if (includeDeleted) journalTable
     else journalTable.filter(_.deleted === false)
 
   val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct _)
@@ -27,7 +25,7 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
       persistenceId: Rep[String],
       fromSequenceNr: Rep[Long],
       toSequenceNr: Rep[Long],
-      max: ConstColumn[Long]) =
+      max: ConstColumn[Long]): Query[JournalTable, JournalRow, Seq] =
     baseTableQuery()
       .filter(_.persistenceId === persistenceId)
       .filter(_.sequenceNumber >= fromSequenceNr)
@@ -35,7 +33,25 @@ class ReadJournalQueries(val readJournalConfig: ReadJournalConfig) {
       .sortBy(_.sequenceNumber.asc)
       .take(max)
 
+  private def _messagesOrderingBoundedQuery(
+      persistenceId: Rep[String],
+      fromSequenceNr: Rep[Long],
+      toSequenceNr: Rep[Long],
+      max: ConstColumn[Long],
+      minOrdering: Rep[Long],
+      maxOrdering: Rep[Long]): Query[JournalTable, JournalRow, Seq] =
+    baseTableQuery()
+      .filter(_.persistenceId === persistenceId)
+      .filter(_.sequenceNumber >= fromSequenceNr)
+      .filter(_.sequenceNumber <= toSequenceNr)
+      .filter(_.ordering >= minOrdering)
+      .filter(_.ordering <= maxOrdering)
+      .sortBy(_.sequenceNumber.asc)
+      .take(max)
+
   val messagesQuery = Compiled(_messagesQuery _)
+
+  val messagesOrderingBoundedQuery = Compiled(_messagesOrderingBoundedQuery _)
 
   protected def _eventsByTag(
       tag: Rep[List[Int]],

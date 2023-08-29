@@ -6,7 +6,7 @@
 package akka.persistence.postgres
 package journal.dao
 
-import akka.persistence.postgres.config.JournalTableConfiguration
+import akka.persistence.postgres.config.{ JournalMetadataTableConfiguration, JournalTableConfiguration }
 import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
 import io.circe.Json
 
@@ -89,4 +89,32 @@ object PartitionedJournalTable {
 object NestedPartitionsJournalTable {
   def apply(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable] =
     FlatJournalTable.apply(journalTableCfg)
+}
+
+class JournalMetadataTable(_tableTag: Tag, journalMetadataTableCfg: JournalMetadataTableConfiguration)
+    extends Table[JournalMetadataRow](
+      _tableTag,
+      _schemaName = journalMetadataTableCfg.schemaName,
+      _tableName = journalMetadataTableCfg.tableName) {
+  override def * = (
+    id,
+    persistenceId,
+    maxSequenceNumber,
+    minOrdering,
+    maxOrdering) <> (JournalMetadataRow.tupled, JournalMetadataRow.unapply)
+
+  val id: Rep[Long] = column[Long](journalMetadataTableCfg.columnNames.id)
+  val persistenceId: Rep[String] =
+    column[String](journalMetadataTableCfg.columnNames.persistenceId, O.Length(255, varying = true))
+  val maxSequenceNumber: Rep[Long] = column[Long](journalMetadataTableCfg.columnNames.maxSequenceNumber)
+  val minOrdering: Rep[Long] = column[Long](journalMetadataTableCfg.columnNames.minOrdering)
+  val maxOrdering: Rep[Long] = column[Long](journalMetadataTableCfg.columnNames.maxOrdering)
+
+  val pk = primaryKey(s"${tableName}_pk", persistenceId)
+}
+
+object JournalMetadataTable {
+  def apply(
+             journalMetadataTableCfg: JournalMetadataTableConfiguration): TableQuery[JournalMetadataTable] =
+    TableQuery(tag => new JournalMetadataTable(tag, journalMetadataTableCfg))
 }

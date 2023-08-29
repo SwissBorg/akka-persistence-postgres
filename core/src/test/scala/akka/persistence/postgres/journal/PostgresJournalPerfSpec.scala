@@ -8,15 +8,15 @@ package akka.persistence.postgres.journal
 import akka.actor.Props
 import akka.persistence.CapabilityFlag
 import akka.persistence.journal.JournalPerfSpec
-import akka.persistence.journal.JournalPerfSpec.{BenchActor, Cmd, ResetCounter}
+import akka.persistence.journal.JournalPerfSpec.{ BenchActor, Cmd, ResetCounter }
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
 import akka.persistence.postgres.util.Schema._
-import akka.persistence.postgres.util.{ClasspathResources, DropCreate}
+import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
 import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
@@ -114,6 +114,9 @@ class NestedPartitionsJournalPerfSpecSharedDb
 class NestedPartitionsJournalPerfSpecPhysicalDelete
     extends PostgresJournalPerfSpec("nested-partitions-application-with-hard-delete.conf", NestedPartitions)
 
+class NestedPartitionsJournalPerfSpecUseJournalMetadata
+    extends PostgresJournalPerfSpec("nested-partitions-application-with-use-journal-metadata.conf", NestedPartitions)
+
 class PartitionedJournalPerfSpec extends PostgresJournalPerfSpec("partitioned-application.conf", Partitioned)
 
 class PartitionedJournalPerfSpecSharedDb
@@ -122,9 +125,15 @@ class PartitionedJournalPerfSpecSharedDb
 class PartitionedJournalPerfSpecPhysicalDelete
     extends PostgresJournalPerfSpec("partitioned-application-with-hard-delete.conf", Partitioned)
 
+class PartitionedJournalPerfSpecUseJournalMetadata
+    extends PostgresJournalPerfSpec("partitioned-application-with-use-journal-metadata.conf", Partitioned)
+
 class PlainJournalPerfSpec extends PostgresJournalPerfSpec("plain-application.conf", Plain)
 
 class PlainJournalPerfSpecSharedDb extends PostgresJournalPerfSpec("plain-shared-db-application.conf", Plain)
 
 class PlainJournalPerfSpecPhysicalDelete
     extends PostgresJournalPerfSpec("plain-application-with-hard-delete.conf", Plain)
+
+class PlainJournalPerfSpecUseJournalMetadata
+    extends PostgresJournalPerfSpec("plain-application-with-use-journal-metadata.conf", Plain)

@@ -38,3 +38,48 @@ CREATE TABLE IF NOT EXISTS public.snapshot
     metadata        jsonb  NOT NULL,
     PRIMARY KEY (persistence_id, sequence_number)
 );
+
+DROP TRIGGER IF EXISTS trig_update_journal_metadata ON public.journal;
+DROP FUNCTION IF EXISTS public.update_journal_metadata();
+DROP TABLE IF EXISTS public.journal_metadata;
+
+CREATE TABLE public.journal_metadata(
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY,
+  max_sequence_number BIGINT NOT NULL,
+  min_ordering        BIGINT NOT NULL,
+  max_ordering        BIGINT NOT NULL,
+  persistence_id      TEXT NOT NULL,
+  PRIMARY KEY (persistence_id)
+) PARTITION BY HASH(persistence_id);
+
+CREATE TABLE public.journal_metadata_0 PARTITION OF public.journal_metadata FOR VALUES WITH (MODULUS 2, REMAINDER 0);
+CREATE TABLE public.journal_metadata_1 PARTITION OF public.journal_metadata FOR VALUES WITH (MODULUS 2, REMAINDER 1);
+
+CREATE OR REPLACE FUNCTION public.update_journal_metadata() RETURNS TRIGGER AS
+$$
+DECLARE
+BEGIN
+  INSERT INTO public.journal_metadata (persistence_id, max_sequence_number, max_ordering, min_ordering)
+  VALUES (
+    NEW.persistence_id,
+    NEW.sequence_number,
+    NEW.ordering,
+    CASE
+      WHEN NEW.sequence_number = 1 THEN NEW.ordering
+      ELSE -1
+    END
+  )
+  ON CONFLICT (persistence_id) DO UPDATE
+  SET
+    max_sequence_number = GREATEST(public.journal_metadata.max_sequence_number, NEW.sequence_number),
+    max_ordering = GREATEST(public.journal_metadata.max_ordering, NEW.ordering);
+
+  RETURN NEW;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE TRIGGER trig_update_journal_metadata
+  AFTER INSERT ON public.journal
+  FOR EACH ROW
+  EXECUTE PROCEDURE public.update_journal_metadata();

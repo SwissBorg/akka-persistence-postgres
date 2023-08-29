@@ -22,14 +22,14 @@ We provide you with an optional artifact, `akka-persistence-postgres-migration` 
 #### Add akka-persistence-migration to your project
 Add the following to your `build.sbt` 
 ```
-libraryDependencies += "com.swissborg" %% "akka-persistence-postgres-migration" % "0.5.0"
+libraryDependencies += "com.swissborg" %% "akka-persistence-postgres-migration" % "0.6.0-RC1"
 ``` 
 For a maven project add: 
 ```xml
 <dependency>
     <groupId>com.swisborg</groupId>
     <artifactId>akka-persistence-postgres-migration_2.13</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0-RC1</version>
 </dependency>
 ``` 
 to your `pom.xml`.
@@ -61,3 +61,65 @@ Execute DDL statements produced by the [sample migration script](https://github.
 
 ### Deploy new release with migration scripts
 See [sample flyway migration script](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.5.0/partitioned/2-add-indices-flyway.sql) and adapt top level variables to match your journal configuration.
+
+## Migration from akka-persistence-postgres 0.5.0 to 0.6.0
+
+Version 0.6.0 aims to improve the performance of the query that has the most DB I/O when using this plugin: 
+```sql
+select max("sequence_number") from "journal" where "persistence_id" = ?
+```
+
+We introduced a new `journal_metadata` table that will be holding key data per persistence id, that will be used to speed up the above query and others (like the one used to replay events). To do this, we are trading off a bit of performance at event write time and the query read time. This impact is caused by the usage of a DB trigger that is executed everytime an insert on the journal happens.
+So, for now this table is holding the following information per persistence id:
+- max sequence number among all the associated events; 
+- min and max ordering interval where the events are located within the journal; 
+
+We believe the trade-off is worth it since the impact on write performance is much lower that the gain when read time, observed on these queries that take the most of the DB I/O.
+
+Below is the list of sample flyway migration scripts you can use to add this new table and associated triggers.
+⚠️ The last one of them is a simplistic data migration to populate the new table. However, if your data size is big consider using a more lazy ad-hoc alternative that does batch reads from the journal and inserts the missing data. The trigger you will be adding is idempotent, so it is safe to re-process some events when the ad-hoc job is catching up to present date events.    
+
+1. [create journal_metadata table](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/1-create-journal-metadata-table.sql)
+2. [create function to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/2-create-function-update-journal-metadata.sql)
+3. [create trigger to update journal_metadata](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/3-create-trigger-update-journal-metadata.sql)
+4. [populate journal_metadata with past data](https://github.com/SwissBorg/akka-persistence-postgres/blob/master/scripts/migration-0.6.0/4-populate-journal-metadata.sql)
+
+⚠️ Ensure to adapt the top level variables of the scripts to appropriate values that match your journal configuration/setup.
+
+Keep in mind that the usage of the new table by the queries is not enabled by default, so the previous (v0.5.0) behaviour is kept. 
+In order to make use of it you need to specify it through the configuration of your journal:
+
+```hocon
+{
+  postgres-journal {
+    ...
+
+    use-journal-metadata = true # Default is false
+  }
+  
+  # Same applies to the read journal
+  postgres-read-journal {
+    ...
+
+    use-journal-metadata = true # Default is false
+  }
+}
+```
+
+Another important change that was introduced was that there is now a `FlatReadJournalDao` and a `PartitionedReadJournalDao`. 
+The first is the direct replacement of the previous `ByteArrayReadJournalDao` and it is the one set by default. 
+However, with the addition of the `journal_metadata`, if you are using the partitioned journal please change it to `PartitionedReadJournalDao`, 
+as some of the queries in use will benefit from it.
+
+```hocon
+{
+  postgres-read-journal {
+    ...
+      
+    dao = "akka.persistence.postgres.query.dao.PartitionedReadJournalDao"
+    use-journal-metadata = true # Default is false
+  }
+}
+```
+
+⚠️ Also, since a new table is being added it might be required for you to adapt your `postgres-journal.tables` configuration. 

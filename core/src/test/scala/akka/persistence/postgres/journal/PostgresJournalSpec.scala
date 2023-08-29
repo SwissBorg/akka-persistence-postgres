@@ -5,16 +5,17 @@
 
 package akka.persistence.postgres.journal
 
-import akka.actor.Actor
-import akka.persistence.JournalProtocol.ReplayedMessage
+import akka.actor.{ Actor, ActorRef }
+import akka.persistence.JournalProtocol.{ ReplayedMessage, WriteMessages, WriteMessagesFailed, WriteMessagesSuccessful }
 import akka.persistence.journal.JournalSpec
 import akka.persistence.postgres.config._
 import akka.persistence.postgres.db.SlickExtension
+import akka.persistence.postgres.journal.dao.JournalMetadataTable
 import akka.persistence.postgres.query.ScalaPostgresReadJournalOperations
 import akka.persistence.postgres.util.Schema._
 import akka.persistence.postgres.util.{ ClasspathResources, DropCreate }
 import akka.persistence.query.Sequence
-import akka.persistence.{ CapabilityFlag, PersistentImpl }
+import akka.persistence.{ AtomicWrite, CapabilityFlag, PersistentImpl, PersistentRepr }
 import akka.testkit.TestProbe
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
@@ -54,6 +55,131 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
     super.afterAll()
   }
 
+  private def writeSingleMessage(seqNr: Int, pid: String, sender: ActorRef, writerUuid: String) = {
+    val msg = AtomicWrite(
+      PersistentRepr(
+        payload = s"a-$seqNr",
+        sequenceNr = seqNr,
+        persistenceId = pid,
+        sender = sender,
+        writerUuid = writerUuid))
+    val probe = TestProbe()
+    journal ! WriteMessages(List(msg), probe.ref, actorInstanceId)
+    probe.expectMsg(WriteMessagesSuccessful)
+  }
+
+  "A journal" must {
+    "not allow to store events with sequence number lower than what is already stored for the same persistence id" in {
+      // given
+      val perId = "perId"
+      val sender = TestProbe()
+      val repeatedSnr = 5
+
+      // when
+      writeMessages(1, repeatedSnr + 1, perId, sender.ref, writerUuid)
+
+      // then
+      val msg = AtomicWrite(
+        PersistentRepr(
+          payload = s"a-$repeatedSnr",
+          sequenceNr = repeatedSnr,
+          persistenceId = perId,
+          sender = sender.ref,
+          writerUuid = writerUuid))
+
+      val probe = TestProbe()
+      journal ! WriteMessages(Seq(msg), probe.ref, actorInstanceId)
+      probe.expectMsgType[WriteMessagesFailed]
+    }
+  }
+
+  "An insert on the journal" must {
+    import akka.persistence.postgres.db.ExtendedPostgresProfile.api._
+
+    val metadataTable = JournalMetadataTable(journalConfig.journalMetadataTableConfiguration)
+    val UNSET_MIN_ORDERING = -1
+
+    "automatically insert journal metadata" in {
+      // given
+      val perId = "perId-meta-1"
+      val sender = TestProbe()
+      val prevMetadataExists = db.run(metadataTable.filter(_.persistenceId === perId).exists.result).futureValue
+
+      // when
+      writeSingleMessage(1, perId, sender.ref, writerUuid)
+
+      // then
+      val newMetadataExists = db.run(metadataTable.filter(_.persistenceId === perId).exists.result).futureValue
+      val maxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val minOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      prevMetadataExists shouldBe false
+      newMetadataExists shouldBe true
+      // when its the first event the insert should take the ordering value and set that on the min and max_ordering columns
+      maxOrdering shouldBe minOrdering
+      minOrdering > 0 shouldBe true
+    }
+
+    "upsert only max_sequence_number and max_ordering if metadata already exists" in {
+      // given
+      val perId = "perId-meta-2"
+      val sender = TestProbe()
+      writeSingleMessage(1, perId, sender.ref, writerUuid)
+      val prevMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val prevMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val prevMinOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      // when
+      writeSingleMessage(2, perId, sender.ref, writerUuid)
+
+      // then
+      val newMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val newMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val newMinOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      newMaxSeqNr shouldBe prevMaxSeqNr + 1
+      newMaxOrdering shouldBe prevMaxOrdering + 1
+      newMinOrdering shouldBe prevMinOrdering
+      newMaxOrdering > 0 shouldBe true
+    }
+
+    "set min_ordering to UNSET_MIN_ORDERING when no metadata entry exists but the event being inserted is not the first one for the persistenceId (sequence_number > 1)" in {
+      // given
+      val perId = "perId-meta-3"
+      val sender = TestProbe()
+      writeSingleMessage(1, perId, sender.ref, writerUuid)
+      val prevMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val prevMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+
+      // when
+      // simulate case where metadata does not exist, but persistenceId already has events
+      db.run(metadataTable.filter(_.persistenceId === perId).delete).futureValue
+      // write new event of same persistenceId
+      writeSingleMessage(2, perId, sender.ref, writerUuid)
+
+      // then
+      val newMaxSeqNr =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxSequenceNumber).result.head).futureValue
+      val newMaxOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.maxOrdering).result.head).futureValue
+      val newMinOrdering =
+        db.run(metadataTable.filter(_.persistenceId === perId).map(_.minOrdering).result.head).futureValue
+
+      newMaxSeqNr shouldBe prevMaxSeqNr + 1
+      newMaxOrdering shouldBe prevMaxOrdering + 1
+      newMinOrdering shouldBe UNSET_MIN_ORDERING
+    }
+  }
 }
 
 trait PartitionedJournalSpecTestCases {
@@ -109,6 +235,9 @@ class NestedPartitionsJournalSpecSharedDb
 class NestedPartitionsJournalSpecPhysicalDelete
     extends PostgresJournalSpec("nested-partitions-application-with-hard-delete.conf", NestedPartitions)
 
+class NestedPartitionsJournalSpecUseJournalMetadata
+    extends PostgresJournalSpec("nested-partitions-application-with-use-journal-metadata.conf", NestedPartitions)
+
 class PartitionedJournalSpec
     extends PostgresJournalSpec("partitioned-application.conf", Partitioned)
     with PartitionedJournalSpecTestCases
@@ -119,6 +248,12 @@ class PartitionedJournalSpecPhysicalDelete
     extends PostgresJournalSpec("partitioned-application-with-hard-delete.conf", Partitioned)
     with PartitionedJournalSpecTestCases
 
+class PartitionedJournalSpecUseJournalMetadata
+    extends PostgresJournalSpec("partitioned-application-with-use-journal-metadata.conf", Partitioned)
+    with PartitionedJournalSpecTestCases
+
 class PlainJournalSpec extends PostgresJournalSpec("plain-application.conf", Plain)
 class PlainJournalSpecSharedDb extends PostgresJournalSpec("plain-shared-db-application.conf", Plain)
 class PlainJournalSpecPhysicalDelete extends PostgresJournalSpec("plain-application-with-hard-delete.conf", Plain)
+class PlainJournalSpecUseJournalMetadata
+    extends PostgresJournalSpec("plain-application-with-use-journal-metadata.conf", Plain)

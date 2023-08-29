@@ -6,10 +6,10 @@
 package akka.persistence.postgres.util
 
 import java.sql.Statement
-
-import akka.persistence.postgres.config.JournalTableConfiguration
+import akka.persistence.postgres.config.{ JournalMetadataTableConfiguration, JournalTableConfiguration }
 import akka.persistence.postgres.journal.dao.{
   FlatJournalTable,
+  JournalMetadataTable,
   JournalTable,
   NestedPartitionsJournalTable,
   PartitionedJournalTable
@@ -25,6 +25,8 @@ object Schema {
     lazy val schema: String = s"schema/postgres/$resourceNamePrefix-schema.sql"
     lazy val configName: String = s"${resourceNamePrefix}-application.conf"
     def table(journalTableCfg: JournalTableConfiguration): TableQuery[JournalTable]
+    def metadataTable(journalMetadataTableCfg: JournalMetadataTableConfiguration)
+        : TableQuery[JournalMetadataTable] = JournalMetadataTable.apply(journalMetadataTableCfg)
   }
 
   case object Plain extends SchemaType {

@@ -12,6 +12,7 @@ import scala.concurrent.duration._
 
 object ConfigKeys {
   val useSharedDb = "use-shared-db"
+  val useJournalMetadata = "use-journal-metadata"
 }
 
 class SlickConfiguration(config: Config) {
@@ -47,6 +48,26 @@ class JournalTableConfiguration(config: Config) {
   val schemaName: Option[String] = cfg.as[String]("schemaName").trim
   val columnNames: JournalTableColumnNames = new JournalTableColumnNames(config)
   override def toString: String = s"JournalTableConfiguration($tableName,$schemaName,$columnNames)"
+}
+
+class JournalMetadataTableColumnNames(config: Config) {
+  private val cfg = config.asConfig("tables.journalMetadata.columnNames")
+  val id: String = cfg.as[String]("id", "id")
+  val persistenceId: String = cfg.as[String]("persistenceId", "persistence_id")
+  val maxSequenceNumber: String = cfg.as[String]("maxSequenceNumber", "max_sequence_number")
+  val maxOrdering: String = cfg.as[String]("maxOrdering", "max_ordering")
+  val minOrdering: String = cfg.as[String]("minOrdering", "min_ordering")
+
+  override def toString: String =
+    s"JournalMetadataTableColumnNames($id,$persistenceId,$maxSequenceNumber,$maxOrdering,$minOrdering)"
+}
+
+class JournalMetadataTableConfiguration(config: Config) {
+  private val cfg = config.asConfig("tables.journalMetadata")
+  val tableName: String = cfg.as[String]("tableName", "journal_metadata")
+  val schemaName: Option[String] = cfg.as[String]("schemaName").trim
+  val columnNames: JournalMetadataTableColumnNames = new JournalMetadataTableColumnNames(config)
+  override def toString: String = s"JournalMetadataTableConfiguration($tableName,$schemaName,$columnNames)"
 }
 
 class SnapshotTableColumnNames(config: Config) {
@@ -86,7 +107,7 @@ class TagsTableConfiguration(config: Config) {
 }
 
 class JournalPluginConfig(config: Config) {
-  val dao: String = config.asString("dao", "akka.persistence.postgres.dao.bytea.journal.FlatJournalDao")
+  val dao: String = config.asString("dao", "akka.persistence.postgres.journal.dao.FlatJournalDao")
   override def toString: String = s"JournalPluginConfig($dao)"
 }
 
@@ -101,12 +122,12 @@ class BaseByteArrayJournalDaoConfig(config: Config) {
 }
 
 class ReadJournalPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.postgres.dao.bytea.readjournal.ByteArrayReadJournalDao")
+  val dao: String = config.as[String]("dao", "akka.persistence.postgres.query.dao.FlatReadJournalDao")
   override def toString: String = s"ReadJournalPluginConfig($dao)"
 }
 
 class SnapshotPluginConfig(config: Config) {
-  val dao: String = config.as[String]("dao", "akka.persistence.postgres.dao.bytea.snapshot.ByteArraySnapshotDao")
+  val dao: String = config.as[String]("dao", "akka.persistence.postgres.snapshot.dao.ByteArraySnapshotDao")
   override def toString: String = s"SnapshotPluginConfig($dao)"
 }
 
@@ -122,13 +143,16 @@ class TagsConfig(config: Config) {
 class JournalConfig(config: Config) {
   val partitionsConfig = new JournalPartitionsConfiguration(config)
   val journalTableConfiguration = new JournalTableConfiguration(config)
+  val journalMetadataTableConfiguration = new JournalMetadataTableConfiguration(config)
   val pluginConfig = new JournalPluginConfig(config)
   val daoConfig = new BaseByteArrayJournalDaoConfig(config)
   val tagsConfig = new TagsConfig(config)
   val tagsTableConfiguration = new TagsTableConfiguration(config)
   val useSharedDb: Option[String] = config.asOptionalNonEmptyString(ConfigKeys.useSharedDb)
+  val useJournalMetadata: Boolean = config.asBoolean(ConfigKeys.useJournalMetadata, false)
+
   override def toString: String =
-    s"JournalConfig($journalTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb)"
+    s"JournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$tagsConfig,$partitionsConfig,$useSharedDb,$useJournalMetadata)"
 }
 
 class SnapshotConfig(config: Config) {
@@ -156,6 +180,7 @@ case class JournalSequenceRetrievalConfig(
 
 class ReadJournalConfig(config: Config) {
   val journalTableConfiguration = new JournalTableConfiguration(config)
+  val journalMetadataTableConfiguration = new JournalMetadataTableConfiguration(config)
   val journalSequenceRetrievalConfiguration = JournalSequenceRetrievalConfig(config)
   val pluginConfig = new ReadJournalPluginConfig(config)
   val tagsConfig = new TagsConfig(config)
@@ -164,7 +189,8 @@ class ReadJournalConfig(config: Config) {
   val maxBufferSize: Int = config.as[String]("max-buffer-size", "500").toInt
   val addShutdownHook: Boolean = config.asBoolean("add-shutdown-hook", true)
   val includeDeleted: Boolean = config.as[Boolean]("includeLogicallyDeleted", true)
+  val useJournalMetadata: Boolean = config.asBoolean(ConfigKeys.useJournalMetadata, false)
 
   override def toString: String =
-    s"ReadJournalConfig($journalTableConfiguration,$pluginConfig,$refreshInterval,$maxBufferSize,$addShutdownHook,$includeDeleted)"
+    s"ReadJournalConfig($journalTableConfiguration,$journalMetadataTableConfiguration,$pluginConfig,$refreshInterval,$maxBufferSize,$addShutdownHook,$includeDeleted,$useJournalMetadata)"
 }

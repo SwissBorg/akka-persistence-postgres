@@ -15,6 +15,7 @@ import akka.stream.scaladsl.{ Keep, Sink, Source }
 import akka.stream.{ Materializer, OverflowStrategy, QueueOfferResult }
 import akka.{ Done, NotUsed }
 import org.slf4j.{ Logger, LoggerFactory }
+import slick.dbio.DBIOAction
 import slick.jdbc.JdbcBackend._
 
 import scala.collection.immutable._
@@ -38,6 +39,9 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   import journalConfig.daoConfig.{ batchSize, bufferSize, logicalDelete, parallelism }
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
+
+  lazy val metadataQueries: JournalMetadataQueries = new JournalMetadataQueries(
+    JournalMetadataTable(journalConfig.journalMetadataTableConfiguration))
 
   // This logging may block since we don't control how the user will configure logback
   // We can't use a Akka logging neither because we don't have an ActorSystem in scope and
@@ -137,10 +141,22 @@ trait BaseByteArrayJournalDao extends JournalDaoWithUpdates with BaseJournalDaoW
   private def highestMarkedSequenceNr(persistenceId: String) =
     queries.highestMarkedSequenceNrForPersistenceId(persistenceId).result
 
-  override def highestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
-    for {
-      maybeHighestSeqNo <- db.run(queries.highestSequenceNrForPersistenceId(persistenceId).result)
-    } yield maybeHighestSeqNo.getOrElse(0L)
+  override def highestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] = {
+    val query = if (journalConfig.useJournalMetadata) {
+      metadataQueries.highestSequenceNrForPersistenceId(persistenceId).result.headOption.flatMap {
+        case Some(maxSequenceNr) =>
+          // return the stored max sequence nr on journal metadata table
+          DBIOAction.successful(Some(maxSequenceNr))
+        case None =>
+          // journal metadata do not have information for this persistenceId -> fallback to standard behaviour
+          queries.highestSequenceNrForPersistenceId(persistenceId).result
+      }
+    } else
+      queries.highestSequenceNrForPersistenceId(persistenceId).result
+
+    // Default to 0L when nothing is found for this persistenceId
+    db.run(query).map(_.getOrElse(0L))
+  }
 
   override def messages(
       persistenceId: String,

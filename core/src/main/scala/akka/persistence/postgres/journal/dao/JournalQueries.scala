@@ -19,9 +19,6 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
   def writeJournalRows(xs: Seq[JournalRow]): FixedSqlAction[Option[Int], NoStream, slick.dbio.Effect.Write] =
     compiledJournalTable ++= xs.sortBy(_.sequenceNumber)
 
-  private def selectAllJournalForPersistenceId(persistenceId: Rep[String]) =
-    journalTable.filter(_.persistenceId === persistenceId).sortBy(_.sequenceNumber.desc)
-
   def delete(persistenceId: String, toSequenceNr: Long): FixedSqlAction[Int, NoStream, slick.dbio.Effect.Write] = {
     journalTable.filter(_.persistenceId === persistenceId).filter(_.sequenceNumber <= toSequenceNr).delete
   }
@@ -58,16 +55,6 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
 
   val highestMarkedSequenceNrForPersistenceId = Compiled(_highestMarkedSequenceNrForPersistenceId _)
 
-  private def _selectByPersistenceIdAndMaxSequenceNumber(persistenceId: Rep[String], maxSequenceNr: Rep[Long]) =
-    selectAllJournalForPersistenceId(persistenceId).filter(_.sequenceNumber <= maxSequenceNr)
-
-  val selectByPersistenceIdAndMaxSequenceNumber = Compiled(_selectByPersistenceIdAndMaxSequenceNumber _)
-
-  private def _allPersistenceIdsDistinct: Query[Rep[String], String, Seq] =
-    journalTable.map(_.persistenceId).distinct
-
-  val allPersistenceIdsDistinct = Compiled(_allPersistenceIdsDistinct)
-
   private def _messagesQuery(
       persistenceId: Rep[String],
       fromSequenceNr: Rep[Long],
@@ -81,6 +68,24 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
       .sortBy(_.sequenceNumber.asc)
       .take(max)
 
+  private def _messagesOrderingBoundedQuery(
+      persistenceId: Rep[String],
+      fromSequenceNr: Rep[Long],
+      toSequenceNr: Rep[Long],
+      max: ConstColumn[Long],
+      minOrdering: Rep[Long],
+      maxOrdering: Rep[Long]): Query[JournalTable, JournalRow, Seq] =
+    journalTable
+      .filter(_.persistenceId === persistenceId)
+      .filter(_.deleted === false)
+      .filter(_.sequenceNumber >= fromSequenceNr)
+      .filter(_.sequenceNumber <= toSequenceNr)
+      .filter(_.ordering >= minOrdering)
+      .filter(_.ordering <= maxOrdering)
+      .sortBy(_.sequenceNumber.asc)
+      .take(max)
+
   val messagesQuery = Compiled(_messagesQuery _)
 
+  val messagesOrderingBoundedQuery = Compiled(_messagesOrderingBoundedQuery _)
 }

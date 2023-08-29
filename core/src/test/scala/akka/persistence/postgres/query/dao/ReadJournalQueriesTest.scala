@@ -1,5 +1,6 @@
 package akka.persistence.postgres.query.dao
 
+import akka.persistence.postgres.journal.dao.FlatJournalTable
 import akka.persistence.postgres.util.BaseQueryTest
 
 class ReadJournalQueriesTest extends BaseQueryTest {
@@ -14,6 +15,16 @@ class ReadJournalQueriesTest extends BaseQueryTest {
       1L,
       4L,
       5L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
+  }
+
+  it should "create SQL query for messagesOrderingBoundedQuery" in withReadJournalQueries { queries =>
+    queries.messagesOrderingBoundedQuery(
+      "aaa",
+      1L,
+      4L,
+      5L,
+      1L,
+      10L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (((("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?)) and ("ordering" >= ?)) and ("ordering" <= ?) order by "sequence_number" limit ?"""
   }
 
   it should "create SQL query for eventsByTag" in withReadJournalQueries { queries =>
@@ -35,7 +46,10 @@ class ReadJournalQueriesTest extends BaseQueryTest {
 
   private def withReadJournalQueries(f: ReadJournalQueries => Unit): Unit = {
     withActorSystem { implicit system =>
-      f(new ReadJournalQueries(readJournalConfig))
+      f(
+        new ReadJournalQueries(
+          FlatJournalTable(readJournalConfig.journalTableConfiguration),
+          readJournalConfig.includeDeleted))
     }
   }
 }
