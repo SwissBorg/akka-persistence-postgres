@@ -122,7 +122,7 @@ abstract class PostgresJournalSpec(config: String, schemaType: SchemaType)
       minOrdering > 0 shouldBe true
     }
 
-    "upsert only max_sequence_number and max_ordering if metadata already exists" in {
+    "if metadata already exists only max_sequence_number and max_ordering should update and min_ordering should stay the same" in {
       // given
       val perId = "perId-meta-2"
       val sender = TestProbe()

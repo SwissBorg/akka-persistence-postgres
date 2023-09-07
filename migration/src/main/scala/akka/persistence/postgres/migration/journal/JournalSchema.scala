@@ -122,7 +122,8 @@ private[journal] trait JournalSchema {
               ON CONFLICT (#$persistenceId) DO UPDATE
               SET
                 #$maxSequenceNumber = GREATEST(#$fullTableName.#$maxSequenceNumber, NEW.#$sequenceNumber),
-                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering);
+                #$maxOrdering = GREATEST(#$fullTableName.#$maxOrdering, NEW.#$ordering),
+                #$minOrdering = LEAST(#$fullTableName.#$minOrdering, NEW.#$ordering);
             
               RETURN NEW;
             END;
