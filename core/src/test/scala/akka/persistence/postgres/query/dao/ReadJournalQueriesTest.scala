@@ -23,8 +23,7 @@ class ReadJournalQueriesTest extends BaseQueryTest {
       1L,
       4L,
       5L,
-      1L,
-      10L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (((("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?)) and ("ordering" >= ?)) and ("ordering" <= ?) order by "sequence_number" limit ?"""
+      1L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ((("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?)) and ("ordering" >= ?) order by "sequence_number" limit ?"""
   }
 
   it should "create SQL query for eventsByTag" in withReadJournalQueries { queries =>

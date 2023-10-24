@@ -30,8 +30,7 @@ class JournalQueriesTest extends BaseQueryTest {
       11L,
       11L,
       11L,
-      11L,
-      11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where ((((("persistence_id" = ?) and ("deleted" = false)) and ("sequence_number" >= ?)) and ("sequence_number" <= ?)) and ("ordering" >= ?)) and ("ordering" <= ?) order by "sequence_number" limit ?"""
+      11L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (((("persistence_id" = ?) and ("deleted" = false)) and ("sequence_number" >= ?)) and ("sequence_number" <= ?)) and ("ordering" >= ?) order by "sequence_number" limit ?"""
   }
 
   it should "create SQL query for markJournalMessagesAsDeleted" in withJournalQueries { queries =>

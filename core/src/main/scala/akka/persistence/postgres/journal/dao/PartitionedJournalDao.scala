@@ -1,15 +1,19 @@
 package akka.persistence.postgres.journal.dao
 
+import akka.NotUsed
+import akka.persistence.PersistentRepr
 import akka.persistence.postgres.JournalRow
 import akka.persistence.postgres.config.JournalConfig
 import akka.persistence.postgres.db.DbErrors.{ withHandledIndexErrors, withHandledPartitionErrors }
 import akka.serialization.Serialization
 import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import slick.jdbc.JdbcBackend.Database
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.collection.immutable.{ Nil, Seq }
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Try
 
 class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serialization: Serialization)(
     implicit ec: ExecutionContext,
@@ -83,5 +87,30 @@ class PartitionedJournalDao(db: Database, journalConfig: JournalConfig, serializ
     } else {
       DBIO.successful(())
     }
+  }
+
+  override def messages(
+      persistenceId: String,
+      fromSequenceNr: Long,
+      toSequenceNr: Long,
+      max: Long): Source[Try[(PersistentRepr, Long)], NotUsed] = {
+
+    // This behaviour override is only applied here, because it is only useful on the PartitionedJournal strategy.
+    val query = if (journalConfig.useJournalMetadata) {
+      metadataQueries.minAndMaxOrderingForPersistenceId(persistenceId).result.headOption.flatMap {
+        case Some((minOrdering, _)) =>
+          // if journal_metadata knows the min ordering of a persistenceId,
+          // use it to help the query planner to avoid scanning unnecessary partitions.
+          queries
+            .messagesOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering)
+            .result
+        case None =>
+          // fallback to standard behaviour
+          queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
+      }
+    } else
+      queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
+
+    Source.fromPublisher(db.stream(query)).via(serializer.deserializeFlow)
   }
 }

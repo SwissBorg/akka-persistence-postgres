@@ -38,14 +38,12 @@ class ReadJournalQueries(journalTable: TableQuery[JournalTable], includeDeleted:
       fromSequenceNr: Rep[Long],
       toSequenceNr: Rep[Long],
       max: ConstColumn[Long],
-      minOrdering: Rep[Long],
-      maxOrdering: Rep[Long]): Query[JournalTable, JournalRow, Seq] =
+      minOrdering: Rep[Long]): Query[JournalTable, JournalRow, Seq] =
     baseTableQuery()
       .filter(_.persistenceId === persistenceId)
       .filter(_.sequenceNumber >= fromSequenceNr)
       .filter(_.sequenceNumber <= toSequenceNr)
       .filter(_.ordering >= minOrdering)
-      .filter(_.ordering <= maxOrdering)
       .sortBy(_.sequenceNumber.asc)
       .take(max)
 
