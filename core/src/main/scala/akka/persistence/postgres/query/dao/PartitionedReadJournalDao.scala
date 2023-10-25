@@ -46,12 +46,10 @@ class PartitionedReadJournalDao(
     // This behaviour override is only applied here, because it is only useful on the PartitionedJournal strategy.
     val query = if (readJournalConfig.useJournalMetadata) {
       metadataQueries.minAndMaxOrderingForPersistenceId(persistenceId).result.headOption.flatMap {
-        case Some((minOrdering, maxOrdering)) =>
-          // if journal_metadata knows the min and max ordering of a persistenceId,
-          // use them to help the query planner to avoid scanning unnecessary partitions.
-          queries
-            .messagesOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering, maxOrdering)
-            .result
+        case Some((minOrdering, _)) =>
+          // if journal_metadata knows the min ordering of a persistenceId,
+          // use it to help the query planner to avoid scanning unnecessary partitions.
+          queries.messagesMinOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering).result
         case None =>
           // fallback to standard behaviour
           queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
