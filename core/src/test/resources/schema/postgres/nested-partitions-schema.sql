@@ -98,7 +98,8 @@ BEGIN
   ON CONFLICT (persistence_id) DO UPDATE
   SET
     max_sequence_number = GREATEST(public.journal_metadata.max_sequence_number, NEW.sequence_number),
-    max_ordering = GREATEST(public.journal_metadata.max_ordering, NEW.ordering);
+    max_ordering = GREATEST(public.journal_metadata.max_ordering, NEW.ordering),
+    min_ordering = LEAST(public.journal_metadata.min_ordering, NEW.ordering);
 
   RETURN NEW;
 END;

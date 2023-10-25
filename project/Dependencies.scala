@@ -1,18 +1,18 @@
 import sbt._
 
 object Dependencies {
-  val Scala213 = "2.13.11"
+  val Scala213 = "2.13.12"
   val ScalaVersions = Seq(Scala213)
 
   val AkkaVersion = "2.6.16"
   val FlywayVersion = "9.20.0"
   val ScaffeineVersion = "5.2.1"
-  val ScalaTestVersion = "3.2.16"
+  val ScalaTestVersion = "3.2.17"
   val SlickVersion = "3.4.1"
   val SlickPgVersion = "0.21.1"
   val SslConfigVersion = "0.6.1"
 
-  val LogbackVersion = "1.4.8"
+  val LogbackVersion = "1.4.11"
 
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.6.0")
 
