@@ -68,7 +68,7 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
       .sortBy(_.sequenceNumber.asc)
       .take(max)
 
-  private def _messagesOrderingBoundedQuery(
+  private def _messagesMinOrderingBoundedQuery(
       persistenceId: Rep[String],
       fromSequenceNr: Rep[Long],
       toSequenceNr: Rep[Long],
@@ -85,5 +85,5 @@ class JournalQueries(journalTable: TableQuery[JournalTable]) {
 
   val messagesQuery = Compiled(_messagesQuery _)
 
-  val messagesOrderingBoundedQuery = Compiled(_messagesOrderingBoundedQuery _)
+  val messagesMinOrderingBoundedQuery = Compiled(_messagesMinOrderingBoundedQuery _)
 }

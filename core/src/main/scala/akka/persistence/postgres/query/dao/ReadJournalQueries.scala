@@ -33,7 +33,7 @@ class ReadJournalQueries(journalTable: TableQuery[JournalTable], includeDeleted:
       .sortBy(_.sequenceNumber.asc)
       .take(max)
 
-  private def _messagesOrderingBoundedQuery(
+  private def _messagesMinOrderingBoundedQuery(
       persistenceId: Rep[String],
       fromSequenceNr: Rep[Long],
       toSequenceNr: Rep[Long],
@@ -49,7 +49,7 @@ class ReadJournalQueries(journalTable: TableQuery[JournalTable], includeDeleted:
 
   val messagesQuery = Compiled(_messagesQuery _)
 
-  val messagesOrderingBoundedQuery = Compiled(_messagesOrderingBoundedQuery _)
+  val messagesMinOrderingBoundedQuery = Compiled(_messagesMinOrderingBoundedQuery _)
 
   protected def _eventsByTag(
       tag: Rep[List[Int]],

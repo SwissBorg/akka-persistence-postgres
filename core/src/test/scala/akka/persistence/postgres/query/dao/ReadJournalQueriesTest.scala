@@ -17,8 +17,8 @@ class ReadJournalQueriesTest extends BaseQueryTest {
       5L) shouldBeSQL """select "ordering", "deleted", "persistence_id", "sequence_number", "message", "tags", "metadata" from "journal" where (("persistence_id" = ?) and ("sequence_number" >= ?)) and ("sequence_number" <= ?) order by "sequence_number" limit ?"""
   }
 
-  it should "create SQL query for messagesOrderingBoundedQuery" in withReadJournalQueries { queries =>
-    queries.messagesOrderingBoundedQuery(
+  it should "create SQL query for messagesMinOrderingBoundedQuery" in withReadJournalQueries { queries =>
+    queries.messagesMinOrderingBoundedQuery(
       "aaa",
       1L,
       4L,

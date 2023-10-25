@@ -49,7 +49,7 @@ class PartitionedReadJournalDao(
         case Some((minOrdering, _)) =>
           // if journal_metadata knows the min ordering of a persistenceId,
           // use it to help the query planner to avoid scanning unnecessary partitions.
-          queries.messagesOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering).result
+          queries.messagesMinOrderingBoundedQuery(persistenceId, fromSequenceNr, toSequenceNr, max, minOrdering).result
         case None =>
           // fallback to standard behaviour
           queries.messagesQuery(persistenceId, fromSequenceNr, toSequenceNr, max).result
