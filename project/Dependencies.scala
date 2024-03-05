@@ -12,7 +12,7 @@ object Dependencies {
   val SlickPgVersion = "0.21.1"
   val SslConfigVersion = "0.6.1"
 
-  val LogbackVersion = "1.4.14"
+  val LogbackVersion = "1.5.3"
 
   val JdbcDrivers = Seq("org.postgresql" % "postgresql" % "42.7.1")
 
