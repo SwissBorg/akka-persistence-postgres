@@ -10,7 +10,7 @@ object Dependencies {
   val ScalaTestVersion = "3.2.20"
   val SlickVersion = "3.4.1"
   val SlickPgVersion = "0.21.1"
-  val SslConfigVersion = "0.6.1"
+  val SslConfigVersion = "0.7.2"
 
   val LogbackVersion = "1.4.14"
 
